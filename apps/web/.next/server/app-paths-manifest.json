@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/login/page": "app/login/page.js",
+  "/(public)/[tenantSlug]/contact/page": "app/(public)/[tenantSlug]/contact/page.js",
+  "/(public)/[tenantSlug]/page": "app/(public)/[tenantSlug]/page.js",
+  "/(public)/[tenantSlug]/review/[leadId]/page": "app/(public)/[tenantSlug]/review/[leadId]/page.js",
+  "/(public)/[tenantSlug]/feedback/page": "app/(public)/[tenantSlug]/feedback/page.js",
+  "/(dashboard)/dashboard/notifications/page": "app/(dashboard)/dashboard/notifications/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/dashboard/analytics/page": "app/(dashboard)/dashboard/analytics/page.js",
+  "/(dashboard)/dashboard/leads/page": "app/(dashboard)/dashboard/leads/page.js",
+  "/(dashboard)/dashboard/followups/page": "app/(dashboard)/dashboard/followups/page.js",
+  "/(dashboard)/dashboard/settings/page": "app/(dashboard)/dashboard/settings/page.js",
+  "/(dashboard)/dashboard/reviews/page": "app/(dashboard)/dashboard/reviews/page.js"
+}

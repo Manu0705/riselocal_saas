@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@saas/database": ["packages/database/src"],
+      "@saas/domain-core/*": ["packages/domain-core/*"]
+    },
+  },
+  "include": ["src"]
+}

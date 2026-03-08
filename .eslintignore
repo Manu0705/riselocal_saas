@@ -1,0 +1,13 @@
+# Ignore build and dependency output
+node_modules/
+**/node_modules/
+.next/
+dist/
+build/
+coverage/
+
+# Ignore locks
+pnpm-lock.yaml
+
+# Ignore IDE metadata
+.vscode/

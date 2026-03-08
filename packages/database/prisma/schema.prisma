@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  domain    String?    @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  feedbacks Feedback[]
+  followUps FollowUp[]
+  leads     Lead[]
+
+  @@index([createdAt])
+}
+
+model Lead {
+  id        String     @id @default(uuid())
+  tenantId  String
+  name      String
+  email     String
+  phone     String
+  source    String     @default("Manual")
+  location  String?
+  status    String     @default("Open")
+  createdAt DateTime   @default(now())
+  followUps FollowUp[]
+  feedbacks Feedback[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}
+
+model Feedback {
+  id         String   @id @default(uuid())
+  tenantId   String
+  leadId     String
+  comment    String
+  type       String   @default("NEUTRAL")
+  rating     Int?
+  status     String   @default("PENDING")
+  approvedBy String?
+  createdBy  String   @default("customer")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  lead       Lead     @relation(fields: [leadId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}
+
+model FollowUp {
+  id         String    @id @default(uuid())
+  note       String
+  followUpAt DateTime?
+  tenantId   String
+  leadId     String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lead       Lead      @relation(fields: [leadId], references: [id])
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}

@@ -1,0 +1,7 @@
+{
+  "name": "@saas/domain-core",
+  "version": "1.0.0",
+  "private": true,
+  "main": "lead/lead.aggregate.ts",
+  "types": "lead/lead.aggregate.ts"
+}

@@ -1,0 +1,107 @@
+// Mock/dummy data for development and testing
+// This data is used as fallback when API returns empty or fails
+
+export const DUMMY_LEADS: any[] = [
+  {
+    id: "lead-001",
+    name: "Sarah Johnson",
+    phone: "+1 (555) 234-5678",
+    email: "sarah.j@example.com",
+    source: "Website",
+    status: "Open",
+    createdAt: new Date(2026, 2, 5).toISOString(),
+    followUpAt: null,
+  },
+  {
+    id: "lead-002",
+    name: "Michael Chen",
+    phone: "+1 (555) 345-6789",
+    email: "m.chen@techcorp.com",
+    source: "Referral",
+    status: "Follow-Up",
+    createdAt: new Date(2026, 2, 4).toISOString(),
+    followUpAt: new Date(2026, 2, 8).toISOString(), // Today
+  },
+  {
+    id: "lead-003",
+    name: "Emma Rodriguez",
+    phone: "+1 (555) 456-7890",
+    email: "emma.r@gmail.com",
+    source: "Social Media",
+    status: "Converted",
+    createdAt: new Date(2026, 2, 3).toISOString(),
+    followUpAt: null,
+  },
+  {
+    id: "lead-004",
+    name: "James Wilson",
+    phone: "+1 (555) 567-8901",
+    email: "jwilson@business.net",
+    source: "Phone Call",
+    status: "Follow-Up",
+    createdAt: new Date(2026, 2, 2).toISOString(),
+    followUpAt: new Date(2026, 2, 6).toISOString(), // Overdue
+  },
+  {
+    id: "lead-005",
+    name: "Olivia Martinez",
+    phone: "+1 (555) 678-9012",
+    email: "olivia.m@startup.io",
+    source: "Website",
+    status: "Open",
+    createdAt: new Date(2026, 2, 1).toISOString(),
+    followUpAt: null,
+  },
+  {
+    id: "lead-006",
+    name: "David Kim",
+    phone: "+1 (555) 789-0123",
+    email: "d.kim@enterprise.com",
+    source: "Email Campaign",
+    status: "Converted",
+    createdAt: new Date(2026, 1, 28).toISOString(),
+    followUpAt: null,
+  },
+  {
+    id: "lead-007",
+    name: "Sophia Patel",
+    phone: "+1 (555) 890-1234",
+    email: "sophia.patel@company.org",
+    source: "Referral",
+    status: "Follow-Up",
+    createdAt: new Date(2026, 1, 27).toISOString(),
+    followUpAt: null, // Unscheduled
+  },
+  {
+    id: "lead-008",
+    name: "Lucas Anderson",
+    phone: "+1 (555) 901-2345",
+    email: "lucas.a@webdesign.co",
+    source: "Social Media",
+    status: "Open",
+    createdAt: new Date(2026, 1, 25).toISOString(),
+    followUpAt: null,
+  },
+  {
+    id: "lead-009",
+    name: "Isabella Brown",
+    phone: "+1 (555) 012-3456",
+    email: "isabella.b@consulting.com",
+    source: "Website",
+    status: "Follow-Up",
+    createdAt: new Date(2026, 1, 24).toISOString(),
+    followUpAt: new Date(2026, 2, 10).toISOString(), // Future
+  },
+  {
+    id: "lead-010",
+    name: "Ethan Taylor",
+    phone: "+1 (555) 123-4567",
+    email: "ethan.t@solutions.net",
+    source: "Phone Call",
+    status: "Converted",
+    createdAt: new Date(2026, 1, 20).toISOString(),
+    followUpAt: null,
+  },
+]
+
+export type MockLead = typeof DUMMY_LEADS[number]

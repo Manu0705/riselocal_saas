@@ -1,0 +1,26 @@
+{
+  "root": true,
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "plugins": ["@typescript-eslint", "prettier"],
+  "rules": {
+    "prettier/prettier": "error",
+    "@next/next/no-css-tags": "off",
+    "@next/next/inline-script-id": "off",
+    "react/no-unknown-property": ["error", { "ignore": ["style"] }]
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "**/node_modules/",
+    ".next/",
+    "dist/",
+    "build/",
+    "coverage/",
+    "*.js",
+    "*.cjs",
+    "*.mjs"
+  ]
+}

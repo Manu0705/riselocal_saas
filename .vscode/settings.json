@@ -1,0 +1,27 @@
+{
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "files.exclude": {
+        "**/node_modules": true
+    },
+    "search.exclude": {
+        "**/node_modules": true
+    },
+    "files.watcherExclude": {
+        "**/node_modules/**": true
+    },
+    "sonarlint.rules": {
+        "typescript:S6478": {
+            "level": "off"
+        },
+        "typescript:S6754": {
+            "level": "off"
+        },
+        "Web:S1135": {
+            "level": "off"
+        }
+    },
+    "css.lint.validProperties": [],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    }
+}

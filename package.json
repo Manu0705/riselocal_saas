@@ -1,0 +1,60 @@
+{
+  "devDependencies": {
+    "@prisma/client": "5.22.0",
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^8.2.3",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.3.3",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "9.11.0",
+    "eslint-config-next": "^16.1.6",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
+    "prisma": "5.22.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@saas/database": "workspace:*",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1"
+  },
+  "scripts": {
+    "dev": "pnpm run dev:web",
+    "qa": "pnpm run qa:api",
+    "build": "pnpm run build:web && pnpm run build:api",
+    "start": "pnpm run start:web",
+    "dev:web": "pnpm --filter @saas/web dev",
+    "build:web": "pnpm --filter @saas/web build",
+    "start:web": "node scripts/run-with-env.cjs production pnpm --filter @saas/web start",
+    "dev:api": "node scripts/run-with-env.cjs development ts-node-dev --respawn --transpile-only --project apps/api/tsconfig.json apps/api/src/server.ts",
+    "qa:api": "node scripts/run-with-env.cjs qa ts-node-dev --respawn --transpile-only --project apps/api/tsconfig.json apps/api/src/server.ts",
+    "start:api": "ts-node --project apps/api/tsconfig.json apps/api/src/server.ts",
+    "build:api": "tsc -p apps/api/tsconfig.json --noEmit",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "prisma": {
+    "schema": "packages/database/prisma/schema.prisma"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "18.3.12",
+      "@types/react-dom": "18.3.1"
+    }
+  }
+}

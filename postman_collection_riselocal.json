@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "RiseLocal API",
+    "_postman_id": "7f0032a9-cb4e-46ca-8a75-8b94e62b1f79",
+    "description": "Production + QA endpoint collection for RiseLocal multi-tenant SaaS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "api_base", "value": "https://api.riselocal.in" },
+    { "key": "qa_api_base", "value": "https://qa-api.riselocal.in" },
+    { "key": "tenant_slug", "value": "abc-cafe" },
+    { "key": "tenant_id", "value": "replace-with-tenant-id" },
+    { "key": "lead_id", "value": "replace-with-lead-id" },
+    { "key": "feedback_id", "value": "replace-with-feedback-id" },
+    { "key": "jwt", "value": "replace-with-jwt-token" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{api_base}}/health", "host": ["{{api_base}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Auth Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"owner@abc.com\",\n  \"password\": \"test123\",\n  \"tenantSlug\": \"{{tenant_slug}}\",\n  \"role\": \"owner\"\n}"
+        },
+        "url": { "raw": "{{api_base}}/api/auth/login", "host": ["{{api_base}}"], "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "Tenant by Slug",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }],
+        "url": { "raw": "{{api_base}}/api/tenants/slug/{{tenant_slug}}", "host": ["{{api_base}}"], "path": ["api", "tenants", "slug", "{{tenant_slug}}"] }
+      }
+    },
+    {
+      "name": "Leads - List by Slug",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads"] }
+      }
+    },
+    {
+      "name": "Leads - Create by Slug",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Lead\",\n  \"phone\": \"9999999999\",\n  \"email\": \"lead@example.com\",\n  \"source\": \"Website\",\n  \"location\": \"Bangalore\"\n}"
+        },
+        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads"] }
+      }
+    },
+    {
+      "name": "Leads - Update Status by Slug",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CONVERTED\"\n}"
+        },
+        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads/{{lead_id}}/status", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads", "{{lead_id}}", "status"] }
+      }
+    },
+    {
+      "name": "Feedback - Create by Slug",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"leadId\": \"{{lead_id}}\",\n  \"comment\": \"Great service\",\n  \"type\": \"POSITIVE\",\n  \"rating\": 5\n}"
+        },
+        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "feedback"] }
+      }
+    },
+    {
+      "name": "Feedback - List by Slug",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "feedback"] }
+      }
+    },
+    {
+      "name": "Feedback - Approve",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "url": { "raw": "{{api_base}}/api/feedback/{{feedback_id}}/approve", "host": ["{{api_base}}"], "path": ["api", "feedback", "{{feedback_id}}", "approve"] }
+      }
+    },
+    {
+      "name": "Feedback - Reject",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" },
+          { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
+        ],
+        "url": { "raw": "{{api_base}}/api/feedback/{{feedback_id}}/reject", "host": ["{{api_base}}"], "path": ["api", "feedback", "{{feedback_id}}", "reject"] }
+      }
+    },
+    {
+      "name": "QA Health",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{qa_api_base}}/health", "host": ["{{qa_api_base}}"], "path": ["health"] }
+      }
+    }
+  ]
+}
