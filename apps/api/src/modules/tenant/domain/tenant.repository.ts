@@ -36,4 +36,9 @@ export interface TenantRepository {
    * Retrieve all tenants.
    */
   findAllActive(): Promise<Tenant[]>;
+
+  /**
+   * Delete a tenant by ID.
+   */
+  delete(id: string): Promise<void>;
 }

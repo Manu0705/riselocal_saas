@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { PrismaTenantRepository } from "../infrastructure/tenant.prisma.repository";
 import { Tenant } from "../domain/tenant.entity";
+import { authMiddleware } from "../../auth/presentation/auth.middleware";
+import { adminRoleMiddleware } from "../../auth/presentation/admin-role.middleware";
 
 const router = Router();
 const repository = new PrismaTenantRepository();
@@ -25,7 +27,7 @@ function toSlug(value: string): string {
    POST /tenants
 ========================================= */
 
-router.post("/tenants", async (req, res) => {
+router.post("/tenants", authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const { name, domain, slug } = req.body;
 
@@ -74,6 +76,8 @@ router.get("/tenants/slug/:slug", async (req, res) => {
   }
 });
 
+router.use("/tenants", authMiddleware, adminRoleMiddleware)
+
 /* =========================================
    LIST ACTIVE TENANTS
    GET /tenants
@@ -86,6 +90,74 @@ router.get("/tenants", async (_req, res) => {
     return res.json({
       success: true,
       data: tenants.map((t) => t.toJSON()),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/* =========================================
+   UPDATE TENANT
+   PUT /tenants/:id
+========================================= */
+
+router.put("/tenants/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, domain } = req.body;
+
+    const tenant = await repository.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: "Tenant not found",
+      });
+    }
+
+    const resolvedSlug = toSlug(slug || name || "");
+    tenant.update(name, resolvedSlug, domain);
+
+    await repository.update(tenant);
+
+    return res.json({
+      success: true,
+      data: tenant.toJSON(),
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/* =========================================
+   DELETE TENANT
+   DELETE /tenants/:id
+========================================= */
+
+router.delete("/tenants/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const tenant = await repository.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: "Tenant not found",
+      });
+    }
+
+    await repository.delete(id);
+
+    return res.json({
+      success: true,
+      message: "Tenant deleted successfully",
     });
   } catch (error: any) {
     return res.status(500).json({

@@ -106,11 +106,11 @@ export default function Hero({ tenant }: Props) {
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 700 }}>
-              {tenant?.name || "JB Interior Curtains"}
+              {tenant?.name || "Business Name"}
             </div>
 
             <div style={{ color: "var(--muted)", fontSize: 13 }}>
-              {tenant?.tagline || "Curtains, blinds and wallpaper solutions"}
+              {tenant?.tagline || "Your business tagline"}
             </div>
 
             <div style={{ fontSize: 13 }}>

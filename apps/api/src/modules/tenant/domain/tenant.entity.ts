@@ -41,6 +41,37 @@ export class Tenant {
      Business Logic
   ========================================= */
 
+  update(name: string, slug: string, domain?: string | null) {
+    if (!name || name.trim().length === 0) {
+      throw new Error("Tenant name is required");
+    }
+
+    if (!slug || slug.trim().length === 0) {
+      throw new Error("Tenant slug is required");
+    }
+
+    this.props.name = name.trim();
+    this.props.slug = slug.trim().toLowerCase();
+    this.props.domain = domain ?? null;
+    this.props.updatedAt = new Date();
+  }
+
+  /* =========================================
+     Getters
+  ========================================= */
+
+  get id() {
+    return this.props.id;
+  }
+
+  get name() {
+    return this.props.name;
+  }
+
+  get slug() {
+    return this.props.slug;
+  }
+
   /* =========================================
      Serialization
   ========================================= */

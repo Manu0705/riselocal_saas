@@ -8,10 +8,15 @@ export default function LoginPage() {
   const router = useRouter()
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (login(password)) {
+    setSubmitting(true)
+    const ok = await login(password)
+    setSubmitting(false)
+
+    if (ok) {
       router.push("/dashboard")
     } else {
       setError("Invalid password")
@@ -59,8 +64,8 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
-            Login
+          <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={submitting}>
+            {submitting ? "Signing in..." : "Login"}
           </button>
 
           <p style={{ marginTop: 16, fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>

@@ -191,7 +191,7 @@ export default function TenantsPage() {
                   type="text"
                   required
                   className="input"
-                  placeholder="JB Interior Curtains"
+                  placeholder="Acme Business"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -206,7 +206,7 @@ export default function TenantsPage() {
                   type="text"
                   required
                   className="input"
-                  placeholder="jb-interior-curtains"
+                  placeholder="acme-business"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                 />

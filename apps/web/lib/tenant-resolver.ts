@@ -2,12 +2,18 @@ import { cache } from "react"
 
 export const RESERVED_ROUTES = [
   "dashboard",
+  "admin",
   "analytics",
   "leads",
   "followups",
+  "feedback",
+  "tenants",
   "settings",
   "login",
-  "api"
+  "api",
+  "_next",
+  "qa",
+  "www"
 ]
 
 export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug)
@@ -53,12 +59,9 @@ export const getTenant = cache(async (slug: string) => {
       domain: tenant.domain,
       ...defaults,
     }
-  } catch {
-    return {
-      name: slug,
-      slug,
-      domain: null,
-      ...defaults,
-    }
+  } catch (error) {
+    // Return null on error - do not create mock tenants
+    console.error(`Failed to fetch tenant: ${slug}`, error)
+    return null
   }
 })

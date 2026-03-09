@@ -1,67 +1,138 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const RESERVED = new Set(["api", "_next", "dashboard", "login", "favicon.ico", "qa", "www"])
+// Reserved routes that should not be treated as tenant slugs
+const RESERVED = new Set([
+  "api",
+  "_next",
+  "dashboard",
+  "admin",
+  "login",
+  "favicon.ico",
+  "qa",
+  "www",
+  "analytics",
+  "leads",
+  "feedback",
+  "tenants",
+  "followups",
+  "settings"
+])
 
+// Normalize and extract host from request
 function normalizeHost(host: string): string {
   return host.split(",")[0].trim().toLowerCase().split(":")[0]
 }
 
-function inferTenantSlug(host: string): string | null {
+// Extract tenant slug from subdomain
+function extractSubdomainSlug(host: string): string | null {
   const normalized = normalizeHost(host)
 
-  if (normalized.endsWith(".localhost")) {
-    const [slug] = normalized.split(".")
-    return RESERVED.has(slug) ? null : slug
-  }
+  // Map of domain patterns to their minimum part count
+  const domainPatterns = [
+    { suffix: ".localhost", minParts: 2 },
+    { suffix: ".qa.riselocal.in", minParts: 4 },
+    { suffix: ".riselocal.in", minParts: 3 }
+  ]
 
-  if (normalized.endsWith(".qa.riselocal.in")) {
-    const [slug] = normalized.split(".")
-    return RESERVED.has(slug) ? null : slug
-  }
-
-  if (normalized.endsWith(".riselocal.in")) {
-    const [slug] = normalized.split(".")
-    return RESERVED.has(slug) ? null : slug
+  for (const { suffix, minParts } of domainPatterns) {
+    if (normalized.endsWith(suffix)) {
+      const parts = normalized.split(".")
+      if (parts.length >= minParts) {
+        const slug = parts[0]
+        // Treat "www" and other reserved keywords as root domain, not a tenant
+        return slug && !RESERVED.has(slug) ? slug : null
+      }
+    }
   }
 
   return null
 }
 
-function isAssetPath(pathname: string): boolean {
-  return pathname.startsWith("/_next") || pathname.includes(".")
+// Extract tenant slug from URL path
+function extractPathSlug(pathname: string): string | null {
+  const segments = pathname.split("/").filter((s) => s.length > 0)
+  if (segments.length === 0) return null
+
+  const firstSegment = segments[0]
+  return RESERVED.has(firstSegment) ? null : firstSegment
 }
 
-export function middleware(request: NextRequest) {
+// Check if path is an asset or should be ignored
+function shouldIgnore(pathname: string): boolean {
+  return (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico" ||
+    pathname.includes(".") // static files
+  )
+}
+
+// Check if path is a reserved route
+function isReservedPath(pathname: string): boolean {
+  const firstSegment = pathname.split("/").filter(Boolean).find(() => true)
+  return firstSegment ? RESERVED.has(firstSegment) : false
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  if (isAssetPath(pathname) || pathname.startsWith("/api")) {
-    return NextResponse.next()
-  }
-
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? ""
-  const tenantSlug = inferTenantSlug(host)
 
-  if (!tenantSlug) {
+  // Ignore assets and API routes
+  if (shouldIgnore(pathname)) {
     return NextResponse.next()
   }
 
-  if (pathname === "/") {
-    const rewriteUrl = request.nextUrl.clone()
-    rewriteUrl.pathname = `/${tenantSlug}`
-    return NextResponse.rewrite(rewriteUrl)
-  }
-
-  const pathRoot = pathname.split("/").find((segment) => segment.length > 0) || ""
-
-  if (pathRoot === tenantSlug || RESERVED.has(pathRoot)) {
+  // Ignore reserved routes (dashboard, admin, login, etc.)
+  if (isReservedPath(pathname)) {
     return NextResponse.next()
   }
 
-  const rewriteUrl = request.nextUrl.clone()
-  rewriteUrl.pathname = `/${tenantSlug}${pathname}`
-  return NextResponse.rewrite(rewriteUrl)
+  const subdomainSlug = extractSubdomainSlug(host)
+  const pathSlug = extractPathSlug(pathname)
+
+  // Case 1: Subdomain is present (e.g., bavani.riselocal.in)
+  if (subdomainSlug) {
+    // Case 1a: Root path (e.g., bavani.riselocal.in/)
+    if (pathname === "/" || pathname === "") {
+      const rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = `/${subdomainSlug}`
+      return NextResponse.rewrite(rewriteUrl)
+    }
+
+    // Case 1b: Path matches subdomain (e.g., bavani.riselocal.in/bavani)
+    if (pathSlug === subdomainSlug) {
+      return NextResponse.next()
+    }
+
+    // Case 1c: Path is different from subdomain (e.g., bavani.riselocal.in/contact)
+    // This is valid - append subdomain to path
+    if (pathSlug !== subdomainSlug) {
+      const rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = `/${subdomainSlug}${pathname}`
+      return NextResponse.rewrite(rewriteUrl)
+    }
+  }
+
+  // Case 2: No subdomain, path-based routing (e.g., riselocal.in/bavani)
+  if (!subdomainSlug && pathSlug) {
+    // Let Next.js handle the route - tenant validation happens in page.tsx
+    return NextResponse.next()
+  }
+
+  // Case 3: Root domain with no tenant (e.g., riselocal.in or www.riselocal.in)
+  // Let it pass through - you can add a landing page at app/page.tsx
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)"
+  ]
 }

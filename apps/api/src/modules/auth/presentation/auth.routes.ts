@@ -7,12 +7,11 @@ const jwtService = new JwtService();
 const tenantRepository = new PrismaTenantRepository();
 
 router.post("/login", async (req, res) => {
-  const { email, password, tenantId, role } = req.body as {
+  const { email, password, tenantId } = req.body as {
     email?: string
     password?: string
     tenantId?: string
     tenantSlug?: string
-    role?: string
   }
 
   const tenantSlug = typeof req.body?.tenantSlug === "string" ? req.body.tenantSlug.trim().toLowerCase() : ""
@@ -33,7 +32,7 @@ router.post("/login", async (req, res) => {
     }
   }
 
-  const resolvedRole = role ? String(role).trim() : "owner"
+  const resolvedRole = "owner"
 
   const token = jwtService.sign({
     userId,
@@ -50,5 +49,37 @@ router.post("/login", async (req, res) => {
     },
   })
 });
+
+router.post("/admin-login", async (req, res) => {
+  const { email, password } = req.body as {
+    email?: string
+    password?: string
+  }
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" })
+  }
+
+  const configuredAdminPassword = process.env.ADMIN_PASSWORD || "admin123"
+  if (password !== configuredAdminPassword) {
+    return res.status(401).json({ error: "Invalid admin credentials" })
+  }
+
+  const userId = email.trim().toLowerCase()
+  const token = jwtService.sign({
+    userId,
+    tenantId: "admin",
+    role: "admin",
+  })
+
+  return res.json({
+    token,
+    user: {
+      userId,
+      tenantId: "admin",
+      role: "admin",
+    },
+  })
+})
 
 export default router;

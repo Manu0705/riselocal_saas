@@ -130,4 +130,14 @@ export class PrismaTenantRepository implements TenantRepository {
       })
     );
   }
+
+  /* =========================================
+     DELETE
+  ========================================= */
+
+  async delete(id: string): Promise<void> {
+    await prisma.tenant.delete({
+      where: { id },
+    });
+  }
 }

@@ -15,6 +15,7 @@ const router = Router();
 ========================================= */
 
 router.use("/auth", authRoutes);
+router.use(tenantRoutes);
 
 /* =========================================
    AUTH PROTECTED ROUTES
@@ -28,7 +29,6 @@ router.use(tenantAccessMiddleware);
    MODULE ROUTES
 ========================================= */
 
-router.use(tenantRoutes);
 router.use(leadRoutes);
 router.use(feedbackRoutes);
 

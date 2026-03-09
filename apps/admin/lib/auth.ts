@@ -1,26 +1,46 @@
-// Admin authentication utilities
-// Simple password-based auth for MVP (upgrade to proper auth later)
+const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:4000"
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"
+function buildAuthUrl(path: string) {
+  const base = API_BASE.replace(/\/+$/, "")
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+  return `${base}/api${normalizedPath}`
+}
 
-export function validateAdminPassword(password: string): boolean {
-  return password === ADMIN_PASSWORD
+export function getAdminToken(): string | null {
+  if (globalThis.window === undefined) return null
+  return localStorage.getItem("admin_token")
 }
 
 export function isAuthenticated(): boolean {
-  if (typeof window === "undefined") return false
-  return localStorage.getItem("admin_authenticated") === "true"
+  return Boolean(getAdminToken())
 }
 
-export function login(password: string): boolean {
-  if (validateAdminPassword(password)) {
-    localStorage.setItem("admin_authenticated", "true")
-    return true
+export async function login(password: string): Promise<boolean> {
+  const res = await fetch(buildAuthUrl("/auth/admin-login"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "admin@riselocal.in",
+      password,
+    }),
+  })
+
+  if (!res.ok) {
+    return false
   }
-  return false
+
+  const payload = await res.json()
+  const token = payload?.token
+
+  if (!token || typeof token !== "string") {
+    return false
+  }
+
+  localStorage.setItem("admin_token", token)
+  return true
 }
 
 export function logout(): void {
-  localStorage.removeItem("admin_authenticated")
+  localStorage.removeItem("admin_token")
 }
 
