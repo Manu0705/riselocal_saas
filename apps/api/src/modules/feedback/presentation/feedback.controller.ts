@@ -42,7 +42,7 @@ export class FeedbackController {
       const tenantId = getParam(req.params.tenantId, "tenantId");
       const { leadId, comment, type, rating } = req.body;
 
-      const createdBy = (req as any).user?.id || "system";
+      const createdBy = req.user?.id || "system";
 
       const useCase = new CreateFeedbackUseCase(
         feedbackRepository,
@@ -133,14 +133,14 @@ export class FeedbackController {
         });
       }
 
-      if (!this.canAccessTenant(feedback.toJSON().tenantId, (req as any).user)) {
+      if (!this.canAccessTenant(feedback.toJSON().tenantId, req.user)) {
         return res.status(403).json({
           success: false,
           message: "Access denied for this tenant",
         });
       }
 
-      const approvedBy = (req as any).user?.id || "system";
+      const approvedBy = req.user?.id || "system";
 
       feedback.approve(approvedBy);
 
@@ -175,14 +175,14 @@ export class FeedbackController {
         });
       }
 
-      if (!this.canAccessTenant(feedback.toJSON().tenantId, (req as any).user)) {
+      if (!this.canAccessTenant(feedback.toJSON().tenantId, req.user)) {
         return res.status(403).json({
           success: false,
           message: "Access denied for this tenant",
         });
       }
 
-      const rejectedBy = (req as any).user?.id || "system";
+      const rejectedBy = req.user?.id || "system";
 
       feedback.reject(rejectedBy);
 
