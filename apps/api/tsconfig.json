@@ -11,7 +11,8 @@
     "paths": {
       "@saas/database": ["packages/database/src"],
       "@saas/domain-core/*": ["packages/domain-core/*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src", "src/types/**/*"]
+  "include": ["src"]
 }

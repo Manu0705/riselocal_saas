@@ -1,3 +1,5 @@
+/// <reference path="./types/express.d.ts" />
+
 import { prisma } from "@saas/database"
 import express from "express"
 import cors from "cors"
