@@ -29,27 +29,32 @@ export default async function TenantPage({ params }: Props) {
     notFound()
   }
 
+  const sectionOrder = Array.isArray(tenant.sectionOrder)
+    ? tenant.sectionOrder
+    : ["hero", "services", "gallery"]
+
+  const sections: Record<string, JSX.Element> = {
+    hero: <Hero tenant={tenant} />,
+    services: <Services services={tenant.services || []} />,
+    gallery: <Gallery images={tenant.gallery || []} tenantSlug={tenantSlug} phone={tenant.whatsapp || tenant.phone} />,
+  }
+
   return (
-    <>
-      <Hero tenant={tenant} />
+    <div
+      style={{
+        // Expose tenant brand colors to descendant components.
+        ["--tenant-primary" as string]: tenant.primaryColor || "#000000",
+        ["--tenant-secondary" as string]: tenant.secondaryColor || "#FFFFFF",
+      }}
+    >
+      {sectionOrder.map((sectionKey: string) => (
+        <div key={sectionKey}>{sections[sectionKey] ?? null}</div>
+      ))}
 
-      <QuickActions phone={tenant.phone} />
-
-      <Services
-        services={tenant.services || []}
-      />
-
-      <Gallery
-        images={tenant.gallery || []}
-        tenantSlug={tenantSlug}
-        phone={tenant.phone}
-      />
-
+      <QuickActions phone={tenant.whatsapp || tenant.phone} />
       <HowItWorks />
-
       <Booking tenant={tenant} />
-
       <Contact tenant={tenant} />
-    </>
+    </div>
   )
 }

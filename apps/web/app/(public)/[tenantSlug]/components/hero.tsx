@@ -6,10 +6,14 @@ type Props = {
     readonly tagline?: string
     readonly phone?: string
     readonly whatsapp?: string
+    readonly logoUrl?: string
+    readonly bannerUrl?: string
+    readonly logoShape?: string
     readonly address?: string
     readonly instagram?: string
     readonly facebook?: string
     readonly website?: string
+    readonly socialLinks?: Array<{ platform?: string; url?: string; label?: string }>
   }
 }
 
@@ -21,11 +25,21 @@ export default function Hero({ tenant }: Props) {
     return /^https?:\/\//i.test(url) ? url : `https://${url}`
   }
 
-  const tenantSocialLinks = [
-    { label: "Instagram", href: withProtocol(tenant?.instagram), icon: <Globe size={16} /> },
-    { label: "Facebook", href: withProtocol(tenant?.facebook), icon: <Globe size={16} /> },
-    { label: "Website", href: withProtocol(tenant?.website), icon: <Globe size={16} /> },
-  ].filter((item) => Boolean(item.href))
+  const mappedLinks = (tenant?.socialLinks ?? [])
+    .map((link) => ({
+      label: link?.label || link?.platform || "Link",
+      href: withProtocol(link?.url),
+      icon: <Globe size={16} />,
+    }))
+    .filter((item) => Boolean(item.href))
+
+  const tenantSocialLinks = mappedLinks.length
+    ? mappedLinks
+    : [
+        { label: "Instagram", href: withProtocol(tenant?.instagram), icon: <Globe size={16} /> },
+        { label: "Facebook", href: withProtocol(tenant?.facebook), icon: <Globe size={16} /> },
+        { label: "Website", href: withProtocol(tenant?.website), icon: <Globe size={16} /> },
+      ].filter((item) => Boolean(item.href))
 
   const dummySocialLinks = [
     { label: "Instagram", href: "https://instagram.com", icon: <Globe size={16} /> },
@@ -59,8 +73,8 @@ export default function Hero({ tenant }: Props) {
           }}
         >
           <img
-            src="https://api.maptiler.com/maps/streets/static/-74.0060,40.7128,13/600x300.png?key=YOUR_KEY"
-            alt="Store location map"
+            src={tenant?.bannerUrl || "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80&auto=format&fit=crop"}
+            alt="Business banner"
             style={{
               width: "100%",
               height: 180,
@@ -69,6 +83,20 @@ export default function Hero({ tenant }: Props) {
             }}
           />
           <div style={{ padding: 12 }}>
+            {tenant?.logoUrl ? (
+              <img
+                src={tenant.logoUrl}
+                alt="Business logo"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: tenant.logoShape === "square" ? 10 : "50%",
+                  objectFit: "cover",
+                  border: "2px solid var(--card-border)",
+                  marginBottom: 10,
+                }}
+              />
+            ) : null}
             <div style={{ fontWeight: 700, fontSize: 16 }}>
               {tenant?.name || "Business Banner"}
             </div>

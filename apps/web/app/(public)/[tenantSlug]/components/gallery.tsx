@@ -22,7 +22,7 @@ export default function Gallery({
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const chipScrollRef = useRef<HTMLDivElement | null>(null)
 
-  const [active, setActive] = useState("Curtains")
+  const [active, setActive] = useState("All")
   const [isInView, setIsInView] = useState(false)
   const [hasTouchedCategory, setHasTouchedCategory] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -146,7 +146,7 @@ export default function Gallery({
                 background: active === cat ? "#2563eb" : "transparent",
                 color: active === cat ? "#ffffff" : "var(--text)",
                 whiteSpace: "nowrap",
-                cursor: "default"
+                cursor: "pointer"
               }}
             >
               {cat}
@@ -191,7 +191,7 @@ export default function Gallery({
     background: "transparent",
     color: "#fff",
     fontWeight: 500,
-    cursor: "default"
+    cursor: "pointer"
   }}
 >
   WhatsApp Enquiry

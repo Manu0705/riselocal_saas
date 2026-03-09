@@ -1,5 +1,98 @@
 import { api } from "@/lib/api-client"
 
+function resolveApiBase(): string {
+  const candidate =
+    (typeof process !== "undefined" &&
+      (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API)) ||
+    "http://localhost:4000"
+
+  return String(candidate).replace(/\/+$/, "")
+}
+
+function buildApiUrl(path: string): string {
+  const base = resolveApiBase()
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+  const baseHasApi = base.toLowerCase().endsWith("/api")
+  const pathHasApi = normalizedPath.toLowerCase().startsWith("/api")
+
+  if (baseHasApi || pathHasApi) {
+    return `${base}${normalizedPath}`
+  }
+
+  return `${base}/api${normalizedPath}`
+}
+
+function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...(extra || {}) }
+  const token = globalThis.window !== undefined ? localStorage.getItem("token") : null
+  const tenantSlug = globalThis.window !== undefined ? localStorage.getItem("tenantSlug") : null
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  if (tenantSlug) {
+    headers["x-tenant-slug"] = tenantSlug
+  }
+
+  return headers
+}
+
+export function getTenantApiClient() {
+  return {
+    async get(path: string) {
+      const res = await fetch(buildApiUrl(path), {
+        headers: getAuthHeaders(),
+      })
+      return res.json()
+    },
+
+    async post(path: string, body: any, options?: { headers?: Record<string, string> }) {
+      const isFormData = body instanceof FormData
+      const rawHeaders = isFormData
+        ? { ...(options?.headers || {}) }
+        : { "Content-Type": "application/json", ...(options?.headers || {}) }
+      if (isFormData) {
+        delete rawHeaders["Content-Type"]
+      }
+      const headers = getAuthHeaders(rawHeaders)
+
+      const res = await fetch(buildApiUrl(path), {
+        method: "POST",
+        headers,
+        body: isFormData ? body : JSON.stringify(body),
+      })
+      return res.json()
+    },
+
+    async put(path: string, body: any, options?: { headers?: Record<string, string> }) {
+      const isFormData = body instanceof FormData
+      const rawHeaders = isFormData
+        ? { ...(options?.headers || {}) }
+        : { "Content-Type": "application/json", ...(options?.headers || {}) }
+      if (isFormData) {
+        delete rawHeaders["Content-Type"]
+      }
+      const headers = getAuthHeaders(rawHeaders)
+
+      const res = await fetch(buildApiUrl(path), {
+        method: "PUT",
+        headers,
+        body: isFormData ? body : JSON.stringify(body),
+      })
+      return res.json()
+    },
+
+    async delete(path: string) {
+      const res = await fetch(buildApiUrl(path), {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      })
+      return res.json()
+    },
+  }
+}
+
 export type TenantRecord = {
   id: string
   name?: string

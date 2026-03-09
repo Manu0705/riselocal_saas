@@ -3,7 +3,7 @@
 import { useState } from "react"
 
 type Props = {
-  services?: string[]
+  services?: Array<string | { name: string; description?: string }>
 }
 
 const serviceDescriptions: Record<string, string> = {
@@ -27,7 +27,10 @@ export default function Services({ services }: Props) {
       <h2 style={{ marginBottom: 10 }}>Services</h2>
 
       {list.map((service, i) => {
-        const label = typeof service === "string" ? service : String(service)
+        const label = typeof service === "string" ? service : String(service?.name || "Service")
+        const description = typeof service === "string"
+          ? serviceDescriptions[label]
+          : service?.description || serviceDescriptions[label] || ""
         const isSelected = selectedService === label
 
         return (
@@ -52,7 +55,7 @@ export default function Services({ services }: Props) {
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: isSelected ? "#3b82f6" : "#000" }}>{label}</h3>
             {isSelected && (
               <p style={{ margin: "8px 0 0", fontSize: 13, color: "#666", lineHeight: 1.4 }}>
-                {serviceDescriptions[label] || ""}
+                {description}
               </p>
             )}
           </button>

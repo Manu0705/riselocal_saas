@@ -46,6 +46,13 @@ export default function DashboardHeader() {
     setMenuOpen(false)
   }
 
+  const goToCustomize = () => {
+    const tenant = searchParams.get("tenant")
+    const query = tenant ? "?tenant=" + tenant : ""
+    router.push("/dashboard/customize" + query)
+    setMenuOpen(false)
+  }
+
   const goToAnalytics = () => {
     const tenant = searchParams.get("tenant")
     const query = tenant ? "?tenant=" + tenant : ""
@@ -136,6 +143,7 @@ export default function DashboardHeader() {
         >
           {[
             { label: "Lead View", onPress: goToLeadView },
+            { label: "Customize", onPress: goToCustomize },
             { label: "Analytics", onPress: goToAnalytics },
             { label: "Settings", onPress: goToSettings },
             { label: "Help", onPress: goToHelp },

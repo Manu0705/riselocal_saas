@@ -18,6 +18,10 @@ model Tenant {
   feedbacks Feedback[]
   followUps FollowUp[]
   leads     Lead[]
+  settings  TenantSettings?
+  galleryImages GalleryImage[]
+  socialLinks SocialLink[]
+  services  Service[]
 
   @@index([createdAt])
 }
@@ -88,4 +92,71 @@ model FollowUp {
 
   @@index([tenantId])
   @@index([tenantId, createdAt])
+}
+
+model TenantSettings {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  logoUrl         String?
+  bannerUrl       String?
+  logoShape       String   @default("circle")
+  primaryColor    String   @default("#000000")
+  secondaryColor  String   @default("#FFFFFF")
+  sectionOrder    Json?    @default("[\"hero\", \"services\", \"gallery\"]")
+  businessPhone   String?
+  businessWhatsApp String?
+  tagline         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  tenantId  String
+  url       String
+  category  String
+  position  Int      @default(0)
+  alt       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@unique([tenantId, url])
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  tenantId  String
+  platform  String
+  url       String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@unique([tenantId, platform])
+}
+
+model Service {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  description String?
+  icon      String?
+  position  Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }

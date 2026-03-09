@@ -3,6 +3,7 @@ import { PrismaTenantRepository } from "../infrastructure/tenant.prisma.reposito
 import { Tenant } from "../domain/tenant.entity";
 import { authMiddleware } from "../../auth/presentation/auth.middleware";
 import { adminRoleMiddleware } from "../../auth/presentation/admin-role.middleware";
+import { prisma } from "@saas/database"
 
 const router = Router();
 const repository = new PrismaTenantRepository();
@@ -55,7 +56,20 @@ router.post("/tenants", authMiddleware, adminRoleMiddleware, async (req, res) =>
 
 router.get("/tenants/slug/:slug", async (req, res) => {
   try {
-    const tenant = await repository.findBySlug(String(req.params.slug || "").trim().toLowerCase())
+    const slug = String(req.params.slug || "").trim().toLowerCase()
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug },
+      include: {
+        settings: true,
+        galleryImages: {
+          orderBy: [{ category: "asc" }, { position: "asc" }],
+        },
+        services: {
+          orderBy: { position: "asc" },
+        },
+        socialLinks: true,
+      },
+    })
 
     if (!tenant) {
       return res.status(404).json({
@@ -64,9 +78,45 @@ router.get("/tenants/slug/:slug", async (req, res) => {
       })
     }
 
+    const publicTenant = {
+      name: tenant.name,
+      slug: tenant.slug,
+      domain: tenant.domain,
+      settings: tenant.settings
+        ? {
+            logoUrl: tenant.settings.logoUrl,
+            bannerUrl: tenant.settings.bannerUrl,
+            logoShape: tenant.settings.logoShape,
+            primaryColor: tenant.settings.primaryColor,
+            secondaryColor: tenant.settings.secondaryColor,
+            sectionOrder: tenant.settings.sectionOrder,
+            businessPhone: tenant.settings.businessPhone,
+            businessWhatsApp: tenant.settings.businessWhatsApp,
+            tagline: tenant.settings.tagline,
+          }
+        : null,
+      galleryImages: tenant.galleryImages.map((image) => ({
+        url: image.url,
+        category: image.category,
+        position: image.position,
+        alt: image.alt,
+      })),
+      services: tenant.services.map((service) => ({
+        name: service.name,
+        description: service.description,
+        icon: service.icon,
+        position: service.position,
+      })),
+      socialLinks: tenant.socialLinks.map((link) => ({
+        platform: link.platform,
+        url: link.url,
+        label: link.label,
+      })),
+    }
+
     return res.json({
       success: true,
-      data: tenant.toJSON(),
+      data: publicTenant,
     })
   } catch (error: any) {
     return res.status(500).json({
