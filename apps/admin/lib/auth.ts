@@ -1,9 +1,13 @@
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:4000"
+const API_BASE = process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
 function buildAuthUrl(path: string) {
   const base = API_BASE.replace(/\/+$/, "")
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
-  return `${base}/api${normalizedPath}`
+  const baseHasApi = base.toLowerCase().endsWith("/api")
+  const pathHasApi = normalizedPath.toLowerCase().startsWith("/api")
+  const apiPrefix = baseHasApi ? "" : "/api"
+  const finalPath = pathHasApi ? normalizedPath : `${apiPrefix}${normalizedPath}`
+  return `${base}${finalPath}`
 }
 
 export function getAdminToken(): string | null {
@@ -16,14 +20,21 @@ export function isAuthenticated(): boolean {
 }
 
 export async function login(password: string): Promise<boolean> {
-  const res = await fetch(buildAuthUrl("/auth/admin-login"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: "admin@riselocal.in",
-      password,
-    }),
-  })
+  let res: Response
+
+  try {
+    res = await fetch(buildAuthUrl("/auth/admin-login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "admin@riselocal.in",
+        password,
+      }),
+    })
+  } catch (error) {
+    console.error("Admin login request failed", error)
+    return false
+  }
 
   if (!res.ok) {
     return false
