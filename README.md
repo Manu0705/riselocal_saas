@@ -65,6 +65,9 @@ Environment Variables:
 - `DATABASE_URL=<your_neon_production_url>`
 - `JWT_SECRET=<strong_secret>`
 - `FRONTEND_URL=https://riselocal.in,https://qa.riselocal.in,https://*.vercel.app`
+- `CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>`
+- `CLOUDINARY_API_KEY=<your_cloudinary_api_key>`
+- `CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>`
 
 Custom Domain:
 - `api.riselocal.in`
@@ -87,6 +90,9 @@ Environment Variables:
 - `DATABASE_URL=<your_neon_qa_url>`
 - `JWT_SECRET=<qa_secret>`
 - `FRONTEND_URL=https://qa.riselocal.in,https://*.vercel.app`
+- `CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>`
+- `CLOUDINARY_API_KEY=<your_cloudinary_api_key>`
+- `CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>`
 
 Custom Domain:
 - `qa-api.riselocal.in`

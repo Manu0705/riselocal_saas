@@ -17,6 +17,12 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://riselocal.in,https://www.riselocal.in,https://admin.riselocal.in,https://qa.riselocal.in
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
   - type: web
     name: riselocal-api-qa
     env: node
@@ -35,3 +41,9 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://qa.riselocal.in,https://*.vercel.app
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
