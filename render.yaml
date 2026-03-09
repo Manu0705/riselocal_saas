@@ -4,7 +4,7 @@ services:
     env: node
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm run build:api
-    startCommand: pnpm run start:api
+    startCommand: pnpm prisma migrate deploy && pnpm run start:api
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
@@ -16,13 +16,13 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://riselocal.in,https://qa.riselocal.in
+        value: https://riselocal.in,https://www.riselocal.in,https://admin.riselocal.in,https://qa.riselocal.in
   - type: web
     name: riselocal-api-qa
     env: node
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm run build:api
-    startCommand: pnpm run start:api
+    startCommand: pnpm prisma migrate deploy && pnpm run start:api
     healthCheckPath: /health
     envVars:
       - key: APP_ENV

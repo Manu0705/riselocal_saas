@@ -23,7 +23,7 @@ function LoginContent() {
     setError(null)
 
     try {
-      const data = await login(email, password, tenant ?? undefined, "owner")
+      const data = await login(email, password, tenant ?? undefined)
 
       if (data?.error) {
         setError(data.error)
@@ -35,7 +35,7 @@ function LoginContent() {
         return
       }
 
-      const tenantIdFromServer = (data.user as any)?.tenantId
+      const tenantIdFromServer = data?.user?.tenantId
       loginWithContext(data.token, tenant ?? tenantIdFromServer)
       router.push("/dashboard")
     } finally {

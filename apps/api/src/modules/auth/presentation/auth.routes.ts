@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { JwtService } from "../infrastructure/jwt.service";
 import { PrismaTenantRepository } from "../../tenant/infrastructure/tenant.prisma.repository";
+import { prisma } from "@saas/database";
+import { verifyPassword } from "../infrastructure/password.service";
 
 const router = Router();
 const jwtService = new JwtService();
@@ -16,14 +18,12 @@ router.post("/login", async (req, res) => {
 
   const tenantSlug = typeof req.body?.tenantSlug === "string" ? req.body.tenantSlug.trim().toLowerCase() : ""
 
-  // NOTE: This is a simplified auth flow for demo purposes.
-  // In a real app, you'd validate email/password against a user database.
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" })
   }
 
-  const userId = email.trim().toLowerCase()
-  let resolvedTenantId = tenantId ? String(tenantId).trim() : "default"
+  const normalizedEmail = email.trim().toLowerCase()
+  let resolvedTenantId = tenantId ? String(tenantId).trim() : ""
 
   if (tenantSlug) {
     const tenant = await tenantRepository.findBySlug(tenantSlug)
@@ -32,10 +32,41 @@ router.post("/login", async (req, res) => {
     }
   }
 
-  const resolvedRole = "owner"
+  let user = null as Awaited<ReturnType<typeof prisma.tenantUser.findFirst>>
+
+  if (!resolvedTenantId) {
+    const matchingUsers = await prisma.tenantUser.findMany({
+      where: {
+        email: normalizedEmail,
+        isActive: true,
+      },
+      take: 2,
+    })
+
+    if (matchingUsers.length !== 1) {
+      return res.status(400).json({ error: "tenantId or tenantSlug is required" })
+    }
+
+    user = matchingUsers[0]
+    resolvedTenantId = user.tenantId
+  } else {
+    user = await prisma.tenantUser.findFirst({
+      where: {
+        tenantId: resolvedTenantId,
+        email: normalizedEmail,
+        isActive: true,
+      },
+    })
+  }
+
+  if (!user || !verifyPassword(password, user.passwordHash)) {
+    return res.status(401).json({ error: "Invalid credentials" })
+  }
+
+  const resolvedRole = String(user.role || "owner").toLowerCase()
 
   const token = jwtService.sign({
-    userId,
+    userId: user.id,
     tenantId: resolvedTenantId,
     role: resolvedRole,
   })
@@ -43,7 +74,9 @@ router.post("/login", async (req, res) => {
   return res.json({
     token,
     user: {
-      userId,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
       tenantId: resolvedTenantId,
       role: resolvedRole,
     },

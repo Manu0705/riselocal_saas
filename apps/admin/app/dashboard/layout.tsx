@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Users, MessageSquare, BarChart3, LogOut } from "lucide-react"
+import { LayoutDashboard, Users, MessageSquare, BarChart3, LogOut, Building2 } from "lucide-react"
 import { logout } from "@/lib/auth"
 import RequireAuth from "@/components/require-auth"
 
@@ -17,7 +17,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Tenants", href: "/dashboard/tenants", icon: Users },
+    { name: "Tenants", href: "/dashboard/tenants", icon: Building2 },
+    { name: "Tenant Users", href: "/dashboard/users", icon: Users },
     { name: "Leads", href: "/dashboard/leads", icon: MessageSquare },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   ]

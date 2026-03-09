@@ -4,6 +4,7 @@ import leadRoutes from "./modules/lead/presentation/lead.routes";
 import feedbackRoutes from "./modules/feedback/presentation/feedback.routes";
 import { authMiddleware } from "./modules/auth/presentation/auth.middleware";
 import authRoutes from "./modules/auth/presentation/auth.routes";
+import tenantUserRoutes from "./modules/tenant/presentation/tenant-user.routes";
 import { tenantContextMiddleware } from "./middleware/tenant-context.middleware";
 import { tenantAccessMiddleware } from "./middleware/tenant-access.middleware";
 
@@ -16,6 +17,7 @@ const router = Router();
 
 router.use("/auth", authRoutes);
 router.use(tenantRoutes);
+router.use(tenantUserRoutes);
 
 /* =========================================
    AUTH PROTECTED ROUTES

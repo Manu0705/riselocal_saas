@@ -22,14 +22,13 @@ function buildUrl(path: string) {
 export async function login(
   email: string,
   password: string,
-  tenantId?: string,
-  role?: string
+  tenantSlug?: string
 ) {
   try {
     const res = await fetch(buildUrl("/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, tenantId, role }),
+      body: JSON.stringify({ email, password, tenantSlug }),
     })
 
     const data = await res.json()
