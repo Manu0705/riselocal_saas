@@ -4,8 +4,16 @@ import { AppError } from "../../../shared/errors/app-error";
 
 const jwtService = new JwtService();
 
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: string;
+    tenantId: string;
+    role: string;
+  };
+};
+
 export function authMiddleware(
-  req: Request,
+  req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
 ) {
