@@ -8,6 +8,45 @@ import { prisma } from "@saas/database"
 const router = Router();
 const repository = new PrismaTenantRepository();
 
+function getTenantErrorResponse(error: any) {
+  const message = String(error?.message || "")
+  const code = String(error?.code || "")
+  const target = Array.isArray(error?.meta?.target) ? error.meta.target : []
+
+  if (code === "P2021" || message.includes("does not exist in the current database")) {
+    return {
+      status: 500,
+      message: "Database schema is not initialized. Run Prisma migrations.",
+    }
+  }
+
+  if (code === "P2002") {
+    if (target.includes("slug")) {
+      return {
+        status: 400,
+        message: "Tenant slug already exists.",
+      }
+    }
+
+    if (target.includes("domain")) {
+      return {
+        status: 400,
+        message: "Custom domain already exists.",
+      }
+    }
+
+    return {
+      status: 400,
+      message: "A tenant with the same unique values already exists.",
+    }
+  }
+
+  return {
+    status: 400,
+    message: message || "Failed to save tenant.",
+  }
+}
+
 const RESERVED_SLUGS = [
   "dashboard",
   "admin",
@@ -66,9 +105,11 @@ router.post("/tenants", authMiddleware, adminRoleMiddleware, async (req, res) =>
       data: tenant.toJSON(),
     });
   } catch (error: any) {
-    return res.status(400).json({
+    const response = getTenantErrorResponse(error)
+
+    return res.status(response.status).json({
       success: false,
-      message: error.message,
+      message: response.message,
     });
   }
 });
@@ -143,9 +184,11 @@ router.get("/tenants/slug/:slug", async (req, res) => {
       data: publicTenant,
     })
   } catch (error: any) {
-    return res.status(500).json({
+    const response = getTenantErrorResponse(error)
+
+    return res.status(response.status).json({
       success: false,
-      message: error.message,
+      message: response.message,
     })
   }
 });
@@ -166,9 +209,11 @@ router.get("/tenants", async (_req, res) => {
       data: tenants.map((t) => t.toJSON()),
     });
   } catch (error: any) {
-    return res.status(500).json({
+    const response = getTenantErrorResponse(error)
+
+    return res.status(response.status).json({
       success: false,
-      message: error.message,
+      message: response.message,
     });
   }
 });
@@ -202,9 +247,11 @@ router.put("/tenants/:id", async (req, res) => {
       data: tenant.toJSON(),
     });
   } catch (error: any) {
-    return res.status(400).json({
+    const response = getTenantErrorResponse(error)
+
+    return res.status(response.status).json({
       success: false,
-      message: error.message,
+      message: response.message,
     });
   }
 });
@@ -234,9 +281,11 @@ router.delete("/tenants/:id", async (req, res) => {
       message: "Tenant deleted successfully",
     });
   } catch (error: any) {
-    return res.status(500).json({
+    const response = getTenantErrorResponse(error)
+
+    return res.status(response.status).json({
       success: false,
-      message: error.message,
+      message: response.message,
     });
   }
 });
