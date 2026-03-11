@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 export interface TenantProps {
   id: string;
   name: string;
@@ -23,11 +25,16 @@ export class Tenant {
       throw new Error("Tenant slug is required");
     }
 
+    const normalizedDomain =
+      typeof domain === "string" && domain.trim().length > 0
+        ? domain.trim()
+        : null;
+
     return new Tenant({
       id: crypto.randomUUID(),
       name: name.trim(),
       slug: slug.trim().toLowerCase(),
-      domain: domain ?? null,
+      domain: normalizedDomain,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -50,9 +57,14 @@ export class Tenant {
       throw new Error("Tenant slug is required");
     }
 
+    const normalizedDomain =
+      typeof domain === "string" && domain.trim().length > 0
+        ? domain.trim()
+        : null;
+
     this.props.name = name.trim();
     this.props.slug = slug.trim().toLowerCase();
-    this.props.domain = domain ?? null;
+    this.props.domain = normalizedDomain;
     this.props.updatedAt = new Date();
   }
 

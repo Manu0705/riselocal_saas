@@ -8,6 +8,22 @@ import { prisma } from "@saas/database"
 const router = Router();
 const repository = new PrismaTenantRepository();
 
+const RESERVED_SLUGS = [
+  "dashboard",
+  "admin",
+  "analytics",
+  "leads",
+  "followups",
+  "feedback",
+  "tenants",
+  "settings",
+  "login",
+  "api",
+  "_next",
+  "qa",
+  "www",
+]
+
 function toSlug(value: string): string {
   const unsupportedCharsRegex = /[^a-z0-9\s-]/g
   const spacesRegex = /\s+/g
@@ -33,6 +49,14 @@ router.post("/tenants", authMiddleware, adminRoleMiddleware, async (req, res) =>
     const { name, domain, slug } = req.body;
 
     const resolvedSlug = toSlug(slug || name || "")
+    
+    if (RESERVED_SLUGS.includes(resolvedSlug)) {
+      return res.status(400).json({
+        success: false,
+        message: `Slug "${resolvedSlug}" is reserved and cannot be used`,
+      });
+    }
+
     const tenant = Tenant.create(name, resolvedSlug, domain);
 
     await repository.save(tenant);

@@ -65,9 +65,10 @@ export default function TenantsPage() {
       }
       setShowModal(false)
       fetchTenants()
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to save tenant. Please try again."
       console.error("Error saving tenant:", error)
-      alert("Failed to save tenant. Please try again.")
+      alert(errorMessage)
     }
   }
 

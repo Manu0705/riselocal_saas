@@ -42,8 +42,12 @@ export const adminApi = {
       },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
-    return res.json()
+    const json = await res.json().catch(() => null)
+    if (!res.ok) {
+      const message = json?.message || `Request failed with status ${res.status}`
+      throw new Error(message)
+    }
+    return json
   },
 
   async put(path: string, data: any) {
@@ -55,8 +59,12 @@ export const adminApi = {
       },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
-    return res.json()
+    const json = await res.json().catch(() => null)
+    if (!res.ok) {
+      const message = json?.message || `Request failed with status ${res.status}`
+      throw new Error(message)
+    }
+    return json
   },
 
   async delete(path: string) {
