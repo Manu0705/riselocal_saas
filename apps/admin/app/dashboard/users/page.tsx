@@ -179,33 +179,45 @@ export default function TenantUsersPage() {
         <form onSubmit={handleCreate}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
             <input
+              id="tenant-user-name"
+              name="name"
               className="input"
               placeholder="Full name"
+              autoComplete="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               required
             />
             <input
+              id="tenant-user-email"
+              name="email"
               className="input"
               placeholder="Email"
               type="email"
+              autoComplete="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
               required
             />
             <input
+              id="tenant-user-password"
+              name="password"
               className="input"
               placeholder="Password (min 8 chars)"
               type="password"
+              autoComplete="new-password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
               required
               minLength={8}
             />
             <select
+              id="tenant-user-role"
+              name="role"
+              aria-label="User role"
               className="input"
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
             >
               <option value="owner">Owner</option>
               <option value="manager">Manager</option>
