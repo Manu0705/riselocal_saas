@@ -47,7 +47,7 @@ function parseOrigins(value: string): string[] {
 const frontendOrigins = parseOrigins(
   optional(
     "FRONTEND_URL",
-    "http://localhost:3000,https://riselocal.in,https://qa.riselocal.in"
+    "http://localhost:3000,http://localhost:3001,https://riselocal.in,https://www.riselocal.in,https://qa.riselocal.in"
   )
 )
 

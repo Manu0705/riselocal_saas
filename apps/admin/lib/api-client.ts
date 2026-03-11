@@ -1,5 +1,5 @@
 // API client for admin panel
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:4000"
+const API_BASE = process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
 function getAuthHeaders() {
   if (globalThis.window === undefined) return {}

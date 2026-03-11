@@ -2,8 +2,8 @@ const TOKEN_KEY = "token"
 const TENANT_SLUG_KEY = "tenantSlug"
 
 const API_BASE =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API)
-    ? process.env.NEXT_PUBLIC_API.replace(/\/+$/, "")
+  (typeof process !== "undefined" && (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API))
+    ? String(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API).replace(/\/+$/, "")
     : "http://localhost:4000"
 
 function buildUrl(path: string) {
