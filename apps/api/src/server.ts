@@ -15,6 +15,7 @@ import { inputSanitizeMiddleware } from "./middleware/input-sanitize.middleware"
 const app = express()
 
 const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i
+const riseLocalSubdomainPattern = /^https:\/\/([a-z0-9-]+\.)*riselocal\.in$/i
 
 app.use(
   helmet({
@@ -28,6 +29,10 @@ app.use(
       if (!origin) return callback(null, true)
 
       if (env.FRONTEND_ORIGINS.includes(origin)) {
+        return callback(null, true)
+      }
+
+      if (riseLocalSubdomainPattern.test(origin)) {
         return callback(null, true)
       }
 

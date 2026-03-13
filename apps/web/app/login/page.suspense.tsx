@@ -25,13 +25,14 @@ function LoginContent() {
     try {
       const data = await login(email, password, tenant ?? undefined)
 
-      if (data?.error) {
-        setError(data.error)
+      const apiError = data?.error || data?.message
+      if (apiError && !data?.token) {
+        setError(String(apiError))
         return
       }
 
       if (!data?.token) {
-        setError("Login failed: no token returned")
+        setError("Login failed. Please check your credentials and try again.")
         return
       }
 
