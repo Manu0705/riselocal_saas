@@ -1,22 +1,14 @@
+import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from "@/lib/api-endpoint"
+
 const TOKEN_KEY = "token"
 const TENANT_SLUG_KEY = "tenantSlug"
 
-const API_BASE =
-  (typeof process !== "undefined" && (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API))
-    ? String(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API).replace(/\/+$/, "")
-    : "http://localhost:4000"
-
 function buildUrl(path: string) {
-  const sanitizedPath = path.startsWith("/") ? path : `/${path}`
-  const base = API_BASE.replace(/\/+$/, "")
+  if (typeof window !== "undefined") {
+    return buildBrowserApiUrl(path)
+  }
 
-  const baseHasApi = base.toLowerCase().endsWith("/api")
-  const pathHasApi = sanitizedPath.toLowerCase().startsWith("/api")
-  const normalizedPath = pathHasApi
-    ? sanitizedPath
-    : `${baseHasApi ? "" : "/api"}${sanitizedPath}`
-
-  return `${base}${normalizedPath}`
+  return buildUpstreamApiUrl(getApiBaseCandidates()[0], path)
 }
 
 export async function login(

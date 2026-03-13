@@ -1,25 +1,12 @@
+import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from "@/lib/api-endpoint"
 import { api } from "@/lib/api-client"
 
-function resolveApiBase(): string {
-  const candidate =
-    (typeof process !== "undefined" &&
-      (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API)) ||
-    "http://localhost:4000"
-
-  return String(candidate).replace(/\/+$/, "")
-}
-
 function buildApiUrl(path: string): string {
-  const base = resolveApiBase()
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`
-  const baseHasApi = base.toLowerCase().endsWith("/api")
-  const pathHasApi = normalizedPath.toLowerCase().startsWith("/api")
-
-  if (baseHasApi || pathHasApi) {
-    return `${base}${normalizedPath}`
+  if (typeof window !== "undefined") {
+    return buildBrowserApiUrl(path)
   }
 
-  return `${base}/api${normalizedPath}`
+  return buildUpstreamApiUrl(getApiBaseCandidates()[0], path)
 }
 
 function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {

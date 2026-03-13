@@ -1,18 +1,11 @@
-const API_BASE =
-  (typeof process !== "undefined" && (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API))
-    ? String(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API).replace(/\/+$/, "")
-    : "http://localhost:4000"
+import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from "@/lib/api-endpoint"
 
 function buildUrl(path: string) {
-  const sanitizedPath = path.startsWith("/") ? path : `/${path}`
-  const base = API_BASE.replace(/\/+$/, "")
+  if (typeof window !== "undefined") {
+    return buildBrowserApiUrl(path)
+  }
 
-  const baseHasApi = base.toLowerCase().endsWith("/api")
-  const pathHasApi = sanitizedPath.toLowerCase().startsWith("/api")
-  const apiPrefix = baseHasApi ? "" : "/api"
-  const normalizedPath = pathHasApi ? sanitizedPath : `${apiPrefix}${sanitizedPath}`
-
-  return `${base}${normalizedPath}`
+  return buildUpstreamApiUrl(getApiBaseCandidates()[0], path)
 }
 
 function getStoredTenantSlug(): string | null {

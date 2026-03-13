@@ -1,4 +1,5 @@
 import { cache } from "react"
+import { buildUpstreamApiUrl, getApiBaseCandidates } from "@/lib/api-endpoint"
 
 export const RESERVED_ROUTES = [
   "dashboard",
@@ -25,8 +26,6 @@ export const getTenant = cache(async (slug: string) => {
     return null
   }
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/+$/, "")
-
   const defaults = {
     phone: "0000000000",
     whatsapp: "0000000000",
@@ -47,46 +46,55 @@ export const getTenant = cache(async (slug: string) => {
   }
 
   try {
-    const res = await fetch(`${apiBase}/api/tenants/slug/${encodeURIComponent(slug)}`, {
-      cache: "no-store",
-    })
+    for (const apiBase of getApiBaseCandidates()) {
+      try {
+        const res = await fetch(
+          buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
+          {
+            cache: "no-store",
+          }
+        )
 
-    if (!res.ok) {
-      return null
-    }
+        if (!res.ok) {
+          continue
+        }
 
-    const payload = await res.json()
-    const tenant = payload?.data
+        const payload = await res.json()
+        const tenant = payload?.data
 
-    if (!tenant) {
-      return null
-    }
+        if (!tenant) {
+          continue
+        }
 
-    const settings = tenant.settings ?? {}
+        const settings = tenant.settings ?? {}
 
-    return {
-      ...defaults,
-      name: tenant.name,
-      slug: tenant.slug,
-      domain: tenant.domain,
-      phone: settings.businessPhone || defaults.phone,
-      whatsapp: settings.businessWhatsApp || settings.businessPhone || defaults.whatsapp,
-      tagline: settings.tagline || undefined,
-      logoUrl: settings.logoUrl || undefined,
-      bannerUrl: settings.bannerUrl || undefined,
-      logoShape: settings.logoShape || defaults.logoShape,
-      primaryColor: settings.primaryColor || defaults.primaryColor,
-      secondaryColor: settings.secondaryColor || defaults.secondaryColor,
-      sectionOrder: Array.isArray(settings.sectionOrder)
-        ? settings.sectionOrder.map((entry: unknown) => String(entry))
-        : defaults.sectionOrder,
-      services: Array.isArray(tenant.services) && tenant.services.length > 0
-        ? tenant.services
-        : defaults.services,
-      gallery: Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0
-        ? tenant.galleryImages
-        : defaults.gallery,
-      socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
+        return {
+          ...defaults,
+          name: tenant.name,
+          slug: tenant.slug,
+          domain: tenant.domain,
+          phone: settings.businessPhone || defaults.phone,
+          whatsapp: settings.businessWhatsApp || settings.businessPhone || defaults.whatsapp,
+          tagline: settings.tagline || undefined,
+          logoUrl: settings.logoUrl || undefined,
+          bannerUrl: settings.bannerUrl || undefined,
+          logoShape: settings.logoShape || defaults.logoShape,
+          primaryColor: settings.primaryColor || defaults.primaryColor,
+          secondaryColor: settings.secondaryColor || defaults.secondaryColor,
+          sectionOrder: Array.isArray(settings.sectionOrder)
+            ? settings.sectionOrder.map((entry: unknown) => String(entry))
+            : defaults.sectionOrder,
+          services: Array.isArray(tenant.services) && tenant.services.length > 0
+            ? tenant.services
+            : defaults.services,
+          gallery: Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0
+            ? tenant.galleryImages
+            : defaults.gallery,
+          socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
+        }
+      } catch (error) {
+        console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error)
+      }
     }
   } catch (error) {
     // Return null on error - do not create mock tenants
