@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { useDashboardData } from "@/context/DashboardDataContext"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Moon, Sun, Menu } from "lucide-react"
 
 export default function DashboardHeader() {
   const { logout, tenantSlug: storedTenantSlug } = useAuth()
+  const { tenant } = useDashboardData()
   const router = useRouter()
   const searchParams = useSearchParams()
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -61,14 +63,30 @@ export default function DashboardHeader() {
   }
 
   const goToLeadView = () => {
-    const tenant = searchParams.get("tenant") ?? storedTenantSlug ?? "default"
-    router.push(`/${tenant}?view=public`)
+    const tenantRouteKey =
+      searchParams.get("tenant") ??
+      tenant?.slug ??
+      tenant?.domain ??
+      tenant?.id ??
+      storedTenantSlug ??
+      "default"
+
+    router.push(`/${tenantRouteKey}?view=public`)
+    setMenuOpen(false)
+  }
+
+  const goHome = () => {
+    const tenantQuery = searchParams.get("tenant")
+    const query = tenantQuery ? `?tenant=${tenantQuery}` : ""
+    router.push(`/dashboard${query}`)
     setMenuOpen(false)
   }
 
   const goToHelp = () => {
+    const tenantQuery = searchParams.get("tenant")
+    const query = tenantQuery ? `?tenant=${tenantQuery}&tab=help` : "?tab=help"
+    router.push(`/dashboard/settings${query}`)
     setMenuOpen(false)
-    alert("Help center will be available soon.")
   }
 
   const handleLogout = () => {
@@ -100,7 +118,7 @@ export default function DashboardHeader() {
         boxShadow: "0 2px 10px var(--shadow)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+      <div ref={menuRef} style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
         <button
           onClick={() => setMenuOpen((prev) => !prev)}
           style={{
@@ -142,6 +160,7 @@ export default function DashboardHeader() {
           }}
         >
           {[
+            { label: "Home", onPress: goHome },
             { label: "Lead View", onPress: goToLeadView },
             { label: "Customize", onPress: goToCustomize },
             { label: "Analytics", onPress: goToAnalytics },

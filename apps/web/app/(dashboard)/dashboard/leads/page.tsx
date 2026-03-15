@@ -7,6 +7,7 @@ import { useDashboardData } from "@/context/DashboardDataContext"
 import MobilePageTitle from "../components/mobile-page-title"
 import { Plus, X } from "lucide-react"
 import { api } from "@/lib/api-client"
+import { announceDashboardDataRefresh } from "@/lib/dashboard-events"
 
 function formatText(text: string): string {
   return text
@@ -60,6 +61,7 @@ export default function LeadsPage() {
       
       // Refresh leads
       refresh()
+      announceDashboardDataRefresh(tenantRouteKey)
     } catch (error) {
       console.error("Error adding lead:", error)
       alert("Failed to add lead. Please try again.")

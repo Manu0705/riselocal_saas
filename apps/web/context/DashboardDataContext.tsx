@@ -1,9 +1,16 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useState, useMemo, type ReactNode } from "react"
 import { useAuth } from "./AuthContext"
 import { fetchLeadsForTenant, resolveTenant, type TenantRecord } from "@/lib/tenant-client"
 import { DUMMY_LEADS } from "@/lib/mock-data"
+import {
+  getDashboardRefreshEventName,
+  getDashboardRefreshStorageKey,
+  hasTenantLiveData,
+  markTenantAsLive,
+  parseDashboardRefreshPayload,
+} from "@/lib/dashboard-events"
 
 // Centralized metrics calculation to ensure consistency across all dashboard pages
 export type DashboardMetrics = {
@@ -68,6 +75,55 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+  }, [])
+
+  const shouldHandleRefreshForTenant = useCallback(
+    (incomingTenantKey?: string | null): boolean => {
+      const current = String(tenantSlug ?? "").trim().toLowerCase()
+      const tenantId = String(tenant?.id ?? "").trim().toLowerCase()
+      const tenantResolvedSlug = String(tenant?.slug ?? "").trim().toLowerCase()
+      const tenantDomain = String(tenant?.domain ?? "").trim().toLowerCase()
+      const incoming = String(incomingTenantKey ?? "").trim().toLowerCase()
+
+      if (!incoming) return true
+
+      return [current, tenantId, tenantResolvedSlug, tenantDomain].filter(Boolean).includes(incoming)
+    },
+    [tenantSlug, tenant]
+  )
+
+  useEffect(() => {
+    if (globalThis.window === undefined) return
+
+    const eventName = getDashboardRefreshEventName()
+    const storageKey = getDashboardRefreshStorageKey()
+
+    const handleCustomRefresh = (event: Event) => {
+      const custom = event as CustomEvent<{ tenantKey?: string | null }>
+      const tenantKey = custom.detail?.tenantKey ?? null
+      if (!shouldHandleRefreshForTenant(tenantKey)) return
+      triggerRefresh()
+    }
+
+    const handleStorageRefresh = (event: StorageEvent) => {
+      if (event.key !== storageKey) return
+      const payload = parseDashboardRefreshPayload(event.newValue)
+      if (!payload) return
+      if (!shouldHandleRefreshForTenant(payload.tenantKey)) return
+      triggerRefresh()
+    }
+
+    globalThis.window.addEventListener(eventName, handleCustomRefresh as EventListener)
+    globalThis.window.addEventListener("storage", handleStorageRefresh)
+
+    return () => {
+      globalThis.window.removeEventListener(eventName, handleCustomRefresh as EventListener)
+      globalThis.window.removeEventListener("storage", handleStorageRefresh)
+    }
+  }, [shouldHandleRefreshForTenant, triggerRefresh])
+
   useEffect(() => {
     if (!tenantSlug) {
       setError("Tenant not available")
@@ -84,6 +140,8 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       fetchLeadsForTenant(tenantSlug)
     ])
       .then(([tenantResult, leadsResult]) => {
+        const resolvedTenant = tenantResult.status === "fulfilled" ? tenantResult.value : null
+
         if (tenantResult.status === "fulfilled") {
           setTenant(tenantResult.value)
         } else {
@@ -92,8 +150,21 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
 
         if (leadsResult.status === "fulfilled") {
           const fetchedLeads = leadsResult.value
-          // Use fetched leads if available, otherwise use dummy data
-          setLeads(fetchedLeads.length > 0 ? fetchedLeads : DUMMY_LEADS)
+
+          if (fetchedLeads.length > 0) {
+            setLeads(fetchedLeads)
+            markTenantAsLive(tenantSlug)
+            markTenantAsLive(resolvedTenant?.id)
+            markTenantAsLive(resolvedTenant?.slug)
+            return
+          }
+
+          const hasLiveData =
+            hasTenantLiveData(tenantSlug) ||
+            hasTenantLiveData(resolvedTenant?.id) ||
+            hasTenantLiveData(resolvedTenant?.slug)
+
+          setLeads(hasLiveData ? [] : DUMMY_LEADS)
         } else {
           // On error, use dummy data for demonstration
           setLeads(DUMMY_LEADS)
@@ -166,7 +237,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     }
   }, [leads])
 
-  const refresh = () => setRefreshKey((prev) => prev + 1)
+  const refresh = triggerRefresh
 
   const contextValue = useMemo(
     () => ({

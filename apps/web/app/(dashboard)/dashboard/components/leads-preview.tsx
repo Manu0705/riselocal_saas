@@ -1,14 +1,50 @@
+"use client"
+
 import LeadStatus from "@/components/lead-status"
+import { useDashboardData } from "@/context/DashboardDataContext"
+
+const statusOrder = ["New", "Contacted", "Follow-Up", "Converted", "Lost"] as const
+
+function normalizeStatus(status?: string): (typeof statusOrder)[number] {
+  const value = String(status ?? "").trim().toLowerCase()
+
+  if (value === "new" || value === "open") return "New"
+  if (value === "contacted") return "Contacted"
+  if (value === "follow-up" || value === "qualified") return "Follow-Up"
+  if (value === "converted") return "Converted"
+  if (value === "lost" || value === "closed") return "Lost"
+
+  return "New"
+}
+
+function formatLeadDate(dateText?: string): string {
+  if (!dateText) return "-"
+  const parsed = new Date(dateText)
+  if (Number.isNaN(parsed.getTime())) return "-"
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+  })
+}
 
 export default function LeadsPreview(){
+  const { leads } = useDashboardData()
 
-  const leads = [
-    {date:"Apr 24",status:"New"},
-    {date:"Apr 24",status:"Contacted"},
-    {date:"Apr 24",status:"Follow-Up"},
-    {date:"Apr 24",status:"Converted"},
-    {date:"Apr 24",status:"Lost"}
-  ]
+  const groupedByStatus = statusOrder.map((status) => {
+    const latest = leads
+      .filter((lead) => normalizeStatus(lead?.status) === status)
+      .sort((left, right) => {
+        const leftDate = new Date(left?.createdAt ?? 0).getTime()
+        const rightDate = new Date(right?.createdAt ?? 0).getTime()
+        return rightDate - leftDate
+      })[0]
+
+    return {
+      date: formatLeadDate(latest?.createdAt),
+      status,
+    }
+  })
 
   return (
     <div style={{marginTop:20}}>
@@ -25,7 +61,7 @@ export default function LeadsPreview(){
           boxShadow: "0 4px 12px var(--shadow)",
         }}
       >
-        {leads.map((l, i)=>(
+        {groupedByStatus.map((l, i)=>(
           <div
             key={`${l.date}-${l.status}-${i}`}
             style={{

@@ -1,9 +1,14 @@
+"use client"
+
+import { useDashboardData } from "@/context/DashboardDataContext"
+
 export default function AnalyticsSummary(){
+  const { metrics, loading } = useDashboardData()
 
   const items = [
-    { label: "Contacts", value: 6, accent: "#22c55e" },
-    { label: "New Leads", value: 12, accent: "#2563eb" },
-    { label: "Conversion", value: "2%", accent: "#f59e0b" },
+    { label: "Contacts", value: metrics.totalLeads, accent: "#22c55e" },
+    { label: "New Leads", value: metrics.openLeads, accent: "#2563eb" },
+    { label: "Conversion", value: `${metrics.conversionRate}%`, accent: "#f59e0b" },
   ]
 
   return (
@@ -40,7 +45,7 @@ export default function AnalyticsSummary(){
           >
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, fontWeight: 500 }}>{item.label}</p>
             <strong style={{ color: item.accent, fontSize: 24, fontWeight: 600, display: "block", marginTop: 6, letterSpacing: "-0.5px" }}>
-              {item.value}
+              {loading ? "--" : item.value}
             </strong>
           </div>
         ))}

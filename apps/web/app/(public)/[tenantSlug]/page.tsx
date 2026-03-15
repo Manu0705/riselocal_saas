@@ -36,7 +36,14 @@ export default async function TenantPage({ params }: Props) {
   const sections: Record<string, JSX.Element> = {
     hero: <Hero tenant={tenant} />,
     services: <Services services={tenant.services || []} />,
-    gallery: <Gallery images={tenant.gallery || []} tenantSlug={tenantSlug} phone={tenant.whatsapp || tenant.phone} />,
+    gallery: (
+      <Gallery
+        images={tenant.gallery || []}
+        tenantSlug={tenantSlug}
+        tenantId={tenant.id}
+        phone={tenant.whatsapp || tenant.phone}
+      />
+    ),
   }
 
   return (
@@ -51,10 +58,10 @@ export default async function TenantPage({ params }: Props) {
         <div key={sectionKey}>{sections[sectionKey] ?? null}</div>
       ))}
 
-      <QuickActions phone={tenant.whatsapp || tenant.phone} />
+      <QuickActions phone={tenant.whatsapp || tenant.phone} tenantId={tenant.id} tenantSlug={tenantSlug} />
       <HowItWorks />
-      <Booking tenant={tenant} />
-      <Contact tenant={tenant} />
+      <Booking tenant={tenant} tenantId={tenant.id} tenantSlug={tenantSlug} />
+      <Contact tenant={tenant} tenantId={tenant.id} tenantSlug={tenantSlug} />
     </div>
   )
 }

@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { Phone, MessageCircle, Clock, Star } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
+import { useDashboardData } from "@/context/DashboardDataContext"
+import { api } from "@/lib/api-client"
+import { announceDashboardDataRefresh } from "@/lib/dashboard-events"
 
 const STATUS_OPTIONS = ["New", "Contacted", "Follow-Up", "Converted", "Lost"] as const
 const REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -17,19 +20,22 @@ type LeadLike = {
 
 export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const { tenantSlug } = useAuth()
-  const [status, setStatus] = useState(lead?.status || "New")
+  const { tenant, refresh } = useDashboardData()
+  const [status, setStatus] = useState(toUiStatus(lead?.status))
   const [selectedReminderDay, setSelectedReminderDay] = useState(3)
 
   const createdAtLabel = getRelativeTime(lead?.createdAt)
   const showReviewButton = status === "Converted"
 
   const handleCall = () => {
+    announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id)
     if (lead?.phone) {
       globalThis.location.href = `tel:${lead.phone}`
     }
   }
 
   const handleWhatsApp = () => {
+    announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id)
     if (lead?.phone) {
       const cleanPhone = lead.phone.replaceAll(/\D/g, "")
       globalThis.open(`https://wa.me/${cleanPhone}`, "_blank")
@@ -49,6 +55,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
       const cleanPhone = lead.phone.replaceAll(/\D/g, "")
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
       globalThis.open(whatsappUrl, "_blank")
+      announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id)
     } else {
       // Copy link to clipboard if no phone
       navigator.clipboard.writeText(reviewUrl).then(() => {
@@ -57,19 +64,33 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     }
   }
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     setStatus(newStatus)
-  }
 
-  const handleSetReminder = (days: number) => {
-    alert(`Reminder set for ${days} day(s)`)
+    const leadId = String(lead?.id ?? "").trim()
+    const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id
+    const apiStatus = toApiStatus(newStatus)
+
+    if (!leadId || !tenantRouteKey || !apiStatus) {
+      return
+    }
+
+    try {
+      await api.patch(`/tenant/${tenantRouteKey}/leads/${leadId}/status`, {
+        status: apiStatus,
+      })
+      refresh()
+      announceDashboardDataRefresh(tenantRouteKey)
+    } catch {
+      // Keep optimistic UI. Dashboard context refresh will reconcile eventual consistency.
+    }
   }
 
   const cycleStatus = (direction: 1 | -1) => {
     const currentIndex = STATUS_OPTIONS.indexOf(status as (typeof STATUS_OPTIONS)[number])
     const safeIndex = Math.max(0, currentIndex)
     const nextIndex = (safeIndex + direction + STATUS_OPTIONS.length) % STATUS_OPTIONS.length
-    handleStatusChange(STATUS_OPTIONS[nextIndex])
+    void handleStatusChange(STATUS_OPTIONS[nextIndex])
   }
 
   const cycleReminderDay = (direction: 1 | -1) => {
@@ -257,4 +278,24 @@ function getRelativeTime(timestamp?: string): string {
   }
   const days = Math.max(1, Math.floor(diffMs / day))
   return `${days} day${days > 1 ? "s" : ""} ago`
+}
+
+function toUiStatus(raw?: string): string {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "new" || value === "open") return "New"
+  if (value === "contacted") return "Contacted"
+  if (value === "follow-up" || value === "qualified") return "Follow-Up"
+  if (value === "converted") return "Converted"
+  if (value === "closed" || value === "lost") return "Lost"
+  return "New"
+}
+
+function toApiStatus(raw?: string): string | null {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "new") return "NEW"
+  if (value === "contacted") return "CONTACTED"
+  if (value === "follow-up") return "QUALIFIED"
+  if (value === "converted") return "CONVERTED"
+  if (value === "lost") return "CLOSED"
+  return null
 }

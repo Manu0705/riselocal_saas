@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -13,38 +13,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts"
-import { api } from "@/lib/api-client"
-import { useAuth } from "@/context/AuthContext"
-
-const weekData = [
-  {name:"Mon",value:2},
-  {name:"Tue",value:3},
-  {name:"Wed",value:4},
-  {name:"Thu",value:2},
-  {name:"Fri",value:5}
-]
-
-const monthData = [
-  {name:"Jan",value:10},
-  {name:"Feb",value:14},
-  {name:"Mar",value:9},
-  {name:"Apr",value:18},
-  {name:"May",value:12}
-]
-
-const quarterData = [
-  {name:"Q1",value:42},
-  {name:"Q2",value:53},
-  {name:"Q3",value:39},
-  {name:"Q4",value:61}
-]
-
-const yearData = [
-  {name:"2022",value:148},
-  {name:"2023",value:172},
-  {name:"2024",value:191},
-  {name:"2025",value:218},
-]
+import { useDashboardData } from "@/context/DashboardDataContext"
 
 const rangeOptions = [
   { key: "week", label: "This Week" },
@@ -63,24 +32,8 @@ const chartTypeOptions = [
 
 type ChartTypeKey = (typeof chartTypeOptions)[number]["key"]
 
-type TenantLite = {
-  id?: string
-  domain?: string | null
-  slug?: string | null
-  createdAt?: string
-}
-
-function toArrayPayload(data: unknown): any[] {
-  if (Array.isArray((data as { data?: unknown[] })?.data)) {
-    return (data as { data: unknown[] }).data as any[]
-  }
-
-  if (Array.isArray(data)) {
-    return data
-  }
-
-  return []
-}
+const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 function hasReachedMonths(startDate: Date, months: number): boolean {
   const target = new Date(startDate)
@@ -88,13 +41,41 @@ function hasReachedMonths(startDate: Date, months: number): boolean {
   return new Date() >= target
 }
 
+function getLeadDate(value: unknown): Date | null {
+  const raw = (value as { createdAt?: string })?.createdAt
+  if (!raw) return null
+  const parsed = new Date(raw)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function getStartOfWeek(date: Date): Date {
+  const start = new Date(date)
+  const day = start.getDay()
+  const distanceToMonday = day === 0 ? 6 : day - 1
+  start.setDate(start.getDate() - distanceToMonday)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function sameDay(left: Date, right: Date): boolean {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  )
+}
+
 export default function AnalyticsChart(){
-  const { tenantSlug } = useAuth()
+  const { leads, tenant } = useDashboardData()
 
   const [mode, setMode] = useState<RangeKey>("week")
   const [chartType, setChartType] = useState<ChartTypeKey>("bar")
   const [isMobile, setIsMobile] = useState(false)
-  const [businessJoinedAt, setBusinessJoinedAt] = useState<Date | null>(null)
+  const businessJoinedAt = useMemo(() => {
+    if (!tenant?.createdAt) return null
+    const parsed = new Date(tenant.createdAt)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }, [tenant?.createdAt])
 
   useEffect(() => {
     const media = globalThis.matchMedia("(max-width: 640px)")
@@ -106,41 +87,6 @@ export default function AnalyticsChart(){
 
     return () => media.removeEventListener("change", update)
   }, [])
-
-  useEffect(() => {
-    if (!tenantSlug) {
-      setBusinessJoinedAt(null)
-      return
-    }
-
-    api
-      .get("/tenants")
-      .then((response) => {
-        const tenants = toArrayPayload(response) as TenantLite[]
-        const tenant = tenants.find((entry) => {
-          const normalizedId = String(entry?.id ?? "").trim().toLowerCase()
-          const normalizedDomain = (entry?.domain ?? "").trim().toLowerCase()
-          const normalizedSlug = (entry?.slug ?? "").trim().toLowerCase()
-          const currentTenant = tenantSlug.trim().toLowerCase()
-          return (
-            normalizedId === currentTenant ||
-            normalizedDomain === currentTenant ||
-            normalizedSlug === currentTenant
-          )
-        })
-
-        if (!tenant?.createdAt) {
-          setBusinessJoinedAt(null)
-          return
-        }
-
-        const parsed = new Date(tenant.createdAt)
-        setBusinessJoinedAt(Number.isNaN(parsed.getTime()) ? null : parsed)
-      })
-      .catch(() => {
-        setBusinessJoinedAt(null)
-      })
-  }, [tenantSlug])
 
   const hasQuarterlyAccess = (() => {
     if (!businessJoinedAt) return false
@@ -170,6 +116,74 @@ export default function AnalyticsChart(){
       setMode("month")
     }
   }, [mode, hasQuarterlyAccess, hasYearlyAccess])
+
+  const weekData = useMemo(() => {
+    const now = new Date()
+    const weekStart = getStartOfWeek(now)
+
+    const points = weekLabels.map((label, offset) => {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + offset)
+      return { label, date, value: 0 }
+    })
+
+    leads.forEach((lead) => {
+      const leadDate = getLeadDate(lead)
+      if (!leadDate) return
+
+      const entry = points.find((point) => sameDay(point.date, leadDate))
+      if (!entry) return
+      entry.value += 1
+    })
+
+    return points.map((point) => ({ name: point.label, value: point.value }))
+  }, [leads])
+
+  const monthData = useMemo(() => {
+    const selectedYear = new Date().getFullYear()
+    const totals = new Array(12).fill(0)
+
+    leads.forEach((lead) => {
+      const leadDate = getLeadDate(lead)
+      if (!leadDate) return
+      if (leadDate.getFullYear() !== selectedYear) return
+      totals[leadDate.getMonth()] += 1
+    })
+
+    return monthLabels.map((label, index) => ({ name: label, value: totals[index] }))
+  }, [leads])
+
+  const quarterData = useMemo(() => {
+    const selectedYear = new Date().getFullYear()
+    const totals = [0, 0, 0, 0]
+
+    leads.forEach((lead) => {
+      const leadDate = getLeadDate(lead)
+      if (!leadDate) return
+      if (leadDate.getFullYear() !== selectedYear) return
+
+      const quarterIndex = Math.floor(leadDate.getMonth() / 3)
+      totals[quarterIndex] += 1
+    })
+
+    return totals.map((value, index) => ({ name: `Q${index + 1}`, value }))
+  }, [leads])
+
+  const yearData = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const years = Array.from({ length: 5 }, (_, index) => currentYear - 4 + index)
+    const totals = new Map<number, number>(years.map((year) => [year, 0]))
+
+    leads.forEach((lead) => {
+      const leadDate = getLeadDate(lead)
+      if (!leadDate) return
+      const year = leadDate.getFullYear()
+      if (!totals.has(year)) return
+      totals.set(year, (totals.get(year) ?? 0) + 1)
+    })
+
+    return years.map((year) => ({ name: String(year), value: totals.get(year) ?? 0 }))
+  }, [leads])
 
   const data = (() => {
     if (mode === "week") return weekData

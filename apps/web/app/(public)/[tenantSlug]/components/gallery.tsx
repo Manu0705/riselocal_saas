@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { api } from "../../../../lib/api-client"
+import { capturePublicCtaLead } from "@/lib/public-lead-capture"
 
 type GalleryImage = {
   url: string
@@ -11,12 +11,14 @@ type GalleryImage = {
 type Props = {
   images?: GalleryImage[]
   tenantSlug: string
+  tenantId?: string
   phone?: string
 }
 
 export default function Gallery({
   images = [],
   tenantSlug,
+  tenantId,
   phone
 }: Props) {
   const sectionRef = useRef<HTMLDivElement | null>(null)
@@ -56,15 +58,17 @@ export default function Gallery({
   }
 
   async function enquiry(image: string, category: string) {
-
-    await api.post("/leads/track", {
+    await capturePublicCtaLead({
+      tenantId,
       tenantSlug,
-      image,
-      category
-    })
+      source: "WhatsApp Enquiry",
+      phone,
+      location: `Category: ${category}`,
+      name: `Gallery Enquiry (${category})`,
+    }).catch(() => false)
 
     const message = encodeURIComponent(
-      `Hi, I'm interested in this ${category} design`
+      `Hi, I'm interested in this ${category} design (${image})`
     )
 
     window.open(
