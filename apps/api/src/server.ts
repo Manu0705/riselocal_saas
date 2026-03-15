@@ -1,4 +1,4 @@
-import './types/express';
+import type {} from './types/express';
 import { prisma } from '@saas/database';
 import express from 'express';
 import cors from 'cors';
