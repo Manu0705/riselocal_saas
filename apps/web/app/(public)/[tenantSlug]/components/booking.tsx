@@ -3,13 +3,19 @@
 import { useState } from 'react';
 import { inputStyle } from '@/lib/ui-constants';
 import { capturePublicCtaLead } from '@/lib/public-lead-capture';
+import {
+  DEFAULT_ACTION_BUTTONS,
+  normalizeActionButtons,
+  type ActionButtonsConfig,
+} from '@/lib/action-buttons';
 
 type Props = {
   tenantId?: string;
   tenantSlug?: string;
+  actionButtons?: ActionButtonsConfig;
 };
 
-export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
+export default function Booking({ tenantId, tenantSlug, actionButtons }: Readonly<Props>) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -17,6 +23,11 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
     date: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
+
+  if (!buttons.confirmBooking.enabled) {
+    return null;
+  }
 
   const updateField = (field: 'name' | 'phone' | 'location' | 'date', value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -44,6 +55,10 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
           ? `${formData.location} | Preferred Date: ${formData.date}`
           : formData.location,
       });
+
+      if (buttons.confirmBooking.url) {
+        window.open(buttons.confirmBooking.url, '_blank', 'noopener,noreferrer');
+      }
 
       setFormData({ name: '', phone: '', location: '', date: '' });
     } finally {
@@ -108,7 +123,7 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
             opacity: !isValid || submitting ? 0.65 : 1,
           }}
         >
-          {submitting ? 'Submitting...' : 'Confirm Booking'}
+          {submitting ? 'Submitting...' : buttons.confirmBooking.label || 'Confirm Booking'}
         </button>
       </form>
     </div>

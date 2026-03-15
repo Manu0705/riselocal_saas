@@ -25,6 +25,11 @@ function buildFallbackPhone(value?: string): string {
 
 export async function capturePublicCtaLead(input: CaptureLeadInput): Promise<boolean> {
   const tenantId = String(input.tenantId ?? '').trim();
+  const tenantKey = input.tenantSlug || tenantId;
+
+  if (tenantKey) {
+    announceDashboardDataRefresh(tenantKey);
+  }
 
   if (!tenantId) {
     return false;
@@ -44,6 +49,6 @@ export async function capturePublicCtaLead(input: CaptureLeadInput): Promise<boo
     return false;
   }
 
-  announceDashboardDataRefresh(input.tenantSlug || tenantId);
+  announceDashboardDataRefresh(tenantKey);
   return true;
 }

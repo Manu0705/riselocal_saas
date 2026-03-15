@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
+import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
 
 export const RESERVED_ROUTES = [
   'dashboard',
@@ -33,6 +34,7 @@ type ResolvedTenant = {
   primaryColor?: string;
   secondaryColor?: string;
   sectionOrder?: string[];
+  actionButtons?: ActionButtonsConfig;
   services?: Array<{ name: string; description?: string }>;
   gallery?: Array<{ url: string; category: string }>;
   socialLinks?: Array<{ platform?: string; url?: string; label?: string }>;
@@ -62,6 +64,40 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     primaryColor: '#000000',
     secondaryColor: '#FFFFFF',
     logoShape: 'circle',
+    actionButtons: DEFAULT_ACTION_BUTTONS,
+  };
+
+  const normalizeSectionOrder = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+      const items = value.filter((entry): entry is string => typeof entry === 'string');
+      return items.length > 0 ? items : defaults.sectionOrder;
+    }
+
+    if (value && typeof value === 'object') {
+      const raw = value as Record<string, unknown>;
+      if (Array.isArray(raw.sections)) {
+        const items = raw.sections.filter((entry): entry is string => typeof entry === 'string');
+        return items.length > 0 ? items : defaults.sectionOrder;
+      }
+    }
+
+    return defaults.sectionOrder;
+  };
+
+  const normalizeSettingsActionButtons = (settings: Record<string, unknown>): ActionButtonsConfig => {
+    const direct = settings.actionButtons;
+
+    if (direct && typeof direct === 'object') {
+      return normalizeActionButtons(direct);
+    }
+
+    const sectionOrder = settings.sectionOrder;
+    if (sectionOrder && typeof sectionOrder === 'object' && !Array.isArray(sectionOrder)) {
+      const raw = sectionOrder as Record<string, unknown>;
+      return normalizeActionButtons(raw.actionButtons);
+    }
+
+    return defaults.actionButtons;
   };
 
   const normalizeServices = (value: unknown): Array<{ name: string; description?: string }> => {
@@ -111,7 +147,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           continue;
         }
 
-        const settings = tenant.settings ?? {};
+        const settings = (tenant.settings ?? {}) as Record<string, unknown>;
 
         return {
           ...defaults,
@@ -127,9 +163,8 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           logoShape: settings.logoShape || defaults.logoShape,
           primaryColor: settings.primaryColor || defaults.primaryColor,
           secondaryColor: settings.secondaryColor || defaults.secondaryColor,
-          sectionOrder: Array.isArray(settings.sectionOrder)
-            ? settings.sectionOrder.filter((entry: unknown): entry is string => typeof entry === 'string')
-            : defaults.sectionOrder,
+          sectionOrder: normalizeSectionOrder(settings.sectionOrder),
+          actionButtons: normalizeSettingsActionButtons(settings),
           services: normalizeServices(tenant.services),
           gallery:
             Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0

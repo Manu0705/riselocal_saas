@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { capturePublicCtaLead } from '@/lib/public-lead-capture';
+import {
+  DEFAULT_ACTION_BUTTONS,
+  normalizeActionButtons,
+  resolveActionHref,
+  type ActionButtonsConfig,
+} from '@/lib/action-buttons';
 
 type GalleryImage = {
   url: string;
@@ -13,9 +19,16 @@ type Props = {
   tenantSlug: string;
   tenantId?: string;
   phone?: string;
+  actionButtons?: ActionButtonsConfig;
 };
 
-export default function Gallery({ images = [], tenantSlug, tenantId, phone }: Props) {
+export default function Gallery({
+  images = [],
+  tenantSlug,
+  tenantId,
+  phone,
+  actionButtons,
+}: Readonly<Props>) {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const chipScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -23,6 +36,7 @@ export default function Gallery({ images = [], tenantSlug, tenantId, phone }: Pr
   const [isInView, setIsInView] = useState(false);
   const [hasTouchedCategory, setHasTouchedCategory] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -63,8 +77,13 @@ export default function Gallery({ images = [], tenantSlug, tenantId, phone }: Pr
     }).catch(() => false);
 
     const message = encodeURIComponent(`Hi, I'm interested in this ${category} design (${image})`);
+    const href = resolveActionHref(
+      buttons.whatsappEnquiry,
+      `https://wa.me/${phone}?text=${message}`,
+      { whatsappMessage: `Hi, I'm interested in this ${category} design (${image})` },
+    );
 
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    window.open(href, '_blank');
   }
 
   if (!images.length) {
@@ -153,9 +172,9 @@ export default function Gallery({ images = [], tenantSlug, tenantId, phone }: Pr
           gap: 12,
         }}
       >
-        {filtered.map((img, i) => (
+        {filtered.map((img) => (
           <div
-            key={i}
+            key={`${img.url}-${img.category}`}
             style={{
               height: 200,
               borderRadius: 12,
@@ -167,24 +186,26 @@ export default function Gallery({ images = [], tenantSlug, tenantId, phone }: Pr
             }}
           >
             {/* Button inside image */}
-            <button
-              onClick={() => enquiry(img.url, img.category)}
-              style={{
-                position: 'absolute',
-                bottom: 10,
-                left: 10,
-                right: 10,
-                padding: '10px',
-                borderRadius: 8,
-                border: '1.5px solid #fff',
-                background: 'transparent',
-                color: '#fff',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              WhatsApp Enquiry
-            </button>
+            {buttons.whatsappEnquiry.enabled && (
+              <button
+                onClick={() => enquiry(img.url, img.category)}
+                style={{
+                  position: 'absolute',
+                  bottom: 10,
+                  left: 10,
+                  right: 10,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: '1.5px solid #fff',
+                  background: 'transparent',
+                  color: '#fff',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {buttons.whatsappEnquiry.label || 'WhatsApp Enquiry'}
+              </button>
+            )}
           </div>
         ))}
       </div>

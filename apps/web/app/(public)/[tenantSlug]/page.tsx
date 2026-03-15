@@ -9,11 +9,11 @@ import HowItWorks from './components/how-it-works';
 import Booking from './components/booking';
 import Contact from './components/contact';
 
-type Props = {
+type Props = Readonly<{
   params: {
     tenantSlug: string;
   };
-};
+}>;
 
 export default async function TenantPage({ params }: Props) {
   const { tenantSlug } = params;
@@ -42,6 +42,7 @@ export default async function TenantPage({ params }: Props) {
         tenantSlug={tenantSlug}
         tenantId={tenant.id}
         phone={tenant.whatsapp || tenant.phone}
+        actionButtons={tenant.actionButtons}
       />
     ),
   };
@@ -62,10 +63,16 @@ export default async function TenantPage({ params }: Props) {
         phone={tenant.whatsapp || tenant.phone}
         tenantId={tenant.id}
         tenantSlug={tenantSlug}
+        actionButtons={tenant.actionButtons}
       />
       <HowItWorks />
-      <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
-      <Contact tenant={tenant} tenantId={tenant.id} tenantSlug={tenantSlug} />
+      <Booking tenantId={tenant.id} tenantSlug={tenantSlug} actionButtons={tenant.actionButtons} />
+      <Contact
+        tenant={tenant}
+        tenantId={tenant.id}
+        tenantSlug={tenantSlug}
+        actionButtons={tenant.actionButtons}
+      />
     </div>
   );
 }

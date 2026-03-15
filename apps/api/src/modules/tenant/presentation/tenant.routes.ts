@@ -8,6 +8,93 @@ import { prisma } from '@saas/database';
 const router = Router();
 const repository = new PrismaTenantRepository();
 
+type ActionButtonConfig = {
+  enabled: boolean;
+  label?: string;
+  phone?: string;
+  url?: string;
+};
+
+type ActionButtonsConfig = {
+  chatWhatsApp: ActionButtonConfig;
+  call: ActionButtonConfig;
+  whatsappEnquiry: ActionButtonConfig;
+  confirmBooking: ActionButtonConfig;
+};
+
+const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
+  chatWhatsApp: { enabled: true, label: 'Chat on WhatsApp' },
+  call: { enabled: true, label: 'Call' },
+  whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
+  confirmBooking: { enabled: true, label: 'Confirm Booking' },
+};
+
+function getDefaultActionButtons(): ActionButtonsConfig {
+  return {
+    chatWhatsApp: { ...DEFAULT_ACTION_BUTTONS.chatWhatsApp },
+    call: { ...DEFAULT_ACTION_BUTTONS.call },
+    whatsappEnquiry: { ...DEFAULT_ACTION_BUTTONS.whatsappEnquiry },
+    confirmBooking: { ...DEFAULT_ACTION_BUTTONS.confirmBooking },
+  };
+}
+
+function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfig): ActionButtonConfig {
+  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+  return {
+    enabled: raw.enabled === undefined ? fallback.enabled : Boolean(raw.enabled),
+    label: typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : fallback.label,
+    phone: typeof raw.phone === 'string' && raw.phone.trim().length > 0 ? raw.phone.trim() : undefined,
+    url: typeof raw.url === 'string' && raw.url.trim().length > 0 ? raw.url.trim() : undefined,
+  };
+}
+
+function extractSectionOrderConfig(rawValue: unknown): {
+  sectionOrder: string[];
+  actionButtons: ActionButtonsConfig;
+} {
+  if (Array.isArray(rawValue)) {
+    return {
+      sectionOrder: rawValue.filter((entry): entry is string => typeof entry === 'string'),
+      actionButtons: getDefaultActionButtons(),
+    };
+  }
+
+  if (rawValue && typeof rawValue === 'object') {
+    const raw = rawValue as Record<string, unknown>;
+    const sections = Array.isArray(raw.sections)
+      ? raw.sections.filter((entry): entry is string => typeof entry === 'string')
+      : ['hero', 'services', 'gallery'];
+    const buttonRaw = raw.actionButtons && typeof raw.actionButtons === 'object'
+      ? (raw.actionButtons as Record<string, unknown>)
+      : {};
+
+    return {
+      sectionOrder: sections,
+      actionButtons: {
+        chatWhatsApp: normalizeActionButtonConfig(
+          buttonRaw.chatWhatsApp,
+          DEFAULT_ACTION_BUTTONS.chatWhatsApp,
+        ),
+        call: normalizeActionButtonConfig(buttonRaw.call, DEFAULT_ACTION_BUTTONS.call),
+        whatsappEnquiry: normalizeActionButtonConfig(
+          buttonRaw.whatsappEnquiry,
+          DEFAULT_ACTION_BUTTONS.whatsappEnquiry,
+        ),
+        confirmBooking: normalizeActionButtonConfig(
+          buttonRaw.confirmBooking,
+          DEFAULT_ACTION_BUTTONS.confirmBooking,
+        ),
+      },
+    };
+  }
+
+  return {
+    sectionOrder: ['hero', 'services', 'gallery'],
+    actionButtons: getDefaultActionButtons(),
+  };
+}
+
 function getTenantErrorResponse(error: any) {
   const message = String(error?.message || '');
   const code = String(error?.code || '');
@@ -145,7 +232,10 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       });
     }
 
+    const sectionConfig = extractSectionOrderConfig(tenant.settings?.sectionOrder);
+
     const publicTenant = {
+      id: tenant.id,
       name: tenant.name,
       slug: tenant.slug,
       domain: tenant.domain,
@@ -156,7 +246,8 @@ router.get('/tenants/slug/:slug', async (req, res) => {
             logoShape: tenant.settings.logoShape,
             primaryColor: tenant.settings.primaryColor,
             secondaryColor: tenant.settings.secondaryColor,
-            sectionOrder: tenant.settings.sectionOrder,
+            sectionOrder: sectionConfig.sectionOrder,
+            actionButtons: sectionConfig.actionButtons,
             businessPhone: tenant.settings.businessPhone,
             businessWhatsApp: tenant.settings.businessWhatsApp,
             tagline: tenant.settings.tagline,

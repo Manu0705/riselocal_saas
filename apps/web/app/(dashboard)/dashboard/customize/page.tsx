@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import MobilePageTitle from '../components/mobile-page-title';
-import { Palette, Image, Briefcase, Share2, Eye } from 'lucide-react';
+import { Palette, Image, Briefcase, Share2, Eye, MousePointerClick } from 'lucide-react';
 import BrandingEditor from './components/branding-editor';
 import GalleryManager from './components/gallery-manager';
 import ServicesManager from './components/services-manager';
 import SocialLinksManager from './components/social-manager';
+import ActionButtonsManager from './components/action-buttons-manager';
 
-type TabType = 'branding' | 'gallery' | 'services' | 'social';
+type TabType = 'branding' | 'gallery' | 'services' | 'social' | 'actionButtons';
 
 export default function CustomizePage() {
   const [activeTab, setActiveTab] = useState<TabType>('branding');
@@ -20,6 +21,7 @@ export default function CustomizePage() {
     { id: 'gallery' as TabType, label: 'Gallery', icon: Image },
     { id: 'services' as TabType, label: 'Services', icon: Briefcase },
     { id: 'social' as TabType, label: 'Social', icon: Share2 },
+    { id: 'actionButtons' as TabType, label: 'Action Buttons', icon: MousePointerClick },
   ];
 
   const handlePreview = () => {
@@ -106,6 +108,7 @@ export default function CustomizePage() {
         {activeTab === 'gallery' && <GalleryManager />}
         {activeTab === 'services' && <ServicesManager />}
         {activeTab === 'social' && <SocialLinksManager />}
+        {activeTab === 'actionButtons' && <ActionButtonsManager />}
       </div>
     </div>
   );

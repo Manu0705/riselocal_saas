@@ -87,6 +87,11 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     setRefreshKey((prev) => prev + 1);
   }, []);
 
+  const clearBeforeRefresh = useCallback(() => {
+    setLeads([]);
+    setLoading(true);
+  }, []);
+
   const shouldHandleRefreshForTenant = useCallback(
     (incomingTenantKey?: string | null): boolean => {
       const current = String(tenantSlug ?? '')
@@ -124,6 +129,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       const custom = event as CustomEvent<{ tenantKey?: string | null }>;
       const tenantKey = custom.detail?.tenantKey ?? null;
       if (!shouldHandleRefreshForTenant(tenantKey)) return;
+      clearBeforeRefresh();
       triggerRefresh();
     };
 
@@ -132,6 +138,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       const payload = parseDashboardRefreshPayload(event.newValue);
       if (!payload) return;
       if (!shouldHandleRefreshForTenant(payload.tenantKey)) return;
+      clearBeforeRefresh();
       triggerRefresh();
     };
 
@@ -142,7 +149,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       globalThis.window.removeEventListener(eventName, handleCustomRefresh as EventListener);
       globalThis.window.removeEventListener('storage', handleStorageRefresh);
     };
-  }, [shouldHandleRefreshForTenant, triggerRefresh]);
+  }, [shouldHandleRefreshForTenant, clearBeforeRefresh, triggerRefresh]);
 
   useEffect(() => {
     if (!tenantSlug) {
