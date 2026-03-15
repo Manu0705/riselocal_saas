@@ -1,0 +1,5 @@
+
+> @ build:api C:\Users\Sapth\Downloads\saas_existing
+> tsc -p apps/api/tsconfig.json --noEmit
+
+API_BUILD_OK

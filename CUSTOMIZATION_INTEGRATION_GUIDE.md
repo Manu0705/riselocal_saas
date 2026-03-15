@@ -3,13 +3,17 @@
 ## ✅ Completed Components
 
 ### 1. Main Customize Page
+
 **File:** `apps/web/app/(dashboard)/dashboard/customize/page.tsx`
+
 - Tab-based interface (Branding, Gallery, Services, Social)
 - Preview button to view public page
 - Mobile-first responsive design
 
 ### 2. Branding Editor
+
 **File:** `apps/web/app/(dashboard)/dashboard/customize/components/branding-editor.tsx`
+
 - Logo & banner image upload
 - Logo shape selector (circle/square)
 - Primary & secondary color pickers
@@ -18,7 +22,9 @@
 - Auto-save functionality
 
 ### 3. Gallery Manager
+
 **File:** `apps/web/app/(dashboard)/dashboard/customize/components/gallery-manager.tsx`
+
 - Multiple category support (gallery, before-after, team, workspace)
 - Image upload with Cloudinary
 - Category-based organization
@@ -26,14 +32,18 @@
 - Visual grid layout
 
 ### 4. Services Manager
+
 **File:** `apps/web/app/(dashboard)/dashboard/customize/components/services-manager.tsx`
+
 - Add/Edit/Delete services
 - Service name, description, icon fields
 - Position-based ordering
 - Inline editing
 
 ### 5. Social Links Manager
+
 **File:** `apps/web/app/(dashboard)/dashboard/customize/components/social-manager.tsx`
+
 - Platform selector (Facebook, Instagram, Twitter, LinkedIn, etc.)
 - URL validation
 - Custom label support
@@ -49,11 +59,11 @@ Add this function after `goToSettings`:
 
 ```typescript
 const goToCustomize = () => {
-  const tenant = searchParams.get("tenant")
-  const query = tenant ? "?tenant=" + tenant : ""
-  router.push("/dashboard/customize" + query)
-  setMenuOpen(false)
-}
+  const tenant = searchParams.get('tenant');
+  const query = tenant ? '?tenant=' + tenant : '';
+  router.push('/dashboard/customize' + query);
+  setMenuOpen(false);
+};
 ```
 
 Then update the menu items array:
@@ -79,31 +89,33 @@ To add Customize to the bottom navigation, update the `items` array:
 
 ```typescript
 const items = [
-  { label: "Leads", icon: Users, path: "/dashboard/leads" },
-  { label: "Customize", icon: Palette, path: "/dashboard/customize" },  // <-- ADD THIS
-  { label: "Notifications", icon: Bell, path: "/dashboard/notifications", badge: true },
-]
+  { label: 'Leads', icon: Users, path: '/dashboard/leads' },
+  { label: 'Customize', icon: Palette, path: '/dashboard/customize' }, // <-- ADD THIS
+  { label: 'Notifications', icon: Bell, path: '/dashboard/notifications', badge: true },
+];
 ```
 
 Don't forget to import the icon:
 
 ```typescript
-import { Users, Bell, Palette } from "lucide-react"
+import { Users, Bell, Palette } from 'lucide-react';
 ```
 
 ## 🧪 Testing Checklist
 
 ### API Testing (Backend Already Complete)
+
 - [x] API server runs successfully on port 4000
 - [ ] Upload logo via POST /api/upload
 - [ ] Update tenant settings via PUT /api/settings
 - [ ] Create gallery image via POST /api/gallery
 - [ ] Update gallery image category
-- [ ] Create service via POST /api/services  
+- [ ] Create service via POST /api/services
 - [ ] Create social link via POST /api/social
 - [ ] Verify tenant isolation (different tenants can't access each other's data)
 
 ### Frontend Testing
+
 - [ ] Navigate to /dashboard/customize
 - [ ] Switch between tabs (Branding, Gallery, Services, Social)
 - [ ] Upload logo - verify it appears in preview
@@ -121,11 +133,12 @@ import { Users, Bell, Palette } from "lucide-react"
 - [ ] Click "Preview" button - verify it opens public page
 - [ ] Logout and login - verify changes persisted
 
-##  🚀 Next Phase: Public Page Dynamic Rendering
+## 🚀 Next Phase: Public Page Dynamic Rendering
 
 The customization dashboard is now complete, but the public tenant pages don't yet reflect the customizations. You'll need to:
 
 ### Update Public Page Template
+
 **File:** `apps/web/app/(public)/[tenantSlug]/page.tsx`
 
 1. Load tenant settings on page load
@@ -145,20 +158,20 @@ export default async function TenantPublicPage({ params }: { params: { tenantSlu
   const socialLinks = await getSocialLinks(params.tenantSlug)
 
   return (
-    <div style={{ 
+    <div style={{
       '--primary-color': settings.primaryColor,
       '--secondary-color': settings.secondaryColor,
     }}>
       {/* Hero section with banner & logo */}
       {settings.bannerUrl && <img src={settings.bannerUrl} />}
-      
+
       {settings.logoUrl && (
-        <img 
-          src={settings.logoUrl} 
+        <img
+          src={settings.logoUrl}
           style={{ borderRadius: settings.logoShape === 'circle' ? '50%' : '8px' }}
         />
       )}
-      
+
       {settings.tagline && <h2>{settings.tagline}</h2>}
 
       {/* Services section */}
@@ -189,6 +202,7 @@ export default async function TenantPublicPage({ params }: { params: { tenantSlu
 ```
 
 ### Create API Client Functions
+
 **File:** `apps/web/lib/tenant-client.ts` or new file
 
 ```typescript
@@ -223,6 +237,7 @@ Ensure these are set in `.env`:
 ## 🎯 Current Status Summary
 
 ### ✅ Complete (Backend & Dashboard UI)
+
 - Database schema with 4 new models
 - Prisma migrations deployed
 - Cloudinary integration
@@ -234,10 +249,12 @@ Ensure these are set in `.env`:
 - CRUD operations for all entities
 
 ### 🔄 In Progress
+
 - Dashboard menu integration (manual step required)
 - Frontend testing with real tenant data
 
 ### ⏳ Pending
+
 - Public page dynamic rendering
 - Public API endpoints for unauthenticated access
 - CSS variable injection for custom colors
@@ -247,6 +264,7 @@ Ensure these are set in `.env`:
 ## 🎉 Achievement Unlocked!
 
 You now have a fully functional tenant customization system with:
+
 - **Complete API infrastructure** (13 endpoints)
 - **Beautiful dashboard UI** (4 management sections)
 - **Cloudinary integration** (image uploads & storage)

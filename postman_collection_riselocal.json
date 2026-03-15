@@ -31,7 +31,11 @@
           "mode": "raw",
           "raw": "{\n  \"email\": \"owner@abc.com\",\n  \"password\": \"test123\",\n  \"tenantSlug\": \"{{tenant_slug}}\",\n  \"role\": \"owner\"\n}"
         },
-        "url": { "raw": "{{api_base}}/api/auth/login", "host": ["{{api_base}}"], "path": ["api", "auth", "login"] }
+        "url": {
+          "raw": "{{api_base}}/api/auth/login",
+          "host": ["{{api_base}}"],
+          "path": ["api", "auth", "login"]
+        }
       }
     },
     {
@@ -39,7 +43,11 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }],
-        "url": { "raw": "{{api_base}}/api/tenants/slug/{{tenant_slug}}", "host": ["{{api_base}}"], "path": ["api", "tenants", "slug", "{{tenant_slug}}"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenants/slug/{{tenant_slug}}",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenants", "slug", "{{tenant_slug}}"]
+        }
       }
     },
     {
@@ -50,7 +58,11 @@
           { "key": "Authorization", "value": "Bearer {{jwt}}" },
           { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
         ],
-        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenant", "{{tenant_slug}}", "leads"]
+        }
       }
     },
     {
@@ -66,7 +78,11 @@
           "mode": "raw",
           "raw": "{\n  \"name\": \"Test Lead\",\n  \"phone\": \"9999999999\",\n  \"email\": \"lead@example.com\",\n  \"source\": \"Website\",\n  \"location\": \"Bangalore\"\n}"
         },
-        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenant", "{{tenant_slug}}", "leads"]
+        }
       }
     },
     {
@@ -82,7 +98,11 @@
           "mode": "raw",
           "raw": "{\n  \"status\": \"CONVERTED\"\n}"
         },
-        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads/{{lead_id}}/status", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "leads", "{{lead_id}}", "status"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/leads/{{lead_id}}/status",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenant", "{{tenant_slug}}", "leads", "{{lead_id}}", "status"]
+        }
       }
     },
     {
@@ -98,7 +118,11 @@
           "mode": "raw",
           "raw": "{\n  \"leadId\": \"{{lead_id}}\",\n  \"comment\": \"Great service\",\n  \"type\": \"POSITIVE\",\n  \"rating\": 5\n}"
         },
-        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "feedback"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenant", "{{tenant_slug}}", "feedback"]
+        }
       }
     },
     {
@@ -109,7 +133,11 @@
           { "key": "Authorization", "value": "Bearer {{jwt}}" },
           { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
         ],
-        "url": { "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback", "host": ["{{api_base}}"], "path": ["api", "tenant", "{{tenant_slug}}", "feedback"] }
+        "url": {
+          "raw": "{{api_base}}/api/tenant/{{tenant_slug}}/feedback",
+          "host": ["{{api_base}}"],
+          "path": ["api", "tenant", "{{tenant_slug}}", "feedback"]
+        }
       }
     },
     {
@@ -120,7 +148,11 @@
           { "key": "Authorization", "value": "Bearer {{jwt}}" },
           { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
         ],
-        "url": { "raw": "{{api_base}}/api/feedback/{{feedback_id}}/approve", "host": ["{{api_base}}"], "path": ["api", "feedback", "{{feedback_id}}", "approve"] }
+        "url": {
+          "raw": "{{api_base}}/api/feedback/{{feedback_id}}/approve",
+          "host": ["{{api_base}}"],
+          "path": ["api", "feedback", "{{feedback_id}}", "approve"]
+        }
       }
     },
     {
@@ -131,7 +163,11 @@
           { "key": "Authorization", "value": "Bearer {{jwt}}" },
           { "key": "x-tenant-slug", "value": "{{tenant_slug}}" }
         ],
-        "url": { "raw": "{{api_base}}/api/feedback/{{feedback_id}}/reject", "host": ["{{api_base}}"], "path": ["api", "feedback", "{{feedback_id}}", "reject"] }
+        "url": {
+          "raw": "{{api_base}}/api/feedback/{{feedback_id}}/reject",
+          "host": ["{{api_base}}"],
+          "path": ["api", "feedback", "{{feedback_id}}", "reject"]
+        }
       }
     },
     {

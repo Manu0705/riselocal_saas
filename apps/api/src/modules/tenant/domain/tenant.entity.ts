@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import crypto from 'node:crypto';
 
 export interface TenantProps {
   id: string;
@@ -18,17 +18,15 @@ export class Tenant {
 
   static create(name: string, slug: string, domain?: string) {
     if (!name || name.trim().length === 0) {
-      throw new Error("Tenant name is required");
+      throw new Error('Tenant name is required');
     }
 
     if (!slug || slug.trim().length === 0) {
-      throw new Error("Tenant slug is required");
+      throw new Error('Tenant slug is required');
     }
 
     const normalizedDomain =
-      typeof domain === "string" && domain.trim().length > 0
-        ? domain.trim()
-        : null;
+      typeof domain === 'string' && domain.trim().length > 0 ? domain.trim() : null;
 
     return new Tenant({
       id: crypto.randomUUID(),
@@ -50,17 +48,15 @@ export class Tenant {
 
   update(name: string, slug: string, domain?: string | null) {
     if (!name || name.trim().length === 0) {
-      throw new Error("Tenant name is required");
+      throw new Error('Tenant name is required');
     }
 
     if (!slug || slug.trim().length === 0) {
-      throw new Error("Tenant slug is required");
+      throw new Error('Tenant slug is required');
     }
 
     const normalizedDomain =
-      typeof domain === "string" && domain.trim().length > 0
-        ? domain.trim()
-        : null;
+      typeof domain === 'string' && domain.trim().length > 0 ? domain.trim() : null;
 
     this.props.name = name.trim();
     this.props.slug = slug.trim().toLowerCase();

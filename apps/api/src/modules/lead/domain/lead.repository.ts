@@ -1,4 +1,4 @@
-import { Lead } from "./lead.entity";
+import { Lead } from './lead.entity';
 
 /**
  * LeadRepository

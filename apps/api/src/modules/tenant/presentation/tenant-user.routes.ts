@@ -1,25 +1,25 @@
-import { prisma } from "@saas/database"
-import { Router } from "express"
-import { authMiddleware } from "../../auth/presentation/auth.middleware"
-import { adminRoleMiddleware } from "../../auth/presentation/admin-role.middleware"
-import { hashPassword } from "../../auth/infrastructure/password.service"
+import { prisma } from '@saas/database';
+import { Router } from 'express';
+import { authMiddleware } from '../../auth/presentation/auth.middleware';
+import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
+import { hashPassword } from '../../auth/infrastructure/password.service';
 
-const router = Router()
-const ALLOWED_TENANT_ROLES = new Set(["owner", "manager", "staff"])
+const router = Router();
+const ALLOWED_TENANT_ROLES = new Set(['owner', 'manager', 'staff']);
 
-router.use("/tenant-users", authMiddleware, adminRoleMiddleware)
+router.use('/tenant-users', authMiddleware, adminRoleMiddleware);
 
-router.get("/tenant-users", async (req, res) => {
+router.get('/tenant-users', async (req, res) => {
   try {
-    const tenantId = typeof req.query.tenantId === "string" ? req.query.tenantId.trim() : ""
+    const tenantId = typeof req.query.tenantId === 'string' ? req.query.tenantId.trim() : '';
 
     if (!tenantId) {
-      return res.status(400).json({ success: false, message: "tenantId is required" })
+      return res.status(400).json({ success: false, message: 'tenantId is required' });
     }
 
     const users = await prisma.tenantUser.findMany({
       where: { tenantId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         tenantId: true,
@@ -30,38 +30,44 @@ router.get("/tenant-users", async (req, res) => {
         createdAt: true,
         updatedAt: true,
       },
-    })
+    });
 
-    return res.json({ success: true, data: users })
+    return res.json({ success: true, data: users });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message })
+    return res.status(500).json({ success: false, message: error.message });
   }
-})
+});
 
-router.post("/tenant-users", async (req, res) => {
+router.post('/tenant-users', async (req, res) => {
   try {
     const { tenantId, name, email, password, role } = req.body as {
-      tenantId?: string
-      name?: string
-      email?: string
-      password?: string
-      role?: string
-    }
+      tenantId?: string;
+      name?: string;
+      email?: string;
+      password?: string;
+      role?: string;
+    };
 
     if (!tenantId || !name || !email || !password) {
-      return res.status(400).json({ success: false, message: "tenantId, name, email and password are required" })
+      return res
+        .status(400)
+        .json({ success: false, message: 'tenantId, name, email and password are required' });
     }
 
     if (password.length < 8) {
-      return res.status(400).json({ success: false, message: "Password must be at least 8 characters" })
+      return res
+        .status(400)
+        .json({ success: false, message: 'Password must be at least 8 characters' });
     }
 
-    const normalizedRole = String(role || "owner").trim().toLowerCase()
+    const normalizedRole = String(role || 'owner')
+      .trim()
+      .toLowerCase();
     if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
-      return res.status(400).json({ success: false, message: "Invalid tenant role" })
+      return res.status(400).json({ success: false, message: 'Invalid tenant role' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedEmail = email.trim().toLowerCase();
 
     const created = await prisma.tenantUser.create({
       data: {
@@ -81,56 +87,58 @@ router.post("/tenant-users", async (req, res) => {
         createdAt: true,
         updatedAt: true,
       },
-    })
+    });
 
-    return res.status(201).json({ success: true, data: created })
+    return res.status(201).json({ success: true, data: created });
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message })
+    return res.status(400).json({ success: false, message: error.message });
   }
-})
+});
 
-router.put("/tenant-users/:id", async (req, res) => {
+router.put('/tenant-users/:id', async (req, res) => {
   try {
-    const id = String(req.params.id || "").trim()
+    const id = String(req.params.id || '').trim();
     const { name, password, role, isActive } = req.body as {
-      name?: string
-      password?: string
-      role?: string
-      isActive?: boolean
-    }
+      name?: string;
+      password?: string;
+      role?: string;
+      isActive?: boolean;
+    };
 
     if (!id) {
-      return res.status(400).json({ success: false, message: "id is required" })
+      return res.status(400).json({ success: false, message: 'id is required' });
     }
 
     const data: {
-      name?: string
-      passwordHash?: string
-      role?: string
-      isActive?: boolean
-    } = {}
+      name?: string;
+      passwordHash?: string;
+      role?: string;
+      isActive?: boolean;
+    } = {};
 
-    if (typeof name === "string" && name.trim()) {
-      data.name = name.trim()
+    if (typeof name === 'string' && name.trim()) {
+      data.name = name.trim();
     }
 
-    if (typeof password === "string" && password.trim()) {
+    if (typeof password === 'string' && password.trim()) {
       if (password.trim().length < 8) {
-        return res.status(400).json({ success: false, message: "Password must be at least 8 characters" })
+        return res
+          .status(400)
+          .json({ success: false, message: 'Password must be at least 8 characters' });
       }
-      data.passwordHash = hashPassword(password)
+      data.passwordHash = hashPassword(password);
     }
 
-    if (typeof role === "string") {
-      const normalizedRole = role.trim().toLowerCase()
+    if (typeof role === 'string') {
+      const normalizedRole = role.trim().toLowerCase();
       if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
-        return res.status(400).json({ success: false, message: "Invalid tenant role" })
+        return res.status(400).json({ success: false, message: 'Invalid tenant role' });
       }
-      data.role = normalizedRole
+      data.role = normalizedRole;
     }
 
-    if (typeof isActive === "boolean") {
-      data.isActive = isActive
+    if (typeof isActive === 'boolean') {
+      data.isActive = isActive;
     }
 
     const updated = await prisma.tenantUser.update({
@@ -146,28 +154,28 @@ router.put("/tenant-users/:id", async (req, res) => {
         createdAt: true,
         updatedAt: true,
       },
-    })
+    });
 
-    return res.json({ success: true, data: updated })
+    return res.json({ success: true, data: updated });
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message })
+    return res.status(400).json({ success: false, message: error.message });
   }
-})
+});
 
-router.delete("/tenant-users/:id", async (req, res) => {
+router.delete('/tenant-users/:id', async (req, res) => {
   try {
-    const id = String(req.params.id || "").trim()
+    const id = String(req.params.id || '').trim();
 
     if (!id) {
-      return res.status(400).json({ success: false, message: "id is required" })
+      return res.status(400).json({ success: false, message: 'id is required' });
     }
 
-    await prisma.tenantUser.delete({ where: { id } })
+    await prisma.tenantUser.delete({ where: { id } });
 
-    return res.json({ success: true, message: "Tenant user deleted" })
+    return res.json({ success: true, message: 'Tenant user deleted' });
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message })
+    return res.status(400).json({ success: false, message: error.message });
   }
-})
+});
 
-export default router
+export default router;

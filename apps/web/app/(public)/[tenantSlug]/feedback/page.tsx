@@ -1,20 +1,20 @@
-"use client"
-import { useState } from "react";
-import { api } from "@/lib/api-client"
+'use client';
+import { useState } from 'react';
+import { api } from '@/lib/api-client';
 
-export default function FeedbackPage(){
-  const [message,setMessage]=useState("");
+export default function FeedbackPage() {
+  const [message, setMessage] = useState('');
 
-  async function submit(){
-    await api.post("/feedback",{message});
-    alert("Feedback submitted");
+  async function submit() {
+    await api.post('/feedback', { message });
+    alert('Feedback submitted');
   }
 
   return (
     <div>
       <h2>Feedback</h2>
-      <textarea value={message} onChange={e=>setMessage(e.target.value)}/>
+      <textarea value={message} onChange={(e) => setMessage(e.target.value)} />
       <button onClick={submit}>Submit</button>
     </div>
-  )
+  );
 }

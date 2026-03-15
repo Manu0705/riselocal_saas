@@ -5,12 +5,14 @@ Follow these steps to set up and run the admin panel for managing your 5 tenants
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
 # From project root
 pnpm install
 ```
 
 ### 2. Seed the 5 Tenants
+
 ```bash
 # From project root
 cd packages/database
@@ -18,6 +20,7 @@ pnpm db:seed
 ```
 
 This will create:
+
 - JB Interior Curtains (slug: `jb-interior-curtains`)
 - Aluminium Doors and Windows (slug: `aluminium-doors-windows`)
 - SMart Wholesale Mart (slug: `smart-wholesale-mart`)
@@ -25,22 +28,27 @@ This will create:
 - WhatsApp Business 2 (slug: `whatsapp-business-2`)
 
 ### 3. Start the Backend API
+
 ```bash
 # From project root
 cd apps/api
 pnpm dev
 ```
+
 API will run on **http://localhost:4000**
 
 ### 4. Start the Admin Panel
+
 ```bash
-# From project root  
+# From project root
 cd apps/admin
 pnpm dev
 ```
+
 Admin panel will run on **http://localhost:3001**
 
 ### 5. Login
+
 - Open http://localhost:3001/login
 - Enter password: `admin123`
 - Click "Sign In"
@@ -57,14 +65,17 @@ Once logged in, you can:
 ## 🔧 Troubleshooting
 
 **Can't see tenants?**
+
 - Make sure you ran `pnpm db:seed` in packages/database
 - Check that the API is running on port 4000
 
 **Authentication not working?**
+
 - Clear browser localStorage
 - Refresh the page and try logging in again
 
 **Port already in use?**
+
 - Admin uses port 3001 (web app uses 3000)
 - API uses port 4000
 - Close any processes using these ports

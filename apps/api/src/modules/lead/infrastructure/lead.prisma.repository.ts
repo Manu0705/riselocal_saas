@@ -1,7 +1,7 @@
-import { prisma } from "@saas/database";
-import { Lead as PrismaLead } from "@prisma/client";
-import { Lead } from "../domain/lead.entity";
-import { LeadRepository } from "../domain/lead.repository";
+import { prisma } from '@saas/database';
+import { Lead as PrismaLead } from '@prisma/client';
+import { Lead } from '../domain/lead.entity';
+import { LeadRepository } from '../domain/lead.repository';
 
 export class PrismaLeadRepository implements LeadRepository {
   /* =========================================
@@ -17,7 +17,7 @@ export class PrismaLeadRepository implements LeadRepository {
         tenantId: data.tenantId,
         name: data.name,
         phone: data.phone,
-        email: data.email ?? "unknown@example.com",
+        email: data.email ?? 'unknown@example.com',
         source: data.source ?? undefined,
         location: data.location ?? null,
         status: data.status,
@@ -34,14 +34,14 @@ export class PrismaLeadRepository implements LeadRepository {
     const data = lead.toJSON();
 
     await prisma.lead.update({
-      where: { 
+      where: {
         id: data.id,
         tenantId: data.tenantId, // 🔒 prevents cross-tenant update
-       },
+      },
       data: {
         name: data.name,
         phone: data.phone,
-        email: data.email ?? "unknown@example.com",
+        email: data.email ?? 'unknown@example.com',
         source: data.source ?? undefined,
         location: data.location ?? null,
         status: data.status,
@@ -83,7 +83,7 @@ export class PrismaLeadRepository implements LeadRepository {
   async findAllByTenant(tenantId: string): Promise<Lead[]> {
     const records: PrismaLead[] = await prisma.lead.findMany({
       where: { tenantId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return records.map((record) =>
@@ -97,7 +97,7 @@ export class PrismaLeadRepository implements LeadRepository {
         status: record.status as any,
         createdAt: record.createdAt,
         updatedAt: record.createdAt,
-      })
+      }),
     );
   }
 }

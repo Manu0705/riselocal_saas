@@ -1,4 +1,4 @@
-import { Feedback } from "./feedback.entity";
+import { Feedback } from './feedback.entity';
 
 /**
  * FeedbackRepository

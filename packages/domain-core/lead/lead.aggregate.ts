@@ -5,19 +5,19 @@
 /* ============================= */
 
 export enum LeadStatus {
-  NEW = "NEW",
-  CONTACTED = "CONTACTED",
-  QUALIFIED = "QUALIFIED",
-  LOST = "LOST",
-  WON = "WON",
+  NEW = 'NEW',
+  CONTACTED = 'CONTACTED',
+  QUALIFIED = 'QUALIFIED',
+  LOST = 'LOST',
+  WON = 'WON',
 }
 
 export enum LeadSource {
-  WEBSITE = "WEBSITE",
-  REFERRAL = "REFERRAL",
-  LINKEDIN = "LINKEDIN",
-  EMAIL = "EMAIL",
-  OTHER = "OTHER",
+  WEBSITE = 'WEBSITE',
+  REFERRAL = 'REFERRAL',
+  LINKEDIN = 'LINKEDIN',
+  EMAIL = 'EMAIL',
+  OTHER = 'OTHER',
 }
 
 /* ============================= */
@@ -25,48 +25,48 @@ export enum LeadSource {
 /* ============================= */
 
 export type CreateLeadProps = {
-  name: string
-  email: string
-  phone?: string
-  source: LeadSource
-}
+  name: string;
+  email: string;
+  phone?: string;
+  source: LeadSource;
+};
 
 /* ============================= */
 /*         LEAD AGGREGATE        */
 /* ============================= */
 
 export class Lead {
-  private _id?: string
-  private _name: string
-  private _email: string
-  private _phone?: string
-  private _status: LeadStatus
-  private _source: LeadSource
-  private _createdAt: Date
-  private _updatedAt: Date
+  private _id?: string;
+  private _name: string;
+  private _email: string;
+  private _phone?: string;
+  private _status: LeadStatus;
+  private _source: LeadSource;
+  private _createdAt: Date;
+  private _updatedAt: Date;
 
   /* ============================= */
   /*         CONSTRUCTOR           */
   /* ============================= */
 
   constructor(props: {
-    id?: string
-    name: string
-    email: string
-    phone?: string
-    status: LeadStatus
-    source: LeadSource
-    createdAt?: Date
-    updatedAt?: Date
+    id?: string;
+    name: string;
+    email: string;
+    phone?: string;
+    status: LeadStatus;
+    source: LeadSource;
+    createdAt?: Date;
+    updatedAt?: Date;
   }) {
-    this._id = props.id
-    this._name = props.name
-    this._email = props.email
-    this._phone = props.phone
-    this._status = props.status
-    this._source = props.source
-    this._createdAt = props.createdAt ?? new Date()
-    this._updatedAt = props.updatedAt ?? new Date()
+    this._id = props.id;
+    this._name = props.name;
+    this._email = props.email;
+    this._phone = props.phone;
+    this._status = props.status;
+    this._source = props.source;
+    this._createdAt = props.createdAt ?? new Date();
+    this._updatedAt = props.updatedAt ?? new Date();
   }
 
   /* ============================= */
@@ -75,11 +75,11 @@ export class Lead {
 
   static create(props: CreateLeadProps): Lead {
     if (!props.name || props.name.trim().length < 2) {
-      throw new Error("Lead name must be at least 2 characters")
+      throw new Error('Lead name must be at least 2 characters');
     }
 
-    if (!props.email || !props.email.includes("@")) {
-      throw new Error("Invalid email address")
+    if (!props.email || !props.email.includes('@')) {
+      throw new Error('Invalid email address');
     }
 
     return new Lead({
@@ -88,7 +88,7 @@ export class Lead {
       phone: props.phone,
       status: LeadStatus.NEW,
       source: props.source,
-    })
+    });
   }
 
   /* ============================= */
@@ -97,31 +97,31 @@ export class Lead {
 
   updateContactInfo(name: string, email: string, phone?: string) {
     if (name.length < 2) {
-      throw new Error("Name must be at least 2 characters")
+      throw new Error('Name must be at least 2 characters');
     }
 
-    if (!email.includes("@")) {
-      throw new Error("Invalid email")
+    if (!email.includes('@')) {
+      throw new Error('Invalid email');
     }
 
-    this._name = name
-    this._email = email
-    this._phone = phone
-    this.touch()
+    this._name = name;
+    this._email = email;
+    this._phone = phone;
+    this.touch();
   }
 
   changeStatus(status: LeadStatus) {
     // Example business rule:
     if (this._status === LeadStatus.LOST && status === LeadStatus.WON) {
-      throw new Error("Lost lead cannot become Won directly")
+      throw new Error('Lost lead cannot become Won directly');
     }
 
-    this._status = status
-    this.touch()
+    this._status = status;
+    this.touch();
   }
 
   private touch() {
-    this._updatedAt = new Date()
+    this._updatedAt = new Date();
   }
 
   /* ============================= */
@@ -129,35 +129,35 @@ export class Lead {
   /* ============================= */
 
   get id() {
-    return this._id
+    return this._id;
   }
 
   get name() {
-    return this._name
+    return this._name;
   }
 
   get email() {
-    return this._email
+    return this._email;
   }
 
   get phone() {
-    return this._phone
+    return this._phone;
   }
 
   get status() {
-    return this._status
+    return this._status;
   }
 
   get source() {
-    return this._source
+    return this._source;
   }
 
   get createdAt() {
-    return this._createdAt
+    return this._createdAt;
   }
 
   get updatedAt() {
-    return this._updatedAt
+    return this._updatedAt;
   }
 
   /* ============================= */
@@ -174,6 +174,6 @@ export class Lead {
       source: this._source,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
-    }
+    };
   }
 }

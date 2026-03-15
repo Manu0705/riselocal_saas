@@ -1,4 +1,4 @@
 // TODO: Implement UI component
 export default function Component() {
-  return <div>TODO</div>
+  return <div>TODO</div>;
 }

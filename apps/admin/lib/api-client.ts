@@ -1,20 +1,21 @@
 // API client for admin panel
-const API_BASE = process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+const API_BASE =
+  process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 function getAuthHeaders() {
-  if (globalThis.window === undefined) return {}
-  const token = localStorage.getItem("admin_token")
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  if (globalThis.window === undefined) return {};
+  const token = localStorage.getItem('admin_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function buildUrl(path: string) {
-  const sanitizedPath = path.startsWith("/") ? path : `/${path}`
-  const base = API_BASE.replace(/\/+$/, "")
-  const baseHasApi = base.toLowerCase().endsWith("/api")
-  const pathHasApi = sanitizedPath.toLowerCase().startsWith("/api")
-  const apiPrefix = baseHasApi ? "" : "/api"
-  const normalizedPath = pathHasApi ? sanitizedPath : `${apiPrefix}${sanitizedPath}`
-  return `${base}${normalizedPath}`
+  const sanitizedPath = path.startsWith('/') ? path : `/${path}`;
+  const base = API_BASE.replace(/\/+$/, '');
+  const baseHasApi = base.toLowerCase().endsWith('/api');
+  const pathHasApi = sanitizedPath.toLowerCase().startsWith('/api');
+  const apiPrefix = baseHasApi ? '' : '/api';
+  const normalizedPath = pathHasApi ? sanitizedPath : `${apiPrefix}${sanitizedPath}`;
+  return `${base}${normalizedPath}`;
 }
 
 export const adminApi = {
@@ -23,58 +24,58 @@ export const adminApi = {
       headers: {
         ...getAuthHeaders(),
       },
-    })
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
-    const text = await res.text()
+    });
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+    const text = await res.text();
     try {
-      return JSON.parse(text)
+      return JSON.parse(text);
     } catch {
-      throw new Error("API did not return JSON: " + text.slice(0, 100))
+      throw new Error('API did not return JSON: ' + text.slice(0, 100));
     }
   },
 
   async post(path: string, data: any) {
     const res = await fetch(buildUrl(path), {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
       body: JSON.stringify(data),
-    })
-    const json = await res.json().catch(() => null)
+    });
+    const json = await res.json().catch(() => null);
     if (!res.ok) {
-      const message = json?.message || `Request failed with status ${res.status}`
-      throw new Error(message)
+      const message = json?.message || `Request failed with status ${res.status}`;
+      throw new Error(message);
     }
-    return json
+    return json;
   },
 
   async put(path: string, data: any) {
     const res = await fetch(buildUrl(path), {
-      method: "PUT",
+      method: 'PUT',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
       body: JSON.stringify(data),
-    })
-    const json = await res.json().catch(() => null)
+    });
+    const json = await res.json().catch(() => null);
     if (!res.ok) {
-      const message = json?.message || `Request failed with status ${res.status}`
-      throw new Error(message)
+      const message = json?.message || `Request failed with status ${res.status}`;
+      throw new Error(message);
     }
-    return json
+    return json;
   },
 
   async delete(path: string) {
     const res = await fetch(buildUrl(path), {
-      method: "DELETE",
+      method: 'DELETE',
       headers: {
         ...getAuthHeaders(),
       },
-    })
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
-    return res.json()
+    });
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+    return res.json();
   },
-}
+};

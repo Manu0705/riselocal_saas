@@ -1,11 +1,13 @@
 # Pre-Publish Deployment Checklist
 
 ✅ **Build Verification**
+
 - [x] Backend (API) build passes: `pnpm run build:api`
 - [x] Frontend (Web) build passes: `pnpm run build:web`
 - [x] Full workspace build passes: `pnpm run build`
 
 ✅ **Configuration Alignment**
+
 - [x] Environment files use placeholders (no real credentials)
 - [x] `.gitignore` excludes all `.env*` files
 - [x] `.env.example` template created for developers
@@ -14,6 +16,7 @@
 - [x] Root scripts (`start:api`) respect APP_ENV/NODE_ENV
 
 ✅ **Multi-Tenant Architecture**
+
 - [x] Slug-based routing implemented (subdomain/header/query)
 - [x] Tenant resolution middleware active in API
 - [x] Tenant access guards protect cross-tenant data leakage
@@ -21,6 +24,7 @@
 - [x] API routes accept `/api/tenants/:slug/...` patterns
 
 ✅ **Security Hardening**
+
 - [x] CORS configured with explicit allowlist (includes Vercel previews)
 - [x] Helmet middleware active (CSP, XSS, etc.)
 - [x] Rate limiting enabled (100 req/15min per IP)
@@ -29,6 +33,7 @@
 - [x] Centralized error handling (no stack traces in prod)
 
 ✅ **Deployment Documentation**
+
 - [x] `README.md` includes exact Vercel + Render dashboard settings
 - [x] Environment variable reference documented
 - [x] DNS/domain configuration guide included
@@ -36,17 +41,20 @@
 - [x] Verification checklist for post-deploy validation
 
 ✅ **API Testing & Docs**
+
 - [x] Endpoint inventory created (`docs/api-endpoints.md`)
 - [x] Postman collection available (`postman-collection.json`)
 - [x] Smoke test script created (`scripts/api-smoke-test.sh`)
 
 ✅ **Frontend Fixes**
+
 - [x] Suspense boundaries added for `useSearchParams()` usage
 - [x] Dynamic rendering enabled for dashboard routes
 - [x] React type dependencies aligned (18.x)
 - [x] Workspace dependency boundaries corrected
 
 ✅ **Operational Readiness**
+
 - [x] Production, QA, and development configs separated
 - [x] Neon Postgres connection strings templated
 - [x] Worker service patterns documented (BullMQ + Redis)
@@ -57,6 +65,7 @@
 ## Final Actions Before GitHub Publish
 
 1. **Initialize Git repository** (if not already done):
+
    ```bash
    git init
    git add .
@@ -64,6 +73,7 @@
    ```
 
 2. **Create GitHub repository** and push:
+
    ```bash
    git remote add origin https://github.com/<your-org>/<repo-name>.git
    git branch -M main

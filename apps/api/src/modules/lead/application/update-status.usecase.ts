@@ -1,6 +1,6 @@
-import { LeadStatus } from "../domain/lead.entity";
-import { LeadRepository } from "../domain/lead.repository";
-import { AppError } from "../../../shared/errors/app-error";
+import { LeadStatus } from '../domain/lead.entity';
+import { LeadRepository } from '../domain/lead.repository';
+import { AppError } from '../../../shared/errors/app-error';
 
 /* =========================================
    INPUT
@@ -20,13 +20,10 @@ export class UpdateLeadStatusUseCase {
   constructor(private readonly repository: LeadRepository) {}
 
   async execute(input: UpdateLeadStatusInput) {
-    const lead = await this.repository.findById(
-      input.id,
-      input.tenantId
-    );
+    const lead = await this.repository.findById(input.id, input.tenantId);
 
     if (!lead) {
-      throw new AppError("Lead not found", 404);
+      throw new AppError('Lead not found', 404);
     }
 
     // Business rule handled inside entity

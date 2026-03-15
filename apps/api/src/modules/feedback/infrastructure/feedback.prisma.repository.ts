@@ -1,11 +1,10 @@
 // apps/api/src/modules/feedback/infrastructure/feedback.prisma.repository.ts
 
-import { prisma } from "@saas/database";
-import { Feedback, FeedbackStatus, FeedbackType } from "../domain/feedback.entity";
-import { FeedbackRepository } from "../domain/feedback.repository";
+import { prisma } from '@saas/database';
+import { Feedback, FeedbackStatus, FeedbackType } from '../domain/feedback.entity';
+import { FeedbackRepository } from '../domain/feedback.repository';
 
 export class PrismaFeedbackRepository implements FeedbackRepository {
-
   /* =========================================
      CREATE
   ========================================= */
@@ -75,7 +74,7 @@ export class PrismaFeedbackRepository implements FeedbackRepository {
       where: {
         tenantId,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return records.map((record) => this.mapToEntity(record));
@@ -89,9 +88,9 @@ export class PrismaFeedbackRepository implements FeedbackRepository {
     const records = await prisma.feedback.findMany({
       where: {
         tenantId,
-        status: "PENDING",
+        status: 'PENDING',
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
 
     return records.map((record) => this.mapToEntity(record));

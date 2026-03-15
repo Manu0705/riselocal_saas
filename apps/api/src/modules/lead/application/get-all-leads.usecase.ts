@@ -1,4 +1,4 @@
-import { LeadRepository } from "../domain/lead.repository";
+import { LeadRepository } from '../domain/lead.repository';
 
 /* =========================================
    INPUT
@@ -17,7 +17,7 @@ export class GetAllLeadsUseCase {
 
   async execute(input: GetAllLeadsInput) {
     if (!input.tenantId) {
-      throw new Error("tenantId is required");
+      throw new Error('tenantId is required');
     }
 
     const leads = await this.repository.findAllByTenant(input.tenantId);

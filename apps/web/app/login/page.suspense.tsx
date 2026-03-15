@@ -1,51 +1,51 @@
-"use client"
+'use client';
 
-import { Suspense, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { login } from "@/lib/auth"
-import { useAuth } from "@/context/AuthContext"
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { login } from '@/lib/auth';
+import { useAuth } from '@/context/AuthContext';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
 function LoginContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const tenant = searchParams.get("tenant")
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get('tenant');
 
-  const { login: loginWithContext } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { login: loginWithContext } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function submit() {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const data = await login(email, password, tenant ?? undefined)
+      const data = await login(email, password, tenant ?? undefined);
 
-      const apiError = data?.error || data?.message
+      const apiError = data?.error || data?.message;
       if (apiError && !data?.token) {
-        setError(String(apiError))
-        return
+        setError(String(apiError));
+        return;
       }
 
       if (!data?.token) {
-        setError("Login failed. Please check your credentials and try again.")
-        return
+        setError('Login failed. Please check your credentials and try again.');
+        return;
       }
 
-      const tenantIdFromServer = data?.user?.tenantId
-      loginWithContext(data.token, tenant ?? tenantIdFromServer)
-      router.push("/dashboard")
+      const tenantIdFromServer = data?.user?.tenantId;
+      loginWithContext(data.token, tenant ?? tenantIdFromServer);
+      router.push('/dashboard');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
+    <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <h1>Login</h1>
 
       {error ? (
@@ -53,10 +53,10 @@ function LoginContent() {
           style={{
             marginBottom: 12,
             padding: 12,
-            background: "#fee",
-            border: "1px solid #fbb",
+            background: '#fee',
+            border: '1px solid #fbb',
             borderRadius: 8,
-            color: "#900",
+            color: '#900',
           }}
         >
           {error}
@@ -68,11 +68,11 @@ function LoginContent() {
         placeholder="email"
         onChange={(e) => setEmail(e.target.value)}
         style={{
-          width: "100%",
+          width: '100%',
           padding: 10,
           marginBottom: 10,
           borderRadius: 8,
-          border: "1px solid #ddd",
+          border: '1px solid #ddd',
         }}
       />
 
@@ -82,11 +82,11 @@ function LoginContent() {
         type="password"
         onChange={(e) => setPassword(e.target.value)}
         style={{
-          width: "100%",
+          width: '100%',
           padding: 10,
           marginBottom: 16,
           borderRadius: 8,
-          border: "1px solid #ddd",
+          border: '1px solid #ddd',
         }}
       />
 
@@ -94,20 +94,20 @@ function LoginContent() {
         onClick={submit}
         disabled={loading}
         style={{
-          width: "100%",
+          width: '100%',
           padding: 12,
           borderRadius: 8,
-          border: "none",
-          background: "#2563eb",
-          color: "white",
-          cursor: loading ? "not-allowed" : "pointer",
+          border: 'none',
+          background: '#2563eb',
+          color: 'white',
+          cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.75 : 1,
         }}
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading ? 'Logging in...' : 'Login'}
       </button>
     </div>
-  )
+  );
 }
 
 export default function LoginPageWithSuspense() {
@@ -115,5 +115,5 @@ export default function LoginPageWithSuspense() {
     <Suspense fallback={<div style={{ padding: 16 }}>Loading...</div>}>
       <LoginContent />
     </Suspense>
-  )
+  );
 }

@@ -1,83 +1,82 @@
-/// <reference path="./types/express.d.ts" />
+import './types/express';
+import { prisma } from '@saas/database';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import routes from './routes';
+import { errorHandler } from './middleware/error-handler.middleware';
+import { env } from './config/env';
+import { requestContextMiddleware } from './middleware/request-context.middleware';
+import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
+import { inputSanitizeMiddleware } from './middleware/input-sanitize.middleware';
 
-import { prisma } from "@saas/database"
-import express from "express"
-import cors from "cors"
-import helmet from "helmet"
-import morgan from "morgan"
-import routes from "./routes"
-import { errorHandler } from "./middleware/error-handler.middleware"
-import { env } from "./config/env"
-import { requestContextMiddleware } from "./middleware/request-context.middleware"
-import { rateLimitMiddleware } from "./middleware/rate-limit.middleware"
-import { inputSanitizeMiddleware } from "./middleware/input-sanitize.middleware"
+const app = express();
 
-const app = express()
-
-const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i
-const riseLocalSubdomainPattern = /^https:\/\/([a-z0-9-]+\.)*riselocal\.in$/i
+const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+const riseLocalSubdomainPattern = /^https:\/\/([a-z0-9-]+\.)*riselocal\.in$/i;
 
 app.use(
   helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-)
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) return callback(null, true)
+      if (!origin) return callback(null, true);
 
       if (env.FRONTEND_ORIGINS.includes(origin)) {
-        return callback(null, true)
+        return callback(null, true);
       }
 
       if (riseLocalSubdomainPattern.test(origin)) {
-        return callback(null, true)
+        return callback(null, true);
       }
 
       if (vercelPreviewPattern.test(origin)) {
-        return callback(null, true)
+        return callback(null, true);
       }
 
-      return callback(new Error("CORS origin not allowed"))
+      return callback(new Error('CORS origin not allowed'));
     },
     credentials: true,
-  })
-)
+  }),
+);
 
-app.use(requestContextMiddleware)
-app.use(rateLimitMiddleware())
-app.use(express.json({ limit: "10mb" }))
-app.use(inputSanitizeMiddleware)
+app.use(requestContextMiddleware);
+app.use(rateLimitMiddleware());
+app.use(express.json({ limit: '10mb' }));
+app.use(inputSanitizeMiddleware);
 
-if (env.APP_ENV === "development") {
-  app.use(morgan("dev"))
+if (env.APP_ENV === 'development') {
+  app.use(morgan('dev'));
 }
 
-app.get("/health", (_, res) => {
-  res.status(200).json({ status: "ok" })
-})
+app.get('/health', (_, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
-app.use("/api", routes)
-app.use(errorHandler)
+app.use('/api', routes);
+app.use(errorHandler);
 
-const PORT = env.PORT
+const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 API running on port ${PORT}`)
-})
+  console.log(`🚀 API running on port ${PORT}`);
+});
 
 async function gracefulShutdown(signal: string) {
-  console.log(`${signal} received. Shutting down gracefully...`)
+  console.log(`${signal} received. Shutting down gracefully...`);
 
   server.close(async () => {
-    console.log("HTTP server closed.")
-    await prisma.$disconnect()
-    console.log("Database disconnected.")
-    process.exit(0)
-  })
+    console.log('HTTP server closed.');
+    await prisma.$disconnect();
+    console.log('Database disconnected.');
+    process.exit(0);
+  });
 }
 
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"))
-process.on("SIGINT", () => gracefulShutdown("SIGINT"))
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

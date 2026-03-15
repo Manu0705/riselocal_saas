@@ -1,4 +1,4 @@
-import { Tenant } from "./tenant.entity";
+import { Tenant } from './tenant.entity';
 
 /**
  * TenantRepository
@@ -23,11 +23,11 @@ export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>;
 
   /**
-    * Find tenant by slug (used by tenant resolver middleware).
-    */
-    findBySlug(slug: string): Promise<Tenant | null>;
+   * Find tenant by slug (used by tenant resolver middleware).
+   */
+  findBySlug(slug: string): Promise<Tenant | null>;
 
-    /**
+  /**
    * Find tenant by domain (used by tenant resolver middleware).
    */
   findByDomain(domain: string): Promise<Tenant | null>;

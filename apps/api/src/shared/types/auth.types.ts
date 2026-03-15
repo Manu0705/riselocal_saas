@@ -1,6 +1,6 @@
-export type UserRole = "ADMIN" | "USER"
+export type UserRole = 'ADMIN' | 'USER';
 
 export interface AuthUser {
-  id: string
-  role: UserRole
+  id: string;
+  role: UserRole;
 }

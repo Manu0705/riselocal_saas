@@ -1,0 +1,38 @@
+
+> @ build C:\Users\Sapth\Downloads\saas_existing
+> pnpm run build:web && pnpm run build:api
+
+
+> @ build:web C:\Users\Sapth\Downloads\saas_existing
+> pnpm --filter @saas/web build
+
+
+> @saas/web@ build C:\Users\Sapth\Downloads\saas_existing\apps\web
+> next build
+
+  ▲ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/(public)/[tenantSlug]/page.tsx:38:25
+Type error: Type '{ name?: string; description?: string; }[]' is not assignable to type '(string | { name: string; description?: string; })[]'.
+  Type '{ name?: string; description?: string; }' is not assignable to type 'string | { name: string; description?: string; }'.
+    Type '{ name?: string; description?: string; }' is not assignable to type '{ name: string; description?: string; }'.
+      Property 'name' is optional in type '{ name?: string; description?: string; }' but required in type '{ name: string; description?: string; }'.
+
+[0m [90m 36 |[39m   [36mconst[39m sections[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m [33mJSX[39m[33m.[39m[33mElement[39m[33m>[39m [33m=[39m {[0m
+[0m [90m 37 |[39m     hero[33m:[39m [33m<[39m[33mHero[39m tenant[33m=[39m{tenant} [33m/[39m[33m>[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 38 |[39m     services[33m:[39m [33m<[39m[33mServices[39m services[33m=[39m{tenant[33m.[39mservices [33m||[39m []} [33m/[39m[33m>[39m[33m,[39m[0m
+[0m [90m    |[39m                         [31m[1m^[22m[39m[0m
+[0m [90m 39 |[39m     gallery[33m:[39m ([0m
+[0m [90m 40 |[39m       [33m<[39m[33mGallery[39m[0m
+[0m [90m 41 |[39m         images[33m=[39m{tenant[33m.[39mgallery [33m||[39m []}[0m
+C:\Users\Sapth\Downloads\saas_existing\apps\web:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @saas/web@ build: `next build`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

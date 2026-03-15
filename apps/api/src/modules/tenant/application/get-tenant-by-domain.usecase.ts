@@ -1,4 +1,4 @@
-import { TenantRepository } from "../domain/tenant.repository";
+import { TenantRepository } from '../domain/tenant.repository';
 
 /* =========================================
    INPUT
@@ -18,7 +18,7 @@ export class GetTenantByDomainUseCase {
 
   async execute(input: GetTenantByDomainInput) {
     if (!input.domain && !input.slug) {
-      throw new Error("Domain or slug is required");
+      throw new Error('Domain or slug is required');
     }
 
     const tenant = input.slug
@@ -26,7 +26,7 @@ export class GetTenantByDomainUseCase {
       : await this.repository.findByDomain(String(input.domain).trim().toLowerCase());
 
     if (!tenant) {
-      throw new Error("Tenant not found");
+      throw new Error('Tenant not found');
     }
 
     return tenant.toJSON();

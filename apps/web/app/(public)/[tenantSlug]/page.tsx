@@ -1,37 +1,37 @@
-import { notFound } from "next/navigation"
-import { getTenant, isReservedTenantSlug } from "@/lib/tenant-resolver"
+import { notFound } from 'next/navigation';
+import { getTenant, isReservedTenantSlug } from '@/lib/tenant-resolver';
 
-import Hero from "./components/hero"
-import QuickActions from "./components/quick-actions"
-import Services from "./components/services"
-import Gallery from "./components/gallery"
-import HowItWorks from "./components/how-it-works"
-import Booking from "./components/booking"
-import Contact from "./components/contact"
+import Hero from './components/hero';
+import QuickActions from './components/quick-actions';
+import Services from './components/services';
+import Gallery from './components/gallery';
+import HowItWorks from './components/how-it-works';
+import Booking from './components/booking';
+import Contact from './components/contact';
 
 type Props = {
   params: {
-    tenantSlug: string
-  }
-}
+    tenantSlug: string;
+  };
+};
 
 export default async function TenantPage({ params }: Props) {
-  const { tenantSlug } = params
+  const { tenantSlug } = params;
 
   // Prevent dashboard routes from being treated as tenants
   if (isReservedTenantSlug(tenantSlug)) {
-    notFound()
+    notFound();
   }
 
-  const tenant = await getTenant(tenantSlug)
+  const tenant = await getTenant(tenantSlug);
 
   if (!tenant) {
-    notFound()
+    notFound();
   }
 
   const sectionOrder = Array.isArray(tenant.sectionOrder)
     ? tenant.sectionOrder
-    : ["hero", "services", "gallery"]
+    : ['hero', 'services', 'gallery'];
 
   const sections: Record<string, JSX.Element> = {
     hero: <Hero tenant={tenant} />,
@@ -44,24 +44,28 @@ export default async function TenantPage({ params }: Props) {
         phone={tenant.whatsapp || tenant.phone}
       />
     ),
-  }
+  };
 
   return (
     <div
       style={{
         // Expose tenant brand colors to descendant components.
-        ["--tenant-primary" as string]: tenant.primaryColor || "#000000",
-        ["--tenant-secondary" as string]: tenant.secondaryColor || "#FFFFFF",
+        ['--tenant-primary' as string]: tenant.primaryColor || '#000000',
+        ['--tenant-secondary' as string]: tenant.secondaryColor || '#FFFFFF',
       }}
     >
       {sectionOrder.map((sectionKey: string) => (
         <div key={sectionKey}>{sections[sectionKey] ?? null}</div>
       ))}
 
-      <QuickActions phone={tenant.whatsapp || tenant.phone} tenantId={tenant.id} tenantSlug={tenantSlug} />
+      <QuickActions
+        phone={tenant.whatsapp || tenant.phone}
+        tenantId={tenant.id}
+        tenantSlug={tenantSlug}
+      />
       <HowItWorks />
-      <Booking tenant={tenant} tenantId={tenant.id} tenantSlug={tenantSlug} />
+      <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
       <Contact tenant={tenant} tenantId={tenant.id} tenantSlug={tenantSlug} />
     </div>
-  )
+  );
 }

@@ -72,7 +72,6 @@ async function main() {
     console.log('  Email: admin@riselocal.in');
     console.log(`  Password: ${plainTextPassword}\n`);
     console.log('⚠️  IMPORTANT: Change this password immediately in production!\n');
-
   } catch (error) {
     console.error('❌ Setup failed:', error.message);
     process.exit(1);

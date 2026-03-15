@@ -21,6 +21,7 @@ The admin panel has **full control** over tenant creation, editing, and deletion
 ### ✅ 1. CREATE - Add New Tenant
 
 **UI Feature**:
+
 - "Add Tenant" button in admin dashboard
 - Modal form with fields:
   - Business Name (required)
@@ -28,11 +29,13 @@ The admin panel has **full control** over tenant creation, editing, and deletion
   - Custom Domain (optional)
 
 **API Endpoint**:
+
 ```
 POST /api/tenants
 ```
 
 **Request Body**:
+
 ```json
 {
   "name": "Bavani Business",
@@ -42,6 +45,7 @@ POST /api/tenants
 ```
 
 **What happens**:
+
 1. Admin fills form and clicks "Create Tenant"
 2. Frontend calls `adminApi.post("/tenants", formData)`
 3. API validates and creates tenant in database
@@ -53,16 +57,19 @@ POST /api/tenants
 ### ✅ 2. READ - View All Tenants
 
 **UI Feature**:
+
 - Table view showing all tenants
 - Displays: Business Name, Slug, Domain, Created Date
 - Auto-refreshes on any change
 
 **API Endpoint**:
+
 ```
 GET /api/tenants
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -83,16 +90,19 @@ GET /api/tenants
 ### ✅ 3. UPDATE - Edit Existing Tenant
 
 **UI Feature**:
+
 - Edit icon (pencil) next to each tenant
 - Opens modal with pre-filled form
 - Can modify: Name, Slug, Domain
 
 **API Endpoint**:
+
 ```
 PUT /api/tenants/:id
 ```
 
 **Request Body**:
+
 ```json
 {
   "name": "Updated Business Name",
@@ -102,6 +112,7 @@ PUT /api/tenants/:id
 ```
 
 **What happens**:
+
 1. Admin clicks edit icon
 2. Modal opens with current values
 3. Admin modifies fields and clicks "Update Tenant"
@@ -110,6 +121,7 @@ PUT /api/tenants/:id
 6. Changes reflect immediately in list
 
 **Implementation**:
+
 - ✅ Entity method: `tenant.update(name, slug, domain)`
 - ✅ Repository method: `repository.update(tenant)`
 - ✅ API route: `PUT /tenants/:id`
@@ -119,16 +131,19 @@ PUT /api/tenants/:id
 ### ✅ 4. DELETE - Remove Tenant
 
 **UI Feature**:
+
 - Delete icon (trash) next to each tenant
 - Confirmation dialog: "Delete {name}? This action cannot be undone."
 - Removes tenant from system
 
 **API Endpoint**:
+
 ```
 DELETE /api/tenants/:id
 ```
 
 **What happens**:
+
 1. Admin clicks delete icon
 2. Confirmation dialog appears
 3. Admin confirms deletion
@@ -137,6 +152,7 @@ DELETE /api/tenants/:id
 6. Tenant disappears from list
 
 **Implementation**:
+
 - ✅ Repository method: `repository.delete(id)`
 - ✅ API route: `DELETE /tenants/:id`
 - ✅ Cascade behavior: Related data (leads, feedback) handled by Prisma
@@ -146,6 +162,7 @@ DELETE /api/tenants/:id
 ## Code Architecture
 
 ### Admin UI Layer
+
 ```
 apps/admin/app/dashboard/tenants/page.tsx
 ├── State: tenants[], showModal, editingTenant
@@ -162,6 +179,7 @@ apps/admin/app/dashboard/tenants/page.tsx
 ```
 
 ### API Layer
+
 ```
 apps/api/src/modules/tenant/presentation/tenant.routes.ts
 ├── POST   /tenants         - Create new tenant
@@ -172,6 +190,7 @@ apps/api/src/modules/tenant/presentation/tenant.routes.ts
 ```
 
 ### Domain Layer
+
 ```
 apps/api/src/modules/tenant/domain/
 ├── tenant.entity.ts
@@ -189,6 +208,7 @@ apps/api/src/modules/tenant/domain/
 ```
 
 ### Infrastructure Layer
+
 ```
 apps/api/src/modules/tenant/infrastructure/
 └── tenant.prisma.repository.ts
@@ -212,17 +232,18 @@ model Tenant {
   domain    String?    @unique            // Custom domain (optional)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  
+
   // Relations
   feedbacks Feedback[]
   followUps FollowUp[]
   leads     Lead[]
-  
+
   @@index([createdAt])
 }
 ```
 
 **Key Fields**:
+
 - `id` - UUID primary key
 - `slug` - Unique URL identifier (bavani, jb-interiors, etc.)
 - `domain` - Optional custom domain
@@ -233,6 +254,7 @@ model Tenant {
 ## Admin Panel Access
 
 ### Navigation Structure
+
 ```
 Admin Dashboard
 ├── Dashboard (Overview)
@@ -242,12 +264,14 @@ Admin Dashboard
 ```
 
 ### Access URL
+
 ```
 http://localhost:3000/admin/dashboard/tenants (local)
 https://riselocal.in/admin/dashboard/tenants (production)
 ```
 
 ### Authentication
+
 - Protected by `RequireAuth` component
 - Admin login required
 - Located at: `/admin/login`
@@ -257,6 +281,7 @@ https://riselocal.in/admin/dashboard/tenants (production)
 ## Tenant Management Flow
 
 ### Creating a Tenant
+
 ```
 1. Admin logs into admin panel
 2. Navigates to Dashboard → Tenants
@@ -273,6 +298,7 @@ https://riselocal.in/admin/dashboard/tenants (production)
 ```
 
 ### Editing a Tenant
+
 ```
 1. Admin opens Tenants page
 2. Clicks edit icon (pencil) next to tenant
@@ -283,6 +309,7 @@ https://riselocal.in/admin/dashboard/tenants (production)
 ```
 
 ### Deleting a Tenant
+
 ```
 1. Admin opens Tenants page
 2. Clicks delete icon (trash) next to tenant
@@ -298,12 +325,14 @@ https://riselocal.in/admin/dashboard/tenants (production)
 ## Security & Validation
 
 ### Slug Validation
+
 - Auto-normalized to lowercase
 - Special characters removed
 - Spaces converted to dashes
 - Reserved keywords blocked (dashboard, admin, login, etc.)
 
 ### Reserved Slugs (Cannot be used)
+
 ```
 dashboard, admin, analytics, leads, feedback,
 tenants, followups, settings, login, api,
@@ -311,11 +340,13 @@ _next, www, qa
 ```
 
 ### Unique Constraints
+
 - Slug must be unique across all tenants
 - Domain must be unique if provided
 - Database enforces uniqueness
 
 ### Access Control
+
 - Only admin users can manage tenants
 - Web app validates tenant existence
 - Non-existent tenants return 404
@@ -327,24 +358,28 @@ _next, www, qa
 ### How Admin Control Affects Routing
 
 **When Admin Creates Tenant "bavani"**:
+
 ```
 ✅ https://riselocal.in/bavani        → Works
 ✅ https://bavani.riselocal.in        → Works
 ```
 
 **When Admin Deletes Tenant "bavani"**:
+
 ```
 ❌ https://riselocal.in/bavani        → 404
 ❌ https://bavani.riselocal.in        → 404
 ```
 
 **When Admin Updates Slug "bavani" → "bavani-design"**:
+
 ```
 ❌ https://riselocal.in/bavani        → 404 (old slug)
 ✅ https://riselocal.in/bavani-design → Works (new slug)
 ```
 
 ### Validation Flow
+
 ```
 User visits: https://bavani.riselocal.in
     ↓
@@ -367,6 +402,7 @@ If not found: Return 404
 ## Testing Admin Functions
 
 ### Test Create
+
 ```bash
 # Via Admin UI
 1. Go to http://localhost:3000/admin/dashboard/tenants
@@ -382,6 +418,7 @@ curl -X POST http://localhost:4000/api/tenants \
 ```
 
 ### Test Read
+
 ```bash
 # Via Admin UI
 1. Go to http://localhost:3000/admin/dashboard/tenants
@@ -392,6 +429,7 @@ curl http://localhost:4000/api/tenants
 ```
 
 ### Test Update
+
 ```bash
 # Via Admin UI
 1. Click edit icon next to a tenant
@@ -406,6 +444,7 @@ curl -X PUT http://localhost:4000/api/tenants/{tenant-id} \
 ```
 
 ### Test Delete
+
 ```bash
 # Via Admin UI
 1. Click delete icon next to a tenant
@@ -422,26 +461,30 @@ curl -X DELETE http://localhost:4000/api/tenants/{tenant-id}
 ## Summary
 
 ✅ **Admin has FULL control** over tenant management:
-  - ✅ Create new tenants
-  - ✅ View all tenants
-  - ✅ Edit tenant details (name, slug, domain)
-  - ✅ Delete tenants
+
+- ✅ Create new tenants
+- ✅ View all tenants
+- ✅ Edit tenant details (name, slug, domain)
+- ✅ Delete tenants
 
 ✅ **Complete integration** with multi-tenant routing:
-  - ✅ Only admin-created tenants are accessible
-  - ✅ Deleted tenants return 404
-  - ✅ Slug changes immediately affect URLs
+
+- ✅ Only admin-created tenants are accessible
+- ✅ Deleted tenants return 404
+- ✅ Slug changes immediately affect URLs
 
 ✅ **Robust architecture**:
-  - ✅ Clean domain-driven design
-  - ✅ Proper validation and error handling
-  - ✅ Database constraints enforced
-  - ✅ Security checks at multiple layers
+
+- ✅ Clean domain-driven design
+- ✅ Proper validation and error handling
+- ✅ Database constraints enforced
+- ✅ Security checks at multiple layers
 
 ✅ **User-friendly UI**:
-  - ✅ Intuitive admin panel
-  - ✅ Clear navigation
-  - ✅ Confirmation dialogs for destructive actions
-  - ✅ Immediate feedback on changes
+
+- ✅ Intuitive admin panel
+- ✅ Clear navigation
+- ✅ Confirmation dialogs for destructive actions
+- ✅ Immediate feedback on changes
 
 **The system is production-ready and fully functional!** 🚀

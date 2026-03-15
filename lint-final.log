@@ -1,0 +1,147 @@
+
+> @ lint C:\Users\Sapth\Downloads\saas_existing
+> eslint . --ext .ts,.tsx,.js,.jsx
+
+
+C:\Users\Sapth\Downloads\saas_existing\apps\admin\app\dashboard\analytics\page.tsx
+  43:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\admin\app\dashboard\leads\page.tsx
+  39:6  warning  React Hook useEffect has a missing dependency: 'fetchLeads'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Sapth\Downloads\saas_existing\apps\admin\app\dashboard\page.tsx
+  57:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\admin\app\dashboard\tenants\page.tsx
+  68:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\admin\lib\api-client.ts
+  37:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\middleware\tenant-resolver.middleware.ts
+  41:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\auth\presentation\auth.middleware.ts
+  26:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\auth\presentation\auth.routes.ts
+  86:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\content\presentation\content.routes.ts
+   12:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\feedback\presentation\feedback.controller.ts
+   59:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\gallery\presentation\gallery.routes.ts
+   10:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   52:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  116:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\lead\infrastructure\lead.prisma.repository.ts
+  73:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\lead\presentation\lead.controller.ts
+   56:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\tenant\presentation\tenant-settings.routes.ts
+  10:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\tenant\presentation\tenant-user.routes.ts
+   36:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  160:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\tenant\presentation\tenant.routes.ts
+   11:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  213:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  285:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\modules\upload\presentation\upload.routes.ts
+  52:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\api\src\shared\utils\async-handler.ts
+  4:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(dashboard)\dashboard\customize\components\branding-editor.tsx
+  124:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  211:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(dashboard)\dashboard\customize\components\gallery-manager.tsx
+  206:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(dashboard)\dashboard\followups\page.tsx
+  91:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(dashboard)\dashboard\leads\page.tsx
+   76:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(public)\[tenantSlug]\components\hero.tsx
+  75:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  90:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\app\(public)\[tenantSlug]\components\top-header.tsx
+  165:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\context\DashboardDataContext.tsx
+  47:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  81:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\lib\mock-data.ts
+  4:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Sapth\Downloads\saas_existing\apps\web\lib\tenant-client.ts
+   37:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   91:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 85 problems (0 errors, 85 warnings)
+
+LINT_OK

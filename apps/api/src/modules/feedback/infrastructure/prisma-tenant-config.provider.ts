@@ -1,8 +1,5 @@
-import { prisma } from "@saas/database";
-import {
-  TenantConfig,
-  TenantConfigProvider,
-} from "../application/create-feedback.usecase";
+import { prisma } from '@saas/database';
+import { TenantConfig, TenantConfigProvider } from '../application/create-feedback.usecase';
 
 /**
  * PrismaTenantConfigProvider

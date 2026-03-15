@@ -1,2 +1,2 @@
 // TODO: Implement logic
-export {}
+export {};

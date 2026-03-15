@@ -1,16 +1,19 @@
 # Tenant Public Page Customization - Implementation Complete ✅
 
 ## Overview
+
 This document describes the newly implemented tenant customization system that allows tenants to personalize their public pages through the dashboard while maintaining the platform's default template.
 
 ## What Was Implemented
 
 ### 1. Database Schema Extensions
+
 **File:** `packages/database/prisma/schema.prisma`
 **Migration:** `20260309130000_add_tenant_customization`
 **Status:** ✅ Deployed to production database
 
 New Models:
+
 ```
 TenantSettings   - Branding & layout customization (1:1 with Tenant)
 GalleryImage     - Ordered gallery images by category
@@ -19,20 +22,24 @@ Service          - Business services with descriptions
 ```
 
 All models enforce:
+
 - Tenant isolation via `tenantId` foreign key
 - CASCADE delete when tenant removed
 - Unique constraints where needed
 - Position-based ordering for sortable content
 
 ### 2. Cloudinary Integration
+
 **File:** `apps/api/src/lib/cloudinary.ts`
 **Status:** ✅ Configured and ready
 
 Functions:
+
 - `uploadToCloudinary(filePath, folder)` - Upload images to riselocal/{folder}
 - `deleteFromCloudinary(publicId)` - Remove images
 
 Environment Variables Required:
+
 ```env
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
@@ -42,11 +49,13 @@ CLOUDINARY_API_SECRET=your_api_secret
 ⚠️ **ACTION REQUIRED:** Update `.env` with real Cloudinary credentials before testing uploads.
 
 ### 3. Image Upload API
+
 **Endpoint:** `POST /api/upload`
 **File:** `apps/api/src/modules/upload/presentation/upload.routes.ts`
 **Status:** ✅ Registered and compiled
 
 Features:
+
 - Accepts multipart/form-data with `file` field
 - 10MB file size limit
 - Validates: JPEG, PNG, WebP, GIF only
@@ -55,11 +64,13 @@ Features:
 - Tenant-scoped (extracts from auth token)
 
 ### 4. Gallery Management API
+
 **Base Path:** `/api/gallery`
 **File:** `apps/api/src/modules/gallery/presentation/gallery.routes.ts`
 **Status:** ✅ Registered and compiled
 
 Endpoints:
+
 ```
 GET    /api/gallery                      - All images ordered by (category, position)
 GET    /api/gallery/category/:category   - Images in specific category
@@ -72,17 +83,20 @@ DELETE /api/gallery/:id                  - Remove image
 All endpoints enforce tenant ownership verification.
 
 ### 5. Tenant Settings API
+
 **Base Path:** `/api/settings`
 **File:** `apps/api/src/modules/tenant/presentation/tenant-settings.routes.ts`
 **Status:** ✅ Registered and compiled
 
 Endpoints:
+
 ```
 GET    /api/settings    - Fetch settings (auto-creates with defaults if missing)
 PUT    /api/settings    - Update any field (partial updates supported)
 ```
 
 Customizable Fields:
+
 - `logoUrl`, `bannerUrl` - Custom branding images
 - `logoShape` - "circle" or "square"
 - `primaryColor`, `secondaryColor` - HEX color codes
@@ -91,11 +105,13 @@ Customizable Fields:
 - `tagline` - Business tagline
 
 ### 6. Services & Social Links API
+
 **Base Path:** `/api/services` & `/api/social`
 **File:** `apps/api/src/modules/content/presentation/content.routes.ts`
 **Status:** ✅ Registered and compiled
 
 Services Endpoints:
+
 ```
 GET    /api/services       - All services ordered by position
 POST   /api/services       - Create service (name, description, icon)
@@ -104,6 +120,7 @@ DELETE /api/services/:id   - Remove service
 ```
 
 Social Links Endpoints:
+
 ```
 GET    /api/social         - All social links
 POST   /api/social         - Create link (platform, url, label)
@@ -112,27 +129,32 @@ DELETE /api/social/:id     - Remove link
 ```
 
 ### 7. Default Tenant Seeding
+
 **File:** `packages/database/src/seed-tenant.ts`
 **Status:** ✅ Created, not yet integrated
 
 Function: `seedTenantDefaults(tenantId)`
 Seeds:
+
 - Default settings (circle logo, gray+blue colors, section order)
 - 3 sample services
 - 3 sample gallery images from Unsplash
 
 Usage:
+
 ```typescript
-import { seedTenantDefaults } from '@saas/database/src/seed-tenant'
-await seedTenantDefaults(newTenant.id)
+import { seedTenantDefaults } from '@saas/database/src/seed-tenant';
+await seedTenantDefaults(newTenant.id);
 ```
 
 Or as CLI:
+
 ```bash
 TENANT_ID=xxx ts-node packages/database/src/seed-tenant.ts
 ```
 
 ## API Security & Isolation
+
 All endpoints enforce:
 ✅ `authMiddleware` - JWT validation
 ✅ Tenant extraction from `req.user.tenantId` (never from request body)
@@ -141,6 +163,7 @@ All endpoints enforce:
 ✅ Success responses: `{ success: true, data: {...} }`
 
 ## Dependencies Installed
+
 ```json
 {
   "cloudinary": "^1.40.0",
@@ -150,6 +173,7 @@ All endpoints enforce:
 ```
 
 ## Compilation Status
+
 ✅ TypeScript compilation passes (`pnpm build:api`)
 ✅ Prisma client regenerated with new models
 ✅ Database migration applied successfully
@@ -158,7 +182,9 @@ All endpoints enforce:
 ## Not Yet Implemented (Future Work)
 
 ### Admin Dashboard UI Components
+
 These files need to be created:
+
 ```
 apps/admin/app/dashboard/branding/page.tsx
 apps/admin/app/dashboard/gallery/page.tsx
@@ -168,6 +194,7 @@ apps/admin/app/dashboard/preview/page.tsx
 ```
 
 Required Components:
+
 - **BrandingEditor** - Logo/banner upload, color pickers, logo shape selector
 - **GalleryManager** - Kanban drag-drop with @dnd-kit/core
 - **ServicesManager** - CRUD list with position reordering
@@ -175,9 +202,11 @@ Required Components:
 - **PublicPreview** - Live preview of tenant site
 
 ### Public Page Dynamic Rendering
+
 **File to Update:** `apps/web/app/(public)/[tenantSlug]/page.tsx`
 
 Needs to:
+
 1. Load `tenantSettings` by slug
 2. Load `gallery` images grouped by category
 3. Load `services` ordered by position
@@ -186,9 +215,11 @@ Needs to:
 6. Render sections in `sectionOrder` order
 
 ### Admin Tenant Creation Integration
+
 **File to Update:** `apps/admin/app/dashboard/tenants/[...action]` or tenant creation API
 
 Add after tenant creation:
+
 ```typescript
 import { seedTenantDefaults } from '@saas/database/src/seed-tenant'
 const tenant = await createTenant(...)
@@ -198,6 +229,7 @@ await seedTenantDefaults(tenant.id)
 ## Testing Checklist
 
 ### Backend API Testing (Ready to Test)
+
 - [ ] Upload image via POST /api/upload with JWT token
 - [ ] Verify image URL returned from Cloudinary
 - [ ] Create gallery item with uploaded URL
@@ -210,6 +242,7 @@ await seedTenantDefaults(tenant.id)
 - [ ] Verify tenant isolation (token A cannot access tenant B's data)
 
 ### Frontend Testing (Requires UI Implementation)
+
 - [ ] Admin can upload logo via dashboard
 - [ ] Admin can change colors and see preview
 - [ ] Admin can drag-drop gallery images between categories
@@ -222,6 +255,7 @@ await seedTenantDefaults(tenant.id)
 ## Environment Setup
 
 ### Development (.env)
+
 ```env
 DATABASE_URL=postgresql://...
 JWT_SECRET=...
@@ -231,29 +265,30 @@ CLOUDINARY_API_SECRET=your_api_secret        # ⚠️ Replace with real value
 ```
 
 ### Production (.env.production)
+
 Same variables as development. Ensure Cloudinary production account is configured.
 
 ## API Routes Summary
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/upload | Upload image to Cloudinary |
-| GET | /api/gallery | Get all tenant gallery images |
-| GET | /api/gallery/category/:cat | Get images by category |
-| POST | /api/gallery | Create gallery image record |
-| PUT | /api/gallery/:id | Update single image |
-| PUT | /api/gallery/reorder | Bulk reorder images |
-| DELETE | /api/gallery/:id | Delete image |
-| GET | /api/settings | Get tenant settings (auto-create if missing) |
-| PUT | /api/settings | Update tenant settings |
-| GET | /api/services | Get all services |
-| POST | /api/services | Create service |
-| PUT | /api/services/:id | Update service |
-| DELETE | /api/services/:id | Delete service |
-| GET | /api/social | Get all social links |
-| POST | /api/social | Create social link |
-| PUT | /api/social/:id | Update social link |
-| DELETE | /api/social/:id | Delete social link |
+| Method | Endpoint                   | Description                                  |
+| ------ | -------------------------- | -------------------------------------------- |
+| POST   | /api/upload                | Upload image to Cloudinary                   |
+| GET    | /api/gallery               | Get all tenant gallery images                |
+| GET    | /api/gallery/category/:cat | Get images by category                       |
+| POST   | /api/gallery               | Create gallery image record                  |
+| PUT    | /api/gallery/:id           | Update single image                          |
+| PUT    | /api/gallery/reorder       | Bulk reorder images                          |
+| DELETE | /api/gallery/:id           | Delete image                                 |
+| GET    | /api/settings              | Get tenant settings (auto-create if missing) |
+| PUT    | /api/settings              | Update tenant settings                       |
+| GET    | /api/services              | Get all services                             |
+| POST   | /api/services              | Create service                               |
+| PUT    | /api/services/:id          | Update service                               |
+| DELETE | /api/services/:id          | Delete service                               |
+| GET    | /api/social                | Get all social links                         |
+| POST   | /api/social                | Create social link                           |
+| PUT    | /api/social/:id            | Update social link                           |
+| DELETE | /api/social/:id            | Delete social link                           |
 
 ## Database Schema Visual
 
@@ -298,12 +333,14 @@ Pending: Admin UI components, public page rendering"
 ## Support & Troubleshooting
 
 ### Image Upload Fails
+
 - Check Cloudinary credentials in `.env`
 - Verify file size < 10MB
 - Confirm MIME type is JPEG/PNG/WebP/GIF
 - Check server has write access to temp directory
 
 ### Migration Errors
+
 - If migration fails due to existing tables, use:
   ```bash
   pnpm exec prisma migrate resolve --rolled-back 20260309130000_add_tenant_customization
@@ -311,10 +348,12 @@ Pending: Admin UI components, public page rendering"
   ```
 
 ### TypeScript Errors After Prisma Changes
+
 - Regenerate client: `pnpm exec prisma generate`
 - Restart TypeScript server in VS Code
 
 ### Tenant Isolation Not Working
+
 - Verify `authMiddleware` is applied to route
 - Check `req.user.tenantId` is populated from JWT
 - Ensure all Prisma queries include `.where({ tenantId })`

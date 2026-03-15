@@ -1,17 +1,13 @@
-import crypto from "node:crypto";
-import { AppError } from "../../../shared/errors/app-error";
+import crypto from 'node:crypto';
+import { AppError } from '../../../shared/errors/app-error';
 
 /* =========================================
    TYPES
 ========================================= */
 
-export type FeedbackType = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+export type FeedbackType = 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
 
-export type FeedbackStatus =
-  | "PUBLISHED"
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED";
+export type FeedbackStatus = 'PUBLISHED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 interface TenantFeedbackConfig {
   feedbackAllowsRating: boolean;
@@ -63,19 +59,19 @@ export class Feedback {
 
   static create(props: CreateFeedbackProps): Feedback {
     if (!props.tenantId) {
-      throw new AppError("tenantId is required", 400);
+      throw new AppError('tenantId is required', 400);
     }
 
     if (!props.leadId) {
-      throw new AppError("leadId is required", 400);
+      throw new AppError('leadId is required', 400);
     }
 
     if (!props.comment || props.comment.trim().length === 0) {
-      throw new AppError("Comment is required", 400);
+      throw new AppError('Comment is required', 400);
     }
 
     if (!props.createdBy) {
-      throw new AppError("createdBy is required", 400);
+      throw new AppError('createdBy is required', 400);
     }
 
     let rating: number | null = null;
@@ -83,15 +79,15 @@ export class Feedback {
     if (props.tenantConfig.feedbackAllowsRating) {
       if (props.rating !== undefined) {
         if (props.rating < 1 || props.rating > 5) {
-          throw new AppError("Rating must be between 1 and 5", 400);
+          throw new AppError('Rating must be between 1 and 5', 400);
         }
         rating = props.rating;
       }
     }
 
     const status: FeedbackStatus = props.tenantConfig.feedbackRequiresApproval
-      ? "PENDING"
-      : "PUBLISHED";
+      ? 'PENDING'
+      : 'PUBLISHED';
 
     const now = new Date();
 
@@ -115,21 +111,21 @@ export class Feedback {
   ========================================= */
 
   approve(userId: string) {
-    if (this.props.status !== "PENDING") {
-      throw new AppError("Only pending feedback can be approved", 400);
+    if (this.props.status !== 'PENDING') {
+      throw new AppError('Only pending feedback can be approved', 400);
     }
 
-    this.props.status = "APPROVED";
+    this.props.status = 'APPROVED';
     this.props.approvedBy = userId;
     this.props.updatedAt = new Date();
   }
 
   reject(userId: string) {
-    if (this.props.status !== "PENDING") {
-      throw new AppError("Only pending feedback can be rejected", 400);
+    if (this.props.status !== 'PENDING') {
+      throw new AppError('Only pending feedback can be rejected', 400);
     }
 
-    this.props.status = "REJECTED";
+    this.props.status = 'REJECTED';
     this.props.approvedBy = userId;
     this.props.updatedAt = new Date();
   }

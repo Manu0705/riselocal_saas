@@ -19,14 +19,17 @@ Create one Vercel project for `apps/web`.
 Set in `Project Settings -> Environment Variables`:
 
 Production:
+
 - `NEXT_PUBLIC_API_URL=https://api.riselocal.in`
 - `NEXT_PUBLIC_ENV=production`
 
 Preview (QA branch deployments):
+
 - `NEXT_PUBLIC_API_URL=https://qa-api.riselocal.in`
 - `NEXT_PUBLIC_ENV=qa`
 
 Development:
+
 - `NEXT_PUBLIC_API_URL=http://localhost:4000`
 - `NEXT_PUBLIC_ENV=development`
 
@@ -40,6 +43,7 @@ Add in `Project Settings -> Domains`:
 - `*.qa.riselocal.in`
 
 Notes:
+
 - Wildcard domains require appropriate Vercel plan support.
 - The app already contains `apps/web/middleware.ts` for tenant subdomain routing.
 
@@ -59,6 +63,7 @@ Create two Render web services from this repo root.
 - Auto Deploy: `On`
 
 Environment Variables:
+
 - `APP_ENV=production`
 - `NODE_ENV=production`
 - `PORT=4000`
@@ -70,6 +75,7 @@ Environment Variables:
 - `CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>`
 
 Custom Domain:
+
 - `api.riselocal.in`
 
 ### Service 2: QA API
@@ -84,6 +90,7 @@ Custom Domain:
 - Auto Deploy: `On`
 
 Environment Variables:
+
 - `APP_ENV=qa`
 - `NODE_ENV=development`
 - `PORT=4000`
@@ -95,6 +102,7 @@ Environment Variables:
 - `CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>`
 
 Custom Domain:
+
 - `qa-api.riselocal.in`
 
 ## Neon Database Setup
@@ -114,12 +122,14 @@ Then map URLs:
 Create these records in your DNS provider for `riselocal.in`:
 
 Frontend to Vercel:
+
 - `A` record: `@` -> `76.76.21.21`
 - `CNAME` record: `qa` -> `cname.vercel-dns.com`
 - `CNAME` record: `*` -> `cname.vercel-dns.com`
 - `CNAME` record: `*.qa` -> `cname.vercel-dns.com`
 
 Backend to Render:
+
 - `CNAME` record: `api` -> `<render-production-service>.onrender.com`
 - `CNAME` record: `qa-api` -> `<render-qa-service>.onrender.com`
 

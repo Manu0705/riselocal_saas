@@ -1,7 +1,7 @@
-import { prisma } from "@saas/database";
-import { Tenant as PrismaTenant } from "@prisma/client";
-import { Tenant } from "../domain/tenant.entity";
-import { TenantRepository } from "../domain/tenant.repository";
+import { prisma } from '@saas/database';
+import { Tenant as PrismaTenant } from '@prisma/client';
+import { Tenant } from '../domain/tenant.entity';
+import { TenantRepository } from '../domain/tenant.repository';
 
 export class PrismaTenantRepository implements TenantRepository {
   /* =========================================
@@ -46,10 +46,9 @@ export class PrismaTenantRepository implements TenantRepository {
   ========================================= */
 
   async findById(id: string): Promise<Tenant | null> {
-    const record: PrismaTenant | null =
-      await prisma.tenant.findUnique({
-        where: { id },
-      });
+    const record: PrismaTenant | null = await prisma.tenant.findUnique({
+      where: { id },
+    });
 
     if (!record) return null;
 
@@ -89,12 +88,11 @@ export class PrismaTenantRepository implements TenantRepository {
   ========================================= */
 
   async findByDomain(domain: string): Promise<Tenant | null> {
-    const record: PrismaTenant | null =
-      await prisma.tenant.findFirst({
-        where: {
-          domain,
-        },
-      });
+    const record: PrismaTenant | null = await prisma.tenant.findFirst({
+      where: {
+        domain,
+      },
+    });
 
     if (!record) return null;
 
@@ -113,11 +111,10 @@ export class PrismaTenantRepository implements TenantRepository {
   ========================================= */
 
   async findAllActive(): Promise<Tenant[]> {
-    const records: PrismaTenant[] =
-      await prisma.tenant.findMany({
-        where: {},
-        orderBy: { createdAt: "desc" },
-      });
+    const records: PrismaTenant[] = await prisma.tenant.findMany({
+      where: {},
+      orderBy: { createdAt: 'desc' },
+    });
 
     return records.map((record) =>
       Tenant.fromPersistence({
@@ -127,7 +124,7 @@ export class PrismaTenantRepository implements TenantRepository {
         domain: record.domain,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
-      })
+      }),
     );
   }
 

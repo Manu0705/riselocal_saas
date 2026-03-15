@@ -5,11 +5,13 @@ Admin panel for managing all tenants and leads in the multi-tenant SaaS applicat
 ## Getting Started
 
 ### 1. Install Dependencies
+
 ```bash
 pnpm install
 ```
 
 ### 2. Set Up Database (if not done)
+
 ```bash
 cd ../../packages/database
 pnpm prisma migrate dev
@@ -17,6 +19,7 @@ pnpm prisma db seed  # Seeds the 5 tenants
 ```
 
 ### 3. Start the Admin Panel
+
 ```bash
 cd apps/admin
 pnpm dev
@@ -25,6 +28,7 @@ pnpm dev
 The admin panel will run on **http://localhost:3001**
 
 ### 4. Login
+
 - Navigate to http://localhost:3001/login
 - Default password: `admin123`
 - (Change this via `ADMIN_PASSWORD` environment variable)
@@ -32,11 +36,13 @@ The admin panel will run on **http://localhost:3001**
 ## Features
 
 ### 📊 Dashboard
+
 - Overview of all tenants and leads
 - Global statistics (total tenants, leads, conversion rate)
 - Quick access to tenant details
 
 ### 🏢 Tenant Management
+
 - View all tenants in a table
 - Create new tenants
 - Edit existing tenants (name, slug, domain)
@@ -44,6 +50,7 @@ The admin panel will run on **http://localhost:3001**
 - Full CRUD operations
 
 ### 📝 Leads Management
+
 - View leads across all tenants
 - Filter leads by specific tenant
 - See lead status (Open, Follow-Up, Converted, Lost)
@@ -51,6 +58,7 @@ The admin panel will run on **http://localhost:3001**
 - View lead contact information
 
 ### 📈 Analytics
+
 - Performance metrics across all tenants
 - Tenant-wise conversion tracking
 - Lead pipeline visualization

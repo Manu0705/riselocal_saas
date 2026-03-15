@@ -12,6 +12,7 @@ RiseLocal implements a secure multi-tenant SaaS routing system where tenants can
 ### Main Domains
 
 The following domains serve the main application:
+
 - `https://riselocal.in` - Main landing page
 - `https://www.riselocal.in` - Treated as root domain (www is not a tenant)
 - `www.riselocal.in` - Same as above
@@ -30,6 +31,7 @@ Tenants are created by admins in the admin dashboard and stored in the `tenants`
 #### Subdomain Routes
 
 When accessing via subdomain:
+
 - `https://bavani.riselocal.in` → rewrites to `/{bavani}`
 - `https://bavani.riselocal.in/contact` → rewrites to `/{bavani}/contact`
 - `https://bavani.riselocal.in/feedback` → rewrites to `/{bavani}/feedback`
@@ -40,11 +42,11 @@ All tenant requests are validated against the database:
 
 ```typescript
 const tenant = await prisma.tenant.findUnique({
-  where: { slug: tenantSlug }
-})
+  where: { slug: tenantSlug },
+});
 
 if (!tenant) {
-  notFound() // Returns 404
+  notFound(); // Returns 404
 }
 ```
 
@@ -57,7 +59,7 @@ if (!tenant) {
 The following URL patterns are blocked:
 
 1. **www subdomain with tenant**: `https://www.bavani.riselocal.in` ❌
-2. **Invalid tenant slugs**: 
+2. **Invalid tenant slugs**:
    - `https://wrongTenant.riselocal.in` ❌
    - `https://riselocal.in/wrongTenant` ❌
 3. **Empty subdomain**: `https://.tenant.riselocal.in/*` ❌
@@ -109,6 +111,7 @@ Tenant validation happens in two places:
 2. **Page (`page.tsx`)**: Additional validation at page level
 
 Both use the `getTenant()` function which:
+
 - Queries the API: `GET /api/tenants/slug/{slug}`
 - Returns `null` if tenant doesn't exist
 - Triggers 404 page via `notFound()`
@@ -149,26 +152,26 @@ POST /api/tenants
 
 ### Valid URLs ✅
 
-| URL | Description |
-|-----|-------------|
-| `https://riselocal.in` | Main landing page |
-| `https://www.riselocal.in` | Main landing page |
-| `https://riselocal.in/bavani` | Path-based tenant access |
-| `https://bavani.riselocal.in` | Subdomain tenant access |
-| `https://bavani.riselocal.in/contact` | Tenant contact page |
-| `https://riselocal.in/bavani/contact` | Tenant contact page |
-| `https://riselocal.in/dashboard` | Dashboard (reserved route) |
-| `https://riselocal.in/login` | Login page (reserved route) |
+| URL                                   | Description                 |
+| ------------------------------------- | --------------------------- |
+| `https://riselocal.in`                | Main landing page           |
+| `https://www.riselocal.in`            | Main landing page           |
+| `https://riselocal.in/bavani`         | Path-based tenant access    |
+| `https://bavani.riselocal.in`         | Subdomain tenant access     |
+| `https://bavani.riselocal.in/contact` | Tenant contact page         |
+| `https://riselocal.in/bavani/contact` | Tenant contact page         |
+| `https://riselocal.in/dashboard`      | Dashboard (reserved route)  |
+| `https://riselocal.in/login`          | Login page (reserved route) |
 
 ### Invalid URLs ❌
 
-| URL | Reason |
-|-----|--------|
-| `https://www.bavani.riselocal.in` | www + tenant subdomain not allowed |
-| `https://invalidtenant.riselocal.in` | Tenant doesn't exist in database |
-| `https://riselocal.in/invalidtenant` | Tenant doesn't exist in database |
-| `https://bavani.riselocal.in/bhavani` | Subdomain/path mismatch |
-| `https://dashboard.riselocal.in` | Reserved slug used as tenant |
+| URL                                   | Reason                             |
+| ------------------------------------- | ---------------------------------- |
+| `https://www.bavani.riselocal.in`     | www + tenant subdomain not allowed |
+| `https://invalidtenant.riselocal.in`  | Tenant doesn't exist in database   |
+| `https://riselocal.in/invalidtenant`  | Tenant doesn't exist in database   |
+| `https://bavani.riselocal.in/bhavani` | Subdomain/path mismatch            |
+| `https://dashboard.riselocal.in`      | Reserved slug used as tenant       |
 
 ## File Structure
 

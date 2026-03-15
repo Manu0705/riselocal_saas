@@ -1,15 +1,10 @@
-import crypto from "node:crypto";
+import crypto from 'node:crypto';
 
 /* =========================================
    TYPES
 ========================================= */
 
-export type LeadStatus =
-  | "NEW"
-  | "CONTACTED"
-  | "QUALIFIED"
-  | "CONVERTED"
-  | "CLOSED";
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'CLOSED';
 
 interface LeadProps {
   id: string;
@@ -53,15 +48,15 @@ export class Lead {
 
   static create(props: CreateLeadProps): Lead {
     if (!props.tenantId) {
-      throw new Error("tenantId is required");
+      throw new Error('tenantId is required');
     }
 
     if (!props.name || props.name.trim().length === 0) {
-      throw new Error("Lead name is required");
+      throw new Error('Lead name is required');
     }
 
     if (!props.phone || props.phone.trim().length === 0) {
-      throw new Error("Phone is required");
+      throw new Error('Phone is required');
     }
 
     const now = new Date();
@@ -74,7 +69,7 @@ export class Lead {
       email: props.email ?? null,
       source: props.source ?? null,
       location: props.location ?? null,
-      status: "NEW",
+      status: 'NEW',
       createdAt: now,
       updatedAt: now,
     });
@@ -90,20 +85,17 @@ export class Lead {
     }
 
     const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
-      NEW: ["CONTACTED", "CLOSED"],
-      CONTACTED: ["QUALIFIED", "CLOSED"],
-      QUALIFIED: ["CONVERTED", "CLOSED"],
+      NEW: ['CONTACTED', 'CLOSED'],
+      CONTACTED: ['QUALIFIED', 'CLOSED'],
+      QUALIFIED: ['CONVERTED', 'CLOSED'],
       CONVERTED: [],
       CLOSED: [],
     };
 
-    const isAllowed =
-      allowedTransitions[this.props.status].includes(newStatus);
+    const isAllowed = allowedTransitions[this.props.status].includes(newStatus);
 
     if (!isAllowed) {
-      throw new Error(
-        `Invalid status transition from ${this.props.status} to ${newStatus}`
-      );
+      throw new Error(`Invalid status transition from ${this.props.status} to ${newStatus}`);
     }
 
     this.props.status = newStatus;

@@ -1,22 +1,22 @@
 type Props = {
-  title: string
-}
+  title: string;
+};
 
 export default function MobilePageTitle({ title }: Readonly<Props>) {
   return (
     <h1
       style={{
-        width: "100%",
+        width: '100%',
         minHeight: 32,
-        margin: "0 0 14px",
+        margin: '0 0 14px',
         fontSize: 22,
-        lineHeight: "32px",
+        lineHeight: '32px',
         fontWeight: 600,
-        letterSpacing: "-0.3px",
-        color: "var(--text)",
+        letterSpacing: '-0.3px',
+        color: 'var(--text)',
       }}
     >
       {title}
     </h1>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-export type FeedbackStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type FeedbackStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 interface FeedbackProps {
   id: string;
@@ -30,11 +30,11 @@ export class Feedback {
 
   static create(props: CreateFeedbackProps): Feedback {
     if (!props.message) {
-      throw new Error("Feedback message is required");
+      throw new Error('Feedback message is required');
     }
 
     if (props.rating < 1 || props.rating > 5) {
-      throw new Error("Rating must be between 1 and 5");
+      throw new Error('Rating must be between 1 and 5');
     }
 
     const now = new Date();
@@ -44,7 +44,7 @@ export class Feedback {
       message: props.message,
       rating: props.rating,
       createdBy: props.createdBy,
-      status: "PENDING",
+      status: 'PENDING',
       createdAt: now,
       updatedAt: now,
     });
@@ -63,17 +63,17 @@ export class Feedback {
   ============================== */
 
   approve(approvedBy: string) {
-    if (this.props.status === "APPROVED") {
-      throw new Error("Feedback already approved");
+    if (this.props.status === 'APPROVED') {
+      throw new Error('Feedback already approved');
     }
 
-    this.props.status = "APPROVED";
+    this.props.status = 'APPROVED';
     this.props.approvedBy = approvedBy;
     this.props.updatedAt = new Date();
   }
 
   reject() {
-    this.props.status = "REJECTED";
+    this.props.status = 'REJECTED';
     this.props.updatedAt = new Date();
   }
 

@@ -1,12 +1,9 @@
-import { Request, Response, NextFunction } from "express";
-import { AppError } from "../shared/errors/app-error";
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../shared/errors/app-error';
 
-export function errorHandler(
-  err: any,
-  req: Request,
-  res: Response,
-  _next: NextFunction
-) {
+export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+  void next;
+
   const request = req as Request & {
     requestId?: string;
     tenantSlug?: string;
@@ -14,17 +11,17 @@ export function errorHandler(
     user?: { tenantId?: string };
   };
 
-  const tenant = request.tenantSlug || request.tenant?.slug || request.user?.tenantId || "n/a";
+  const tenant = request.tenantSlug || request.tenant?.slug || request.user?.tenantId || 'n/a';
 
   if (err instanceof AppError) {
     console.error(
       JSON.stringify({
-        level: "warn",
+        level: 'warn',
         requestId: request.requestId,
         tenant,
         message: err.message,
         statusCode: err.statusCode,
-      })
+      }),
     );
 
     return res.status(err.statusCode).json({
@@ -34,19 +31,21 @@ export function errorHandler(
     });
   }
 
+  const error = err instanceof Error ? err : new Error('Unhandled error');
+
   console.error(
     JSON.stringify({
-      level: "error",
+      level: 'error',
       requestId: request.requestId,
       tenant,
-      message: err?.message || "Unhandled error",
-      stack: err?.stack,
-    })
+      message: error.message,
+      stack: error.stack,
+    }),
   );
 
   return res.status(500).json({
     success: false,
-    message: "Internal Server Error",
+    message: 'Internal Server Error',
     requestId: request.requestId,
   });
 }

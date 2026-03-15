@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 
 interface JwtPayload {
   userId: string;
@@ -8,11 +8,11 @@ interface JwtPayload {
 
 export class JwtService {
   private readonly secret: string;
-  private readonly expiresIn = "1h";
+  private readonly expiresIn = '1h';
 
   constructor() {
     if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET not defined");
+      throw new Error('JWT_SECRET not defined');
     }
 
     this.secret = process.env.JWT_SECRET;

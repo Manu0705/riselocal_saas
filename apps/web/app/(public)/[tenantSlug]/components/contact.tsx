@@ -1,20 +1,19 @@
-"use client"
+'use client';
 
-import { buttonStyles } from "@/lib/ui-constants"
-import { capturePublicCtaLead } from "@/lib/public-lead-capture"
+import { buttonStyles } from '@/lib/ui-constants';
+import { capturePublicCtaLead } from '@/lib/public-lead-capture';
 
 type Props = {
   readonly tenant?: {
-    readonly phone?: string
-    readonly name?: string
-  }
-  readonly tenantId?: string
-  readonly tenantSlug?: string
-}
+    readonly phone?: string;
+    readonly name?: string;
+  };
+  readonly tenantId?: string;
+  readonly tenantSlug?: string;
+};
 
 export default function Contact({ tenant, tenantId, tenantSlug }: Readonly<Props>) {
-
-  const phone = tenant?.phone || ""
+  const phone = tenant?.phone || '';
 
   const captureLead = (source: string) => {
     void capturePublicCtaLead({
@@ -22,20 +21,16 @@ export default function Contact({ tenant, tenantId, tenantSlug }: Readonly<Props
       tenantSlug,
       source,
       phone,
-    })
-  }
+    });
+  };
 
   return (
     <div style={{ padding: 16 }}>
+      <h2 style={{ marginBottom: 12 }}>Contact</h2>
 
-      <h2 style={{ marginBottom: 12 }}>
-        Contact
-      </h2>
-
-      <div style={{ display: "grid", gap: 10 }}>
-
+      <div style={{ display: 'grid', gap: 10 }}>
         <a
-          onClick={() => captureLead("Contact Call")}
+          onClick={() => captureLead('Contact Call')}
           href={`tel:${phone}`}
           style={{
             ...buttonStyles.call,
@@ -46,7 +41,7 @@ export default function Contact({ tenant, tenantId, tenantSlug }: Readonly<Props
         </a>
 
         <a
-          onClick={() => captureLead("Contact WhatsApp")}
+          onClick={() => captureLead('Contact WhatsApp')}
           href={`https://wa.me/${phone}`}
           target="_blank"
           style={{
@@ -56,9 +51,7 @@ export default function Contact({ tenant, tenantId, tenantSlug }: Readonly<Props
         >
           WhatsApp
         </a>
-
       </div>
-
     </div>
-  )
+  );
 }

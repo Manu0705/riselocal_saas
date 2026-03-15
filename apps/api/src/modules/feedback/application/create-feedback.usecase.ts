@@ -1,5 +1,5 @@
-import { Feedback } from "../domain/feedback.entity";
-import { FeedbackRepository } from "../domain/feedback.repository";
+import { Feedback } from '../domain/feedback.entity';
+import { FeedbackRepository } from '../domain/feedback.repository';
 
 /* =========================================
    DEPENDENCIES REQUIRED
@@ -23,7 +23,7 @@ interface CreateFeedbackInput {
   tenantId: string;
   leadId: string;
   comment: string;
-  type: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+  type: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
   rating?: number;
   createdBy: string;
 }
@@ -35,29 +35,27 @@ interface CreateFeedbackInput {
 export class CreateFeedbackUseCase {
   constructor(
     private readonly feedbackRepository: FeedbackRepository,
-    private readonly tenantConfigProvider: TenantConfigProvider
+    private readonly tenantConfigProvider: TenantConfigProvider,
   ) {}
 
   async execute(input: CreateFeedbackInput): Promise<{ id: string }> {
     if (!input.tenantId) {
-      throw new Error("tenantId is required");
+      throw new Error('tenantId is required');
     }
 
     if (!input.leadId) {
-      throw new Error("leadId is required");
+      throw new Error('leadId is required');
     }
 
     if (!input.createdBy) {
-      throw new Error("createdBy is required");
+      throw new Error('createdBy is required');
     }
 
     // Load tenant configuration
-    const tenantConfig = await this.tenantConfigProvider.getTenantConfig(
-      input.tenantId
-    );
+    const tenantConfig = await this.tenantConfigProvider.getTenantConfig(input.tenantId);
 
     if (!tenantConfig) {
-      throw new Error("Tenant not found");
+      throw new Error('Tenant not found');
     }
 
     // Create entity with tenant-driven behavior

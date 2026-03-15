@@ -1,17 +1,14 @@
-import { Request, Response } from "express";
-import { PrismaLeadRepository } from "../infrastructure/lead.prisma.repository";
-import { CreateLeadUseCase } from "../application/create-lead.usecase";
-import { UpdateLeadStatusUseCase } from "../application/update-status.usecase";
-import { GetAllLeadsUseCase } from "../application/get-all-leads.usecase";
+import { Request, Response } from 'express';
+import { PrismaLeadRepository } from '../infrastructure/lead.prisma.repository';
+import { CreateLeadUseCase } from '../application/create-lead.usecase';
+import { UpdateLeadStatusUseCase } from '../application/update-status.usecase';
+import { GetAllLeadsUseCase } from '../application/get-all-leads.usecase';
 
 /* =========================================
    Helpers
 ========================================= */
 
-function getParam(
-  value: string | string[] | undefined,
-  name: string
-): string {
+function getParam(value: string | string[] | undefined, name: string): string {
   if (!value) {
     throw new Error(`${name} is required`);
   }
@@ -37,7 +34,7 @@ export class LeadController {
 
   async create(req: Request, res: Response) {
     try {
-      const tenantId = getParam(req.params.tenantId, "tenantId");
+      const tenantId = getParam(req.params.tenantId, 'tenantId');
 
       const { name, phone, email, source, location } = req.body;
 
@@ -71,8 +68,8 @@ export class LeadController {
 
   async updateStatus(req: Request, res: Response) {
     try {
-      const tenantId = getParam(req.params.tenantId, "tenantId");
-      const id = getParam(req.params.id, "id");
+      const tenantId = getParam(req.params.tenantId, 'tenantId');
+      const id = getParam(req.params.id, 'id');
 
       const { status } = req.body;
 
@@ -103,7 +100,7 @@ export class LeadController {
 
   async getAll(req: Request, res: Response) {
     try {
-      const tenantId = getParam(req.params.tenantId, "tenantId");
+      const tenantId = getParam(req.params.tenantId, 'tenantId');
 
       const useCase = new GetAllLeadsUseCase(repository);
 

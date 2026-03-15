@@ -1,69 +1,94 @@
-import { cache } from "react"
-import { buildUpstreamApiUrl, getApiBaseCandidates } from "@/lib/api-endpoint"
+import { cache } from 'react';
+import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 
 export const RESERVED_ROUTES = [
-  "dashboard",
-  "admin",
-  "analytics",
-  "leads",
-  "followups",
-  "feedback",
-  "tenants",
-  "settings",
-  "login",
-  "api",
-  "_next",
-  "qa",
-  "www"
-]
+  'dashboard',
+  'admin',
+  'analytics',
+  'leads',
+  'followups',
+  'feedback',
+  'tenants',
+  'settings',
+  'login',
+  'api',
+  '_next',
+  'qa',
+  'www',
+];
 
-export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug)
+export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug);
 
 type ResolvedTenant = {
-  id?: string
-  name?: string
-  slug?: string
-  domain?: string
-  phone?: string
-  whatsapp?: string
-  tagline?: string
-  logoUrl?: string
-  bannerUrl?: string
-  logoShape?: string
-  primaryColor?: string
-  secondaryColor?: string
-  sectionOrder?: string[]
-  services?: Array<{ name?: string; description?: string }>
-  gallery?: Array<{ url: string; category: string }>
-  socialLinks?: Array<{ platform?: string; url?: string; label?: string }>
-  products?: string[]
-}
+  id?: string;
+  name?: string;
+  slug?: string;
+  domain?: string;
+  phone?: string;
+  whatsapp?: string;
+  tagline?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  logoShape?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  sectionOrder?: string[];
+  services?: Array<{ name: string; description?: string }>;
+  gallery?: Array<{ url: string; category: string }>;
+  socialLinks?: Array<{ platform?: string; url?: string; label?: string }>;
+  products?: string[];
+};
 
 export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | null> => {
-
   // prevent dashboard routes from being treated as tenants
   if (isReservedTenantSlug(slug)) {
-    return null
+    return null;
   }
 
   const defaults = {
-    phone: "0000000000",
-    whatsapp: "0000000000",
+    phone: '0000000000',
+    whatsapp: '0000000000',
     services: [
-      { name: "Home Visit", description: "On-site consultation and measurement." },
-      { name: "Consultation", description: "Guidance on styles, pricing, and timelines." },
+      { name: 'Home Visit', description: 'On-site consultation and measurement.' },
+      { name: 'Consultation', description: 'Guidance on styles, pricing, and timelines.' },
     ],
-    products: ["Service"],
+    products: ['Service'],
     gallery: [
-      { url: "/gallery/curtain1.jpeg", category: "Gallery" },
-      { url: "/gallery/curtain2.jpeg", category: "Gallery" },
+      { url: '/gallery/curtain1.jpeg', category: 'Gallery' },
+      { url: '/gallery/curtain2.jpeg', category: 'Gallery' },
     ],
-    sectionOrder: ["hero", "services", "gallery"],
+    sectionOrder: ['hero', 'services', 'gallery'],
     socialLinks: [],
-    primaryColor: "#000000",
-    secondaryColor: "#FFFFFF",
-    logoShape: "circle",
-  }
+    primaryColor: '#000000',
+    secondaryColor: '#FFFFFF',
+    logoShape: 'circle',
+  };
+
+  const normalizeServices = (value: unknown): Array<{ name: string; description?: string }> => {
+    if (!Array.isArray(value)) {
+      return defaults.services;
+    }
+
+    const normalized = value.reduce<Array<{ name: string; description?: string }>>((items, entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return items;
+      }
+
+      const item = entry as { name?: unknown; description?: unknown };
+      if (typeof item.name !== 'string' || item.name.trim().length === 0) {
+        return items;
+      }
+
+      items.push({
+        name: item.name.trim(),
+        description: typeof item.description === 'string' ? item.description : undefined,
+      });
+
+      return items;
+    }, []);
+
+    return normalized.length > 0 ? normalized : defaults.services;
+  };
 
   try {
     for (const apiBase of getApiBaseCandidates()) {
@@ -71,22 +96,22 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         const res = await fetch(
           buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
           {
-            cache: "no-store",
-          }
-        )
+            cache: 'no-store',
+          },
+        );
 
         if (!res.ok) {
-          continue
+          continue;
         }
 
-        const payload = await res.json()
-        const tenant = payload?.data
+        const payload = await res.json();
+        const tenant = payload?.data;
 
         if (!tenant) {
-          continue
+          continue;
         }
 
-        const settings = tenant.settings ?? {}
+        const settings = tenant.settings ?? {};
 
         return {
           ...defaults,
@@ -103,23 +128,24 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           primaryColor: settings.primaryColor || defaults.primaryColor,
           secondaryColor: settings.secondaryColor || defaults.secondaryColor,
           sectionOrder: Array.isArray(settings.sectionOrder)
-            ? settings.sectionOrder.map((entry: unknown) => String(entry))
+            ? settings.sectionOrder.filter((entry: unknown): entry is string => typeof entry === 'string')
             : defaults.sectionOrder,
-          services: Array.isArray(tenant.services) && tenant.services.length > 0
-            ? tenant.services
-            : defaults.services,
-          gallery: Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0
-            ? tenant.galleryImages
-            : defaults.gallery,
-          socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
-        }
+          services: normalizeServices(tenant.services),
+          gallery:
+            Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0
+              ? tenant.galleryImages
+              : defaults.gallery,
+          socialLinks: Array.isArray(tenant.socialLinks)
+            ? tenant.socialLinks
+            : defaults.socialLinks,
+        };
       } catch (error) {
-        console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error)
+        console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);
       }
     }
   } catch (error) {
     // Return null on error - do not create mock tenants
-    console.error(`Failed to fetch tenant: ${slug}`, error)
-    return null
+    console.error(`Failed to fetch tenant: ${slug}`, error);
+    return null;
   }
-})
+});
