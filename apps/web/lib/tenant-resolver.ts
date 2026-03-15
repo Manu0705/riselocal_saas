@@ -19,7 +19,27 @@ export const RESERVED_ROUTES = [
 
 export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug)
 
-export const getTenant = cache(async (slug: string) => {
+type ResolvedTenant = {
+  id?: string
+  name?: string
+  slug?: string
+  domain?: string
+  phone?: string
+  whatsapp?: string
+  tagline?: string
+  logoUrl?: string
+  bannerUrl?: string
+  logoShape?: string
+  primaryColor?: string
+  secondaryColor?: string
+  sectionOrder?: string[]
+  services?: Array<{ name?: string; description?: string }>
+  gallery?: Array<{ url: string; category: string }>
+  socialLinks?: Array<{ platform?: string; url?: string; label?: string }>
+  products?: string[]
+}
+
+export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | null> => {
 
   // prevent dashboard routes from being treated as tenants
   if (isReservedTenantSlug(slug)) {
@@ -70,6 +90,7 @@ export const getTenant = cache(async (slug: string) => {
 
         return {
           ...defaults,
+          id: tenant.id,
           name: tenant.name,
           slug: tenant.slug,
           domain: tenant.domain,
