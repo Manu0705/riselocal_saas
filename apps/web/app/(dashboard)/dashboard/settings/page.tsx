@@ -1,14 +1,13 @@
 "use client"
 
 import { useAuth } from "@/context/AuthContext"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useDashboardData } from "@/context/DashboardDataContext"
 import MobilePageTitle from "../components/mobile-page-title"
 
 export default function SettingsPage() {
   const { logout } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { tenant, metrics, loading, error } = useDashboardData()
 
   const joinedAt = tenant?.createdAt
@@ -17,8 +16,8 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     logout()
-    const tenant = searchParams.get("tenant") ?? "default"
-    router.push(`/${tenant}`)
+    const tenantRouteKey = tenant?.slug ?? tenant?.id ?? "default"
+    router.push(`/${tenantRouteKey}`)
   }
 
   return (

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
 import { Upload, Loader2 } from "lucide-react"
 import { getTenantApiClient } from "@/lib/tenant-client"
 
@@ -22,8 +21,6 @@ export default function BrandingEditor() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState<"logo" | "banner" | null>(null)
-  const searchParams = useSearchParams()
-  const tenant = searchParams.get("tenant")
 
   useEffect(() => {
     loadSettings()

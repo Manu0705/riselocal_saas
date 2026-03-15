@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState } from "react"
 import { useDashboardData } from "@/context/DashboardDataContext"
 import MobilePageTitle from "../components/mobile-page-title"
 import { Palette, Image, Briefcase, Share2, Eye } from "lucide-react"
@@ -14,7 +13,6 @@ type TabType = "branding" | "gallery" | "services" | "social"
 
 export default function CustomizePage() {
   const [activeTab, setActiveTab] = useState<TabType>("branding")
-  const searchParams = useSearchParams()
   const { tenant } = useDashboardData()
 
   const tabs = [
@@ -25,7 +23,7 @@ export default function CustomizePage() {
   ]
 
   const handlePreview = () => {
-    const tenantSlug = searchParams.get("tenant") ?? tenant?.slug ?? "default"
+    const tenantSlug = tenant?.slug ?? tenant?.id ?? "default"
     window.open(`/${tenantSlug}?preview=true`, "_blank")
   }
 

@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import BottomNav from "@/components/bottom-nav"
 import DashboardHeader from "./components/dashboard-header"
 import RequireAuth from "./components/require-auth"
@@ -30,15 +31,17 @@ export default function DashboardLayout({
           paddingBottom: 100,
         }}
       >
-        <RequireAuth>
-          <DashboardDataProvider>
-            <DashboardHeader />
+        <Suspense fallback={null}>
+          <RequireAuth>
+            <DashboardDataProvider>
+              <DashboardHeader />
 
-            {children}
+              {children}
 
-            <BottomNav />
-          </DashboardDataProvider>
-        </RequireAuth>
+              <BottomNav />
+            </DashboardDataProvider>
+          </RequireAuth>
+        </Suspense>
       </div>
     </div>
   )

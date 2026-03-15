@@ -1,4 +1,4 @@
-import React from "react"
+import React, { Suspense } from "react"
 import { notFound } from "next/navigation"
 import TopHeader from "./components/top-header"
 import MobileContainer from "./components/mobile-container"
@@ -7,10 +7,10 @@ import { getTenant, isReservedTenantSlug } from "@/lib/tenant-resolver"
 export default async function TenantLayout({
   children,
   params,
-}: {
+}: Readonly<{
   children: React.ReactNode
   params: { tenantSlug: string }
-}) {
+}>) {
   const { tenantSlug } = params
 
   // Prevent reserved routes from being treated as tenants
@@ -27,19 +27,21 @@ export default async function TenantLayout({
 
   return (
     <MobileContainer>
-      <TopHeader
-        title={tenant.name ?? "Business"}
-        tenantSlug={tenantSlug}
-      />
+      <Suspense fallback={null}>
+        <TopHeader
+          title={tenant.name ?? "Business"}
+          tenantSlug={tenantSlug}
+        />
 
-      <div
-        style={{
-          padding: "16px",
-          flex: 1
-        }}
-      >
-        {children}
-      </div>
+        <div
+          style={{
+            padding: "16px",
+            flex: 1
+          }}
+        >
+          {children}
+        </div>
+      </Suspense>
     </MobileContainer>
   )
 }
