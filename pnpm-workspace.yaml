@@ -2,6 +2,10 @@ packages:
   - apps/*
   - packages/*
 
+onlyBuiltDependencies:
+  - core-js
+  - unrs-resolver
+
 ignoredBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
