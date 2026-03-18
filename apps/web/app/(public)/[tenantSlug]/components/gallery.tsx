@@ -229,11 +229,11 @@ export default function Gallery({
           });
 
           if (!response.success) {
-            throw new Error('Could not capture lead details');
+            throw new Error(response.message || 'Could not capture lead details');
           }
 
           setPendingEnquiry(null);
-          window.open(href, '_blank', 'noopener,noreferrer');
+          globalThis.open(href, '_blank', 'noopener,noreferrer');
         }}
       />
     </div>

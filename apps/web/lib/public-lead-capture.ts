@@ -25,6 +25,7 @@ type CaptureLeadResult = {
   leadId?: string;
   sessionId?: string;
   isNewLead?: boolean;
+  message?: string;
 };
 
 const LEAD_CAPTURE_STORAGE_PREFIX = 'publicLeadCapture:';
@@ -98,18 +99,18 @@ export async function capturePublicCtaLead(input: CaptureLeadInput): Promise<Cap
   const tenantSlug = safeTrim(input.tenantSlug).toLowerCase();
 
   if (!tenantSlug) {
-    return { success: false };
+    return { success: false, message: 'Tenant is not available for lead capture.' };
   }
 
   const name = safeTrim(input.name);
   const phone = safeTrim(input.phone);
 
   if (!name || !phone) {
-    return { success: false };
+    return { success: false, message: 'Name and phone are required.' };
   }
 
   const pageUrl = safeTrim(input.pageUrl) ||
-    (globalThis.window !== undefined ? globalThis.window.location.href : '');
+    (globalThis.window === undefined ? '' : globalThis.window.location.href);
 
   const payload = {
     name,
@@ -128,13 +129,24 @@ export async function capturePublicCtaLead(input: CaptureLeadInput): Promise<Cap
     campaignSource: safeTrim(input.utmSource) || safeTrim(input.source),
   };
 
-  const response = await api.post<{ success?: boolean; data?: any; message?: string }>(
-    `/public/tenant/${tenantSlug}/leads/upsert`,
-    payload,
-  );
+  let response: { success?: boolean; data?: any; message?: string };
 
-  if (response?.success === false || !response?.data?.leadId) {
-    return { success: false };
+  try {
+    response = await api.post<{ success?: boolean; data?: any; message?: string }>(
+      `/public/tenant/${tenantSlug}/leads/upsert`,
+      payload,
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Lead capture request failed.';
+    return { success: false, message };
+  }
+
+  if (response?.success === false) {
+    return { success: false, message: response.message || 'Lead capture failed. Please try again.' };
+  }
+
+  if (!response?.data?.leadId) {
+    return { success: false, message: response?.message || 'Lead created response is incomplete.' };
   }
 
   persistTenantCapture(tenantSlug, {

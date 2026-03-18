@@ -134,6 +134,7 @@ export default function LeadsPage() {
         <MobilePageTitle title="Leads" />
         {!showAddForm && (
           <button
+            type="button"
             onClick={() => setShowAddForm(true)}
             title="Add lead"
             style={{
@@ -176,6 +177,7 @@ export default function LeadsPage() {
               Add New Lead
             </h3>
             <button
+              type="button"
               onClick={() => {
                 setShowAddForm(false);
                 setFormData({ name: '', phone: '', location: '' });

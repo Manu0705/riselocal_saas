@@ -23,6 +23,7 @@ export default function BusinessHeader({ title }: { title?: string }) {
       {isDashboard ? (
         <>
           <button
+            type="button"
             onClick={() => router.push('/default')}
             style={{
               border: 'none',
@@ -43,6 +44,7 @@ export default function BusinessHeader({ title }: { title?: string }) {
       ) : (
         <>
           <button
+            type="button"
             onClick={() => router.push('/dashboard')}
             style={{
               border: 'none',

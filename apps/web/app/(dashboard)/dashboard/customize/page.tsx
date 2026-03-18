@@ -41,6 +41,7 @@ export default function CustomizePage() {
       >
         <MobilePageTitle title="Customize" />
         <button
+          type="button"
           onClick={handlePreview}
           style={{
             border: '1px solid var(--card-border)',
@@ -77,6 +78,7 @@ export default function CustomizePage() {
           const isActive = activeTab === tab.id;
           return (
             <button
+              type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{

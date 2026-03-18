@@ -194,6 +194,7 @@ export default function ActionButtonsManager() {
       })}
 
       <button
+        type="button"
         onClick={saveSettings}
         disabled={saving}
         style={{

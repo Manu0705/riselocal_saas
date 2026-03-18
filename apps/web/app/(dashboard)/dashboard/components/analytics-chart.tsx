@@ -222,6 +222,7 @@ export default function AnalyticsChart() {
 
           return (
             <button
+              type="button"
               key={option.key}
               onClick={() => setMode(option.key)}
               style={{

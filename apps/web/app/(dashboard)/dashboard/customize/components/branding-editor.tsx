@@ -170,6 +170,7 @@ export default function BrandingEditor() {
           <div style={{ display: 'flex', gap: 8 }}>
             {['circle', 'square'].map((shape) => (
               <button
+                type="button"
                 key={shape}
                 onClick={() => handleUpdate({ logoShape: shape as 'circle' | 'square' })}
                 style={{

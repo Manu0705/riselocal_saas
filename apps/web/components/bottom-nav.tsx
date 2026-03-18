@@ -49,6 +49,7 @@ export default function BottomNav() {
 
         return (
           <button
+            type="button"
             key={item.path}
             onClick={() => router.push(item.path + getTenantQuery())}
             style={{

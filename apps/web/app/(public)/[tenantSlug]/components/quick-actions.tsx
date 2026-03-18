@@ -126,22 +126,22 @@ export default function QuickActions({
             name,
             phone: submittedPhone,
             location,
-            pageUrl: window.location.href,
+            pageUrl: globalThis.location.href,
             buttonId: pendingAction.buttonId,
           });
 
           if (!response.success) {
-            throw new Error('Could not capture lead details');
+            throw new Error(response.message || 'Could not capture lead details');
           }
 
           const target = pendingAction.redirectUrl;
           setPendingAction(null);
           if (pendingAction.actionType === 'call_click') {
-            window.location.href = target;
+            globalThis.location.href = target;
             return;
           }
 
-          window.open(target, '_blank', 'noopener,noreferrer');
+          globalThis.open(target, '_blank', 'noopener,noreferrer');
         }}
       />
     </div>

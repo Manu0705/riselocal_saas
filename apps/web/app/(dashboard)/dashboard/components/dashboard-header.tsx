@@ -123,6 +123,7 @@ export default function DashboardHeader() {
         style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}
       >
         <button
+          type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
           style={{
             border: 'none',
@@ -179,6 +180,7 @@ export default function DashboardHeader() {
             { label: 'Logout', onPress: handleLogout },
           ].map((item) => (
             <button
+              type="button"
               key={item.label}
               onClick={item.onPress}
               style={{
@@ -201,6 +203,7 @@ export default function DashboardHeader() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button
+          type="button"
           onClick={toggle}
           style={{
             border: 'none',

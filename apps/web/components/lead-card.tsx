@@ -204,6 +204,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
         <button
+          type="button"
           onClick={handleCall}
           style={{
             display: 'flex',
@@ -226,6 +227,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         </button>
 
         <button
+          type="button"
           onClick={handleWhatsApp}
           style={{
             display: 'flex',
@@ -248,6 +250,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         </button>
 
         <button
+          type="button"
           onClick={() => cycleStatus(1)}
           onWheel={(e) => {
             e.preventDefault();
@@ -274,6 +277,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         </button>
 
         <button
+          type="button"
           onClick={() => cycleReminderDay(1)}
           onWheel={(e) => {
             e.preventDefault();
@@ -304,6 +308,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
       {/* Review Button - Show only for Converted leads */}
       {showReviewButton && (
         <button
+          type="button"
           onClick={handleSendReview}
           style={{
             display: 'flex',

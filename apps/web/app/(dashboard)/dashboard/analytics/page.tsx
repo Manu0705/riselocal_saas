@@ -126,6 +126,7 @@ export default function AnalyticsPage() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         {(['week', 'month', 'quarter', 'year'] as const).map((item) => (
           <button
+            type="button"
             key={item}
             onClick={() => setPartition(item)}
             style={{

@@ -82,6 +82,7 @@ export default function SettingsPage() {
       ) : null}
 
       <button
+        type="button"
         onClick={handleLogout}
         style={{
           width: '100%',

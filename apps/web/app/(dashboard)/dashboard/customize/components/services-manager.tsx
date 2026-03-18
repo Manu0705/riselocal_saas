@@ -163,6 +163,7 @@ export default function ServicesManager() {
             {editingId ? (
               <>
                 <button
+                  type="button"
                   onClick={() => handleUpdate(editingId)}
                   style={{
                     flex: 1,
@@ -184,6 +185,7 @@ export default function ServicesManager() {
                   Save Changes
                 </button>
                 <button
+                  type="button"
                   onClick={cancelEdit}
                   style={{
                     border: '1px solid var(--card-border)',
@@ -198,6 +200,7 @@ export default function ServicesManager() {
               </>
             ) : (
               <button
+                type="button"
                 onClick={handleCreate}
                 style={{
                   flex: 1,
@@ -271,6 +274,7 @@ export default function ServicesManager() {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
+                  type="button"
                   onClick={() => startEdit(service)}
                   style={{
                     border: 'none',
@@ -287,6 +291,7 @@ export default function ServicesManager() {
                   <Edit2 size={14} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(service.id)}
                   style={{
                     border: 'none',

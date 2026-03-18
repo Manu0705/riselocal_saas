@@ -114,6 +114,7 @@ export default function GalleryManager() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
         {categories.map((cat) => (
           <button
+            type="button"
             key={cat}
             onClick={() => setSelectedCategory(cat)}
             style={{
@@ -233,6 +234,7 @@ export default function GalleryManager() {
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
               >
                 <button
+                  type="button"
                   onClick={() => handleDelete(image.id)}
                   style={{
                     alignSelf: 'flex-end',

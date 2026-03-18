@@ -15,6 +15,7 @@ export default function NotificationItem({
 }: Readonly<NotificationItemProps>) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         width: '100%',

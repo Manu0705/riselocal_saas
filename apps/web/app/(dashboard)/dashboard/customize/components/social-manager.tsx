@@ -198,6 +198,7 @@ export default function SocialLinksManager() {
             {editingId ? (
               <>
                 <button
+                  type="button"
                   onClick={() => handleUpdate(editingId)}
                   style={{
                     flex: 1,
@@ -219,6 +220,7 @@ export default function SocialLinksManager() {
                   Save Changes
                 </button>
                 <button
+                  type="button"
                   onClick={cancelEdit}
                   style={{
                     border: '1px solid var(--card-border)',
@@ -233,6 +235,7 @@ export default function SocialLinksManager() {
               </>
             ) : (
               <button
+                type="button"
                 onClick={handleCreate}
                 style={{
                   flex: 1,
@@ -318,6 +321,7 @@ export default function SocialLinksManager() {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
+                  type="button"
                   onClick={() => startEdit(link)}
                   style={{
                     border: 'none',
@@ -334,6 +338,7 @@ export default function SocialLinksManager() {
                   <Edit2 size={14} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(link.id)}
                   style={{
                     border: 'none',

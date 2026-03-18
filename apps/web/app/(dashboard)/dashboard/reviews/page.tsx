@@ -222,6 +222,7 @@ export default function ReviewsPage() {
             {review.status === 'PENDING' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
+                  type="button"
                   onClick={() => handleApprove(review.id)}
                   style={{
                     flex: 1,
@@ -243,6 +244,7 @@ export default function ReviewsPage() {
                   Approve
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleReject(review.id)}
                   style={{
                     flex: 1,
