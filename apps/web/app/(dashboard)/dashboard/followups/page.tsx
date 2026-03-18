@@ -9,7 +9,13 @@ export default function FollowupsPage() {
   const { leads, metrics, loading, error } = useDashboardData();
 
   const followupItems = useMemo(
-    () => leads.filter((item) => item?.status === 'Follow-Up'),
+    () =>
+      leads.filter((item) => {
+        const status = String(item?.status ?? '')
+          .trim()
+          .toUpperCase();
+        return status === 'QUALIFIED' || status === 'FOLLOW-UP' || status === 'FOLLOWUP';
+      }),
     [leads],
   );
 

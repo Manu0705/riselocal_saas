@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { capturePublicCtaLead } from '@/lib/public-lead-capture';
+import { capturePublicCtaLead, getLeadCapturePrefill } from '@/lib/public-lead-capture';
 import {
   DEFAULT_ACTION_BUTTONS,
   normalizeActionButtons,
   resolveActionHref,
   type ActionButtonsConfig,
 } from '@/lib/action-buttons';
+import LeadCaptureModal from './lead-capture-modal';
 
 type GalleryImage = {
   url: string;
@@ -36,7 +37,11 @@ export default function Gallery({
   const [isInView, setIsInView] = useState(false);
   const [hasTouchedCategory, setHasTouchedCategory] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [pendingEnquiry, setPendingEnquiry] = useState<{ image: string; category: string } | null>(
+    null,
+  );
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
+  const prefill = getLeadCapturePrefill(tenantSlug);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -66,24 +71,8 @@ export default function Gallery({
     setScrollProgress(Math.min(1, Math.max(0, row.scrollLeft / maxScroll)));
   };
 
-  async function enquiry(image: string, category: string) {
-    await capturePublicCtaLead({
-      tenantId,
-      tenantSlug,
-      source: 'WhatsApp Enquiry',
-      phone,
-      location: `Category: ${category}`,
-      name: `Gallery Enquiry (${category})`,
-    }).catch(() => false);
-
-    const message = encodeURIComponent(`Hi, I'm interested in this ${category} design (${image})`);
-    const href = resolveActionHref(
-      buttons.whatsappEnquiry,
-      `https://wa.me/${phone}?text=${message}`,
-      { whatsappMessage: `Hi, I'm interested in this ${category} design (${image})` },
-    );
-
-    window.open(href, '_blank');
+  function enquiry(image: string, category: string) {
+    setPendingEnquiry({ image, category });
   }
 
   if (!images.length) {
@@ -209,6 +198,44 @@ export default function Gallery({
           </div>
         ))}
       </div>
+
+      <LeadCaptureModal
+        open={Boolean(pendingEnquiry)}
+        title="Tell us where to respond"
+        submitLabel="Continue to WhatsApp"
+        defaultName={prefill?.name}
+        defaultPhone={prefill?.phone}
+        defaultLocation={pendingEnquiry?.category}
+        onClose={() => setPendingEnquiry(null)}
+        onSubmit={async ({ name, phone: submittedPhone, location }) => {
+          if (!pendingEnquiry) return;
+
+          const contextMessage = `Hi, I'm interested in this ${pendingEnquiry.category} design (${pendingEnquiry.image})`;
+          const href = resolveActionHref(
+            buttons.whatsappEnquiry,
+            `https://wa.me/${phone}?text=${encodeURIComponent(contextMessage)}`,
+            { whatsappMessage: contextMessage },
+          );
+
+          const response = await capturePublicCtaLead({
+            tenantSlug,
+            source: 'WhatsApp Enquiry',
+            actionType: 'enquiry_click',
+            name,
+            phone: submittedPhone,
+            location: location ? `Category: ${location}` : `Category: ${pendingEnquiry.category}`,
+            pageUrl: globalThis.location.href,
+            buttonId: 'gallery-whatsapp-enquiry',
+          });
+
+          if (!response.success) {
+            throw new Error('Could not capture lead details');
+          }
+
+          setPendingEnquiry(null);
+          window.open(href, '_blank', 'noopener,noreferrer');
+        }}
+      />
     </div>
   );
 }

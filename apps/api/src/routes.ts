@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import tenantRoutes from './modules/tenant/presentation/tenant.routes';
 import leadRoutes from './modules/lead/presentation/lead.routes';
+import leadPublicRoutes from './modules/lead/presentation/lead.public.routes';
 import feedbackRoutes from './modules/feedback/presentation/feedback.routes';
 import { authMiddleware } from './modules/auth/presentation/auth.middleware';
 import authRoutes from './modules/auth/presentation/auth.routes';
@@ -21,6 +22,7 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use(tenantRoutes);
 router.use(tenantUserRoutes);
+router.use(leadPublicRoutes);
 
 /* =========================================
    AUTH PROTECTED ROUTES

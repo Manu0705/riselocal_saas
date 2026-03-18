@@ -157,3 +157,31 @@ export async function fetchLeadsForTenant(tenantKey: string): Promise<any[]> {
 
   throw new Error(lastError);
 }
+
+export async function fetchLeadAnalyticsForTenant(
+  tenantKey: string,
+  partition: 'week' | 'month' | 'quarter' | 'year' = 'week',
+): Promise<Record<string, unknown> | null> {
+  const tenant = await resolveTenant(tenantKey).catch(() => null);
+
+  const candidateKeys = [tenant?.slug, tenant?.id, tenantKey].filter(
+    (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
+  );
+
+  for (const key of candidateKeys) {
+    const analyticsResponse = await api.get(`/tenant/${key}/leads/analytics?partition=${partition}`);
+
+    if ((analyticsResponse as { success?: boolean })?.success === false) {
+      continue;
+    }
+
+    if ((analyticsResponse as { data?: unknown })?.data) {
+      const payload = (analyticsResponse as { data: unknown }).data;
+      if (payload && typeof payload === 'object') {
+        return payload as Record<string, unknown>;
+      }
+    }
+  }
+
+  return null;
+}

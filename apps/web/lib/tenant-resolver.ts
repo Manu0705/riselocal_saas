@@ -84,6 +84,13 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return defaults.sectionOrder;
   };
 
+  const toStringOr = (value: unknown, fallback?: string): string | undefined => {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+    return fallback;
+  };
+
   const normalizeSettingsActionButtons = (settings: Record<string, unknown>): ActionButtonsConfig => {
     const direct = settings.actionButtons;
 
@@ -155,14 +162,14 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           name: tenant.name,
           slug: tenant.slug,
           domain: tenant.domain,
-          phone: settings.businessPhone || defaults.phone,
-          whatsapp: settings.businessWhatsApp || settings.businessPhone || defaults.whatsapp,
-          tagline: settings.tagline || undefined,
-          logoUrl: settings.logoUrl || undefined,
-          bannerUrl: settings.bannerUrl || undefined,
-          logoShape: settings.logoShape || defaults.logoShape,
-          primaryColor: settings.primaryColor || defaults.primaryColor,
-          secondaryColor: settings.secondaryColor || defaults.secondaryColor,
+          phone: toStringOr(settings.businessPhone, defaults.phone),
+          whatsapp: toStringOr(settings.businessWhatsApp, toStringOr(settings.businessPhone, defaults.whatsapp)),
+          tagline: toStringOr(settings.tagline, undefined),
+          logoUrl: toStringOr(settings.logoUrl, undefined),
+          bannerUrl: toStringOr(settings.bannerUrl, undefined),
+          logoShape: toStringOr(settings.logoShape, defaults.logoShape),
+          primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
+          secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
           sectionOrder: normalizeSectionOrder(settings.sectionOrder),
           actionButtons: normalizeSettingsActionButtons(settings),
           services: normalizeServices(tenant.services),

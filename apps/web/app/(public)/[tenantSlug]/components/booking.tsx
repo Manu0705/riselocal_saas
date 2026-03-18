@@ -46,18 +46,20 @@ export default function Booking({ tenantId, tenantSlug, actionButtons }: Readonl
 
     try {
       await capturePublicCtaLead({
-        tenantId,
         tenantSlug,
         source: 'Booking',
+        actionType: 'booking',
         name: formData.name,
         phone: formData.phone,
-        location: formData.date
-          ? `${formData.location} | Preferred Date: ${formData.date}`
-          : formData.location,
+        location: formData.location,
+        bookingDate: formData.date || undefined,
+        notes: formData.date ? `Preferred Date: ${formData.date}` : undefined,
+        pageUrl: globalThis.location.href,
+        buttonId: 'booking-confirm',
       });
 
       if (buttons.confirmBooking.url) {
-        window.open(buttons.confirmBooking.url, '_blank', 'noopener,noreferrer');
+        globalThis.open(buttons.confirmBooking.url, '_blank', 'noopener,noreferrer');
       }
 
       setFormData({ name: '', phone: '', location: '', date: '' });

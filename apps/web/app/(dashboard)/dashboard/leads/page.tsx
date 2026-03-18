@@ -31,7 +31,7 @@ export default function LeadsPage() {
   async function handleAddLead(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.location) {
+    if (!formData.name || !formData.phone) {
       return;
     }
 
@@ -48,12 +48,12 @@ export default function LeadsPage() {
       const formattedData = {
         name: formatText(formData.name),
         phone: formData.phone,
-        email: `${formData.phone}@lead.com`,
-        source: 'Manual Entry',
-        location: formatText(formData.location),
+        source: 'MANUAL',
+        actionType: 'manual_create',
+        location: formData.location ? formatText(formData.location) : undefined,
       };
 
-      await api.post(`/tenant/${tenantRouteKey}/leads`, formattedData);
+      await api.post(`/tenant/${tenantRouteKey}/leads/upsert`, formattedData);
 
       // Reset form and close
       setFormData({ name: '', phone: '', location: '' });
@@ -70,10 +70,13 @@ export default function LeadsPage() {
     }
   }
 
-  const isFormValid = formData.name.trim() && formData.phone.trim() && formData.location.trim();
+  const isFormValid = formData.name.trim() && formData.phone.trim();
 
   const newLeads = leads.filter(
-    (lead: any) => lead?.status === 'New' || lead?.status === 'Open',
+    (lead: any) =>
+      String(lead?.status ?? '')
+        .toUpperCase()
+        .trim() === 'NEW',
   ).length;
 
   let content: JSX.Element | null = null;

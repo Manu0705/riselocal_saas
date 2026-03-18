@@ -18,6 +18,9 @@ model Tenant {
   feedbacks Feedback[]
   followUps FollowUp[]
   leads     Lead[]
+  leadSessions LeadSession[]
+  leadActivities LeadActivity[]
+  bookings Booking[]
   settings  TenantSettings?
   galleryImages GalleryImage[]
   socialLinks SocialLink[]
@@ -33,10 +36,12 @@ model TenantUser {
   email        String
   passwordHash String
   role         String   @default("owner")
+  teamId       String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedLeads Lead[]  @relation("LeadAssignee")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -46,18 +51,98 @@ model Lead {
   id        String     @id @default(uuid())
   tenantId  String
   name      String
-  email     String
+  email     String?
   phone     String
-  source    String     @default("Manual")
+  source    String     @default("ORGANIC")
+  campaignId String?
+  utmSource String?
+  utmMedium String?
+  utmCampaign String?
   location  String?
-  status    String     @default("Open")
+  status    String     @default("NEW")
+  notes     String?
+  assignedTo String?
+  teamId    String?
+  convertedAt DateTime?
   createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
   followUps FollowUp[]
   feedbacks Feedback[]
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  assignee  TenantUser? @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  sessions  LeadSession[]
+  activities LeadActivity[]
+  bookings Booking[]
 
   @@index([tenantId])
+  @@index([tenantId, phone])
   @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedTo])
+  @@index([tenantId, deletedAt])
+  @@unique([tenantId, phone])
+}
+
+model LeadSession {
+  id             String   @id @default(uuid())
+  tenantId       String
+  leadId         String
+  startedAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+  source         String?
+  campaignId     String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  deletedAt      DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  activities LeadActivity[]
+
+  @@index([tenantId, leadId, startedAt])
+  @@index([tenantId, lastActivityAt])
+  @@index([tenantId, deletedAt])
+}
+
+model LeadActivity {
+  id         String   @id @default(uuid())
+  tenantId   String
+  leadId     String
+  sessionId  String
+  type       String
+  timestamp  DateTime @default(now())
+  archivedAt DateTime?
+  metadata   Json?
+
+  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead    Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  session LeadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, timestamp])
+  @@index([tenantId, archivedAt])
+  @@index([leadId, timestamp])
+  @@index([sessionId, timestamp])
+}
+
+model Booking {
+  id          String   @id @default(uuid())
+  tenantId    String
+  leadId      String
+  bookingDate DateTime?
+  status      String   @default("PENDING")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, deletedAt])
+  @@unique([tenantId, leadId])
 }
 
 model Feedback {

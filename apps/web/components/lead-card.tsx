@@ -15,6 +15,10 @@ type LeadLike = {
   name?: string;
   phone?: string;
   status?: string;
+  source?: string;
+  assignedToName?: string;
+  timeline?: Array<{ id?: string; type?: string; timestamp?: string; metadata?: Record<string, unknown> }>;
+  location?: string;
   createdAt?: string;
 };
 
@@ -28,6 +32,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const showReviewButton = status === 'Converted';
 
   const handleCall = () => {
+    void logActivity('call_click');
     announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
     if (lead?.phone) {
       globalThis.location.href = `tel:${lead.phone}`;
@@ -35,6 +40,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   };
 
   const handleWhatsApp = () => {
+    void logActivity('whatsapp_click');
     announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
     if (lead?.phone) {
       const cleanPhone = lead.phone.replaceAll(/\D/g, '');
@@ -52,6 +58,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     const message = `Hi ${lead.name || 'there'}! Thank you for choosing our service. We'd love to hear your feedback: ${reviewUrl}`;
 
     if (lead?.phone) {
+      void logActivity('enquiry_click');
       const cleanPhone = lead.phone.replaceAll(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
       globalThis.open(whatsappUrl, '_blank');
@@ -99,7 +106,49 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     );
     const safeIndex = Math.max(0, currentIndex);
     const nextIndex = (safeIndex + direction + REMINDER_DAYS.length) % REMINDER_DAYS.length;
-    setSelectedReminderDay(REMINDER_DAYS[nextIndex]);
+    const nextDay = REMINDER_DAYS[nextIndex];
+    setSelectedReminderDay(nextDay);
+    void setFollowUp(nextDay);
+  };
+
+  const logActivity = async (type: 'whatsapp_click' | 'call_click' | 'enquiry_click' | 'booking') => {
+    const leadId = String(lead?.id ?? '').trim();
+    const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
+    if (!leadId || !tenantRouteKey) {
+      return;
+    }
+
+    try {
+      await api.post(`/tenant/${tenantRouteKey}/leads/${leadId}/activity`, {
+        type,
+        pageUrl: globalThis.location.href,
+        buttonId: `lead-card-${type}`,
+      });
+      announceDashboardDataRefresh(tenantRouteKey);
+    } catch {
+      // Ignore transient activity logging failures.
+    }
+  };
+
+  const setFollowUp = async (days: number) => {
+    const leadId = String(lead?.id ?? '').trim();
+    const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
+    if (!leadId || !tenantRouteKey) {
+      return;
+    }
+
+    const followUpAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+    try {
+      await api.patch(`/tenant/${tenantRouteKey}/leads/${leadId}/followup`, {
+        followUpAt,
+        note: `Reminder set for ${days} day(s)`,
+      });
+      refresh();
+      announceDashboardDataRefresh(tenantRouteKey);
+    } catch {
+      // Keep wheel interaction responsive even when API call fails.
+    }
   };
 
   return (
@@ -139,6 +188,18 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
           {createdAtLabel}
         </span>
+      </div>
+
+      <div style={{ display: 'grid', gap: 3, marginBottom: 10 }}>
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
+          {lead?.phone || 'No phone'}
+          {' | '}
+          Source: {lead?.source || 'ORGANIC'}
+        </p>
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
+          Assigned To: {lead?.assignedToName || 'Unassigned'}
+          {lead?.location ? ` | ${lead.location}` : ''}
+        </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
@@ -266,6 +327,17 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
           Send Review Request
         </button>
       )}
+
+      {Array.isArray(lead?.timeline) && lead.timeline.length > 0 ? (
+        <div style={{ marginTop: 10, borderTop: '1px dashed var(--card-border)', paddingTop: 8 }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 11, marginBottom: 5 }}>Activity Timeline</p>
+          {lead.timeline.slice(0, 3).map((item) => (
+            <p key={item.id || `${item.type}-${item.timestamp}`} style={{ margin: '2px 0', color: 'var(--text)', fontSize: 12 }}>
+              {toReadableActivity(item.type)} ({item.timestamp ? getRelativeTime(item.timestamp) : 'just now'})
+            </p>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -314,4 +386,14 @@ function toApiStatus(raw?: string): string | null {
   if (value === 'converted') return 'CONVERTED';
   if (value === 'lost') return 'CLOSED';
   return null;
+}
+
+function toReadableActivity(raw?: string): string {
+  const value = String(raw ?? '').trim().toLowerCase();
+  if (value === 'whatsapp_click') return 'WhatsApp clicked';
+  if (value === 'call_click') return 'Call clicked';
+  if (value === 'enquiry_click') return 'Enquiry submitted';
+  if (value === 'booking') return 'Booking created';
+  if (value === 'status_change') return 'Status updated';
+  return value || 'Activity';
 }

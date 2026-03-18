@@ -5,12 +5,17 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useState,
   useMemo,
+  useState,
   type ReactNode,
 } from 'react';
 import { useAuth } from './AuthContext';
-import { fetchLeadsForTenant, resolveTenant, type TenantRecord } from '@/lib/tenant-client';
+import {
+  fetchLeadAnalyticsForTenant,
+  fetchLeadsForTenant,
+  resolveTenant,
+  type TenantRecord,
+} from '@/lib/tenant-client';
 import { DUMMY_LEADS } from '@/lib/mock-data';
 import {
   getDashboardRefreshEventName,
@@ -20,25 +25,29 @@ import {
   parseDashboardRefreshPayload,
 } from '@/lib/dashboard-events';
 
-// Centralized metrics calculation to ensure consistency across all dashboard pages
+// Centralized metrics calculation to ensure consistency across all dashboard pages.
 export type DashboardMetrics = {
-  // Lead counts
   totalLeads: number;
   openLeads: number;
   followUpLeads: number;
   convertedLeads: number;
-
-  // Conversion metrics
   conversionRate: number;
-
-  // Follow-up time metrics
   followUpsToday: number;
   followUpsOverdue: number;
   followUpsUnscheduled: number;
-
-  // Recent activity
   recentLeadName: string;
   recentLeadDate: string;
+
+  // Derived analytics metrics
+  conversionRateBySource: Array<{ source: string; total: number; converted: number; conversion_rate: number }>;
+  avgTimeToConvert: number;
+  leadsPerAgent: Array<{ assignedTo: string | null; agentName: string; leadCount: number }>;
+  sessionToConversionRatio: number;
+
+  // Analytics partitions + activities
+  partitionKey: 'week' | 'month' | 'quarter' | 'year';
+  timeline: Array<{ bucket: string; leads: number; converted: number }>;
+  recentActivities: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
 };
 
 type DashboardDataContextType = {
@@ -49,6 +58,27 @@ type DashboardDataContextType = {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+};
+
+type LeadAnalyticsPayload = {
+  summary?: {
+    totalLeads?: number;
+    newLeads?: number;
+    followupLeads?: number;
+    convertedLeads?: number;
+    conversionRate?: number;
+  };
+  derived?: {
+    conversion_rate_by_source?: Array<{ source: string; total: number; converted: number; conversion_rate: number }>;
+    avg_time_to_convert?: number;
+    leads_per_agent?: Array<{ assignedTo: string | null; agentName: string; leadCount: number }>;
+    session_to_conversion_ratio?: number;
+  };
+  partition?: {
+    key?: 'week' | 'month' | 'quarter' | 'year';
+    timeline?: Array<{ bucket: string; leads: number; converted: number }>;
+  };
+  recentActivities?: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
 };
 
 const DashboardDataContext = createContext<DashboardDataContextType | undefined>(undefined);
@@ -75,10 +105,79 @@ function parseFollowUpDate(item: any): number | null {
   return parsed.getTime();
 }
 
+function mapStatus(raw?: string): string {
+  const value = String(raw ?? '')
+    .trim()
+    .toUpperCase();
+
+  if (value === 'NEW') return 'NEW';
+  if (value === 'CONTACTED') return 'CONTACTED';
+  if (value === 'QUALIFIED' || value === 'FOLLOW-UP' || value === 'FOLLOWUP') return 'QUALIFIED';
+  if (value === 'CONVERTED') return 'CONVERTED';
+  if (value === 'CLOSED' || value === 'LOST') return 'CLOSED';
+  return 'NEW';
+}
+
+function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
+  const totalLeads = leads.length;
+  const convertedLeads = leads.filter((lead) => mapStatus(lead?.status) === 'CONVERTED').length;
+  const followUpLeads = leads.filter((lead) => mapStatus(lead?.status) === 'QUALIFIED').length;
+  const openLeads = leads.filter((lead) => mapStatus(lead?.status) === 'NEW').length;
+  const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+
+  const todayStart = getStartOfDay(new Date());
+  const followUpItems = leads.filter((item) => mapStatus(item?.status) === 'QUALIFIED');
+
+  let followUpsToday = 0;
+  let followUpsOverdue = 0;
+  let followUpsUnscheduled = 0;
+
+  followUpItems.forEach((item) => {
+    const timestamp = parseFollowUpDate(item);
+
+    if (!timestamp) {
+      followUpsUnscheduled += 1;
+    } else if (timestamp < todayStart) {
+      followUpsOverdue += 1;
+    } else if (timestamp === todayStart) {
+      followUpsToday += 1;
+    }
+  });
+
+  const sortedLeads = [...leads].sort((a, b) => {
+    const dateA = new Date(a?.createdAt ?? 0).getTime();
+    const dateB = new Date(b?.createdAt ?? 0).getTime();
+    return dateB - dateA;
+  });
+
+  const recentLead = sortedLeads[0];
+
+  return {
+    totalLeads,
+    openLeads,
+    followUpLeads,
+    convertedLeads,
+    conversionRate,
+    followUpsToday,
+    followUpsOverdue,
+    followUpsUnscheduled,
+    recentLeadName: recentLead?.name ?? 'N/A',
+    recentLeadDate: recentLead?.createdAt ? new Date(recentLead.createdAt).toLocaleDateString() : 'N/A',
+    conversionRateBySource: [],
+    avgTimeToConvert: 0,
+    leadsPerAgent: [],
+    sessionToConversionRatio: 0,
+    partitionKey: 'week',
+    timeline: [],
+    recentActivities: [],
+  };
+}
+
 export function DashboardDataProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { tenantSlug } = useAuth();
   const [tenant, setTenant] = useState<TenantRecord | null>(null);
   const [leads, setLeads] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<LeadAnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -89,6 +188,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
 
   const clearBeforeRefresh = useCallback(() => {
     setLeads([]);
+    setAnalytics(null);
     setLoading(true);
   }, []);
 
@@ -151,6 +251,19 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     };
   }, [shouldHandleRefreshForTenant, clearBeforeRefresh, triggerRefresh]);
 
+  // Polling-based realtime updates.
+  useEffect(() => {
+    if (!tenantSlug) return;
+
+    const timer = globalThis.window.setInterval(() => {
+      triggerRefresh();
+    }, 12_000);
+
+    return () => {
+      globalThis.window.clearInterval(timer);
+    };
+  }, [tenantSlug, triggerRefresh]);
+
   useEffect(() => {
     if (!tenantSlug) {
       setError('Tenant not available');
@@ -161,9 +274,12 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     setLoading(true);
     setError(null);
 
-    // Fetch both tenant info and leads in parallel
-    Promise.allSettled([resolveTenant(tenantSlug), fetchLeadsForTenant(tenantSlug)])
-      .then(([tenantResult, leadsResult]) => {
+    Promise.allSettled([
+      resolveTenant(tenantSlug),
+      fetchLeadsForTenant(tenantSlug),
+      fetchLeadAnalyticsForTenant(tenantSlug, 'week'),
+    ])
+      .then(([tenantResult, leadsResult, analyticsResult]) => {
         const resolvedTenant = tenantResult.status === 'fulfilled' ? tenantResult.value : null;
 
         if (tenantResult.status === 'fulfilled') {
@@ -171,6 +287,10 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
         } else {
           setTenant(null);
         }
+
+        const analyticsPayload =
+          analyticsResult.status === 'fulfilled' && analyticsResult.value ? analyticsResult.value : null;
+        setAnalytics(analyticsPayload);
 
         if (leadsResult.status === 'fulfilled') {
           const fetchedLeads = leadsResult.value;
@@ -190,76 +310,63 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
 
           setLeads(hasLiveData ? [] : DUMMY_LEADS);
         } else {
-          // On error, use dummy data for demonstration
           setLeads(DUMMY_LEADS);
         }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
-        // Use dummy data even on error so dashboard is functional
         setLeads(DUMMY_LEADS);
+        setAnalytics(null);
       })
       .finally(() => setLoading(false));
   }, [tenantSlug, refreshKey]);
 
-  // Centralized metrics calculation - single source of truth
   const metrics = useMemo<DashboardMetrics>(() => {
-    const totalLeads = leads.length;
+    const fallback = defaultMetricsFromLeads(leads);
+    const summary = analytics?.summary;
+    const derived = analytics?.derived;
 
-    // Status-based counts
-    const convertedLeads = leads.filter((lead) => lead?.status === 'Converted').length;
-    const followUpLeads = leads.filter((lead) => lead?.status === 'Follow-Up').length;
-    const openLeads = Math.max(0, totalLeads - convertedLeads - followUpLeads);
+    if (!summary || !derived) {
+      return fallback;
+    }
 
-    // Conversion rate
-    const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
-
-    // Follow-up time analysis
-    const todayStart = getStartOfDay(new Date());
-    const followUpItems = leads.filter((item) => item?.status === 'Follow-Up');
-
-    let followUpsToday = 0;
-    let followUpsOverdue = 0;
-    let followUpsUnscheduled = 0;
-
-    followUpItems.forEach((item) => {
-      const timestamp = parseFollowUpDate(item);
-
-      if (!timestamp) {
-        followUpsUnscheduled++;
-      } else if (timestamp < todayStart) {
-        followUpsOverdue++;
-      } else if (timestamp === todayStart) {
-        followUpsToday++;
-      }
-    });
-
-    // Recent activity
-    const sortedLeads = [...leads].sort((a, b) => {
-      const dateA = new Date(a?.createdAt ?? 0).getTime();
-      const dateB = new Date(b?.createdAt ?? 0).getTime();
-      return dateB - dateA;
-    });
-
-    const recentLead = sortedLeads[0];
-    const recentLeadName = recentLead?.name ?? 'N/A';
-    const recentLeadDate = recentLead?.createdAt
-      ? new Date(recentLead.createdAt).toLocaleDateString()
-      : 'N/A';
+    const totalLeads = Number(summary.totalLeads ?? fallback.totalLeads);
+    const followUpLeads = Number(summary.followupLeads ?? fallback.followUpLeads);
+    const convertedLeads = Number(summary.convertedLeads ?? fallback.convertedLeads);
+    const openLeads = Math.max(0, totalLeads - followUpLeads - convertedLeads);
 
     return {
+      ...fallback,
       totalLeads,
       openLeads,
       followUpLeads,
       convertedLeads,
-      conversionRate,
-      followUpsToday,
-      followUpsOverdue,
-      followUpsUnscheduled,
-      recentLeadName,
-      recentLeadDate,
+      conversionRate: Number(summary.conversionRate ?? fallback.conversionRate),
+      conversionRateBySource: Array.isArray(derived.conversion_rate_by_source)
+        ? derived.conversion_rate_by_source
+        : [],
+      avgTimeToConvert: Number(derived.avg_time_to_convert ?? 0),
+      leadsPerAgent: Array.isArray(derived.leads_per_agent) ? derived.leads_per_agent : [],
+      sessionToConversionRatio: Number(derived.session_to_conversion_ratio ?? 0),
+      partitionKey: analytics?.partition?.key ?? 'week',
+      timeline: Array.isArray(analytics?.partition?.timeline)
+        ? analytics.partition.timeline.map((entry: any) => ({
+            bucket: String(entry.bucket ?? ''),
+            leads: Number(entry.leads ?? 0),
+            converted: Number(entry.converted ?? 0),
+          }))
+        : [],
+      recentActivities: Array.isArray(analytics?.recentActivities)
+        ? analytics.recentActivities.map((entry: any) => ({
+            id: String(entry.id ?? ''),
+            leadId: String(entry.leadId ?? ''),
+            leadName: String(entry.leadName ?? 'Lead'),
+            type: String(entry.type ?? ''),
+            timestamp: String(entry.timestamp ?? ''),
+          }))
+        : [],
     };
-  }, [leads]);
+  }, [leads, analytics]);
 
   const refresh = triggerRefresh;
 
