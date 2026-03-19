@@ -4,13 +4,12 @@ import { prisma } from '@saas/database';
 
 const router = Router();
 
-type ActionButtonKey = 'chatWhatsApp' | 'call' | 'whatsappEnquiry' | 'confirmBooking';
+type ActionButtonKey = 'chatWhatsApp' | 'call' | 'whatsappEnquiry';
 
 type ActionButtonConfig = {
   enabled: boolean;
-  label?: string;
   phone?: string;
-  url?: string;
+  message?: string;
 };
 
 type ActionButtonsConfig = Record<ActionButtonKey, ActionButtonConfig>;
@@ -18,18 +17,18 @@ type ActionButtonsConfig = Record<ActionButtonKey, ActionButtonConfig>;
 const DEFAULT_SECTION_ORDER = ['hero', 'services', 'gallery'];
 
 const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
-  chatWhatsApp: { enabled: true, label: 'Chat on WhatsApp' },
-  call: { enabled: true, label: 'Call' },
-  whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
-  confirmBooking: { enabled: true, label: 'Confirm Booking' },
+  chatWhatsApp: { enabled: true },
+  call: { enabled: true },
+  whatsappEnquiry: { enabled: true },
 };
+
+const DEFAULT_GALLERY_CATEGORIES = ['gallery', 'before-after', 'team', 'workspace'];
 
 function getDefaultActionButtons(): ActionButtonsConfig {
   return {
     chatWhatsApp: { ...DEFAULT_ACTION_BUTTONS.chatWhatsApp },
     call: { ...DEFAULT_ACTION_BUTTONS.call },
     whatsappEnquiry: { ...DEFAULT_ACTION_BUTTONS.whatsappEnquiry },
-    confirmBooking: { ...DEFAULT_ACTION_BUTTONS.confirmBooking },
   };
 }
 
@@ -38,9 +37,8 @@ function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfi
 
   return {
     enabled: raw.enabled === undefined ? fallback.enabled : Boolean(raw.enabled),
-    label: typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : fallback.label,
     phone: typeof raw.phone === 'string' && raw.phone.trim().length > 0 ? raw.phone.trim() : undefined,
-    url: typeof raw.url === 'string' && raw.url.trim().length > 0 ? raw.url.trim() : undefined,
+    message: typeof raw.message === 'string' && raw.message.trim().length > 0 ? raw.message.trim() : undefined,
   };
 }
 
@@ -54,21 +52,19 @@ function normalizeActionButtons(value: unknown): ActionButtonsConfig {
       raw.whatsappEnquiry,
       DEFAULT_ACTION_BUTTONS.whatsappEnquiry,
     ),
-    confirmBooking: normalizeActionButtonConfig(
-      raw.confirmBooking,
-      DEFAULT_ACTION_BUTTONS.confirmBooking,
-    ),
   };
 }
 
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
+  galleryCategories: string[];
 } {
   if (Array.isArray(rawValue)) {
     return {
       sectionOrder: rawValue.filter((entry): entry is string => typeof entry === 'string'),
       actionButtons: getDefaultActionButtons(),
+      galleryCategories: DEFAULT_GALLERY_CATEGORIES,
     };
   }
 
@@ -78,22 +74,33 @@ function extractSectionOrderConfig(rawValue: unknown): {
       ? raw.sections.filter((entry): entry is string => typeof entry === 'string')
       : DEFAULT_SECTION_ORDER;
 
+    const galleryCategories = Array.isArray(raw.galleryCategories)
+      ? raw.galleryCategories.filter((entry): entry is string => typeof entry === 'string')
+      : DEFAULT_GALLERY_CATEGORIES;
+
     return {
       sectionOrder: sections,
       actionButtons: normalizeActionButtons(raw.actionButtons),
+      galleryCategories,
     };
   }
 
   return {
     sectionOrder: DEFAULT_SECTION_ORDER,
     actionButtons: getDefaultActionButtons(),
+    galleryCategories: DEFAULT_GALLERY_CATEGORIES,
   };
 }
 
-function buildSectionOrderPayload(sectionOrder: string[], actionButtons: ActionButtonsConfig) {
+function buildSectionOrderPayload(
+  sectionOrder: string[],
+  actionButtons: ActionButtonsConfig,
+  galleryCategories: string[] = DEFAULT_GALLERY_CATEGORIES,
+) {
   return {
     sections: sectionOrder,
     actionButtons,
+    galleryCategories,
   };
 }
 
@@ -104,6 +111,7 @@ function toSettingsResponse(settings: any) {
     ...settings,
     sectionOrder: parsed.sectionOrder,
     actionButtons: parsed.actionButtons,
+    galleryCategories: parsed.galleryCategories,
   };
 }
 
@@ -153,6 +161,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
       secondaryColor,
       sectionOrder,
       actionButtons,
+      galleryCategories,
       businessPhone,
       businessWhatsApp,
       tagline,
@@ -174,6 +183,10 @@ router.put('/settings', authMiddleware, async (req, res) => {
       actionButtons !== undefined
         ? normalizeActionButtons(actionButtons)
         : existingConfig.actionButtons;
+    const nextGalleryCategories =
+      galleryCategories !== undefined && Array.isArray(galleryCategories)
+        ? galleryCategories.filter((entry: unknown): entry is string => typeof entry === 'string')
+        : existingConfig.galleryCategories;
 
     if (!settings) {
       settings = await prisma.tenantSettings.create({
@@ -182,7 +195,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
           logoShape: logoShape || 'circle',
           primaryColor: primaryColor || '#000000',
           secondaryColor: secondaryColor || '#FFFFFF',
-          sectionOrder: buildSectionOrderPayload(nextSectionOrder, nextActionButtons),
+          sectionOrder: buildSectionOrderPayload(nextSectionOrder, nextActionButtons, nextGalleryCategories),
         },
       });
     } else {
@@ -192,8 +205,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
           ...(logoShape !== undefined && { logoShape }),
           ...(primaryColor !== undefined && { primaryColor }),
           ...(secondaryColor !== undefined && { secondaryColor }),
-          ...((sectionOrder !== undefined || actionButtons !== undefined) && {
-            sectionOrder: buildSectionOrderPayload(nextSectionOrder, nextActionButtons),
+          ...((sectionOrder !== undefined || actionButtons !== undefined || galleryCategories !== undefined) && {
+            sectionOrder: buildSectionOrderPayload(nextSectionOrder, nextActionButtons, nextGalleryCategories),
           }),
           ...(businessPhone !== undefined && { businessPhone }),
           ...(businessWhatsApp !== undefined && { businessWhatsApp }),

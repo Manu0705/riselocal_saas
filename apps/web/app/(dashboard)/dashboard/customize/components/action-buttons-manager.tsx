@@ -19,13 +19,13 @@ type ButtonMeta = {
   key: ActionButtonKey;
   title: string;
   sourceTag: string;
+  showMessage?: boolean;
 };
 
 const BUTTONS: ButtonMeta[] = [
-  { key: 'chatWhatsApp', title: 'Chat on WhatsApp', sourceTag: 'Quick Actions + Contact' },
+  { key: 'chatWhatsApp', title: 'Chat on WhatsApp', sourceTag: 'Quick Actions + Contact', showMessage: true },
   { key: 'call', title: 'Call Button', sourceTag: 'Quick Actions + Contact' },
-  { key: 'whatsappEnquiry', title: 'WhatsApp Enquiry', sourceTag: 'Gallery Images' },
-  { key: 'confirmBooking', title: 'Confirm Booking', sourceTag: 'Booking Form' },
+  { key: 'whatsappEnquiry', title: 'WhatsApp Enquiry', sourceTag: 'Gallery Images', showMessage: true },
 ];
 
 export default function ActionButtonsManager() {
@@ -42,7 +42,7 @@ export default function ActionButtonsManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      const data = (response?.data || {}) as SettingsResponse;
+      const data = (response?.data?.data || {}) as SettingsResponse;
 
       setSectionOrder(Array.isArray(data.sectionOrder) ? data.sectionOrder : ['hero', 'services', 'gallery']);
       setButtons(normalizeActionButtons(data.actionButtons));
@@ -54,7 +54,7 @@ export default function ActionButtonsManager() {
     }
   };
 
-  const updateButton = (key: ActionButtonKey, field: 'enabled' | 'label' | 'phone' | 'url', value: string | boolean) => {
+  const updateButton = (key: ActionButtonKey, field: 'enabled' | 'phone' | 'message', value: string | boolean) => {
     setButtons((prev) => ({
       ...prev,
       [key]: {
@@ -73,8 +73,8 @@ export default function ActionButtonsManager() {
         actionButtons: buttons,
       });
 
-      if (response?.data) {
-        const data = response.data as SettingsResponse;
+      if (response?.data?.data) {
+        const data = response.data.data as SettingsResponse;
         setSectionOrder(Array.isArray(data.sectionOrder) ? data.sectionOrder : sectionOrder);
         setButtons(normalizeActionButtons(data.actionButtons));
       }
@@ -107,7 +107,7 @@ export default function ActionButtonsManager() {
       >
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Action Buttons</h3>
         <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-          Control which public CTA buttons are shown and customize their labels, phone numbers, and links.
+          Control which public CTA buttons are shown and customize their phone numbers and messages.
         </p>
       </div>
 
@@ -153,20 +153,7 @@ export default function ActionButtonsManager() {
 
             <input
               type="text"
-              placeholder="Button label"
-              value={config.label || ''}
-              onChange={(event) => updateButton(meta.key, 'label', event.target.value)}
-              style={{
-                border: '1px solid var(--card-border)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                fontSize: 14,
-              }}
-            />
-
-            <input
-              type="text"
-              placeholder="Phone override (digits only, optional)"
+              placeholder="Phone number (digits only, optional)"
               value={config.phone || ''}
               onChange={(event) => updateButton(meta.key, 'phone', event.target.value)}
               style={{
@@ -177,18 +164,20 @@ export default function ActionButtonsManager() {
               }}
             />
 
-            <input
-              type="url"
-              placeholder="Custom URL override (optional)"
-              value={config.url || ''}
-              onChange={(event) => updateButton(meta.key, 'url', event.target.value)}
-              style={{
-                border: '1px solid var(--card-border)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                fontSize: 14,
-              }}
-            />
+            {meta.showMessage && (
+              <input
+                type="text"
+                placeholder="Pre-filled message (optional)"
+                value={config.message || ''}
+                onChange={(event) => updateButton(meta.key, 'message', event.target.value)}
+                style={{
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 14,
+                }}
+              />
+            )}
           </div>
         );
       })}

@@ -1,19 +1,17 @@
-export type ActionButtonKey = 'chatWhatsApp' | 'call' | 'whatsappEnquiry' | 'confirmBooking';
+export type ActionButtonKey = 'chatWhatsApp' | 'call' | 'whatsappEnquiry';
 
 export type ActionButtonConfig = {
   enabled: boolean;
-  label?: string;
   phone?: string;
-  url?: string;
+  message?: string;
 };
 
 export type ActionButtonsConfig = Record<ActionButtonKey, ActionButtonConfig>;
 
 export const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
-  chatWhatsApp: { enabled: true, label: 'Chat on WhatsApp' },
-  call: { enabled: true, label: 'Call' },
-  whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
-  confirmBooking: { enabled: true, label: 'Confirm Booking' },
+  chatWhatsApp: { enabled: true },
+  call: { enabled: true },
+  whatsappEnquiry: { enabled: true },
 };
 
 function normalizeButtonConfig(
@@ -24,10 +22,8 @@ function normalizeButtonConfig(
 
   return {
     enabled: raw.enabled === undefined ? fallback.enabled : Boolean(raw.enabled),
-    label:
-      typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : fallback.label,
     phone: typeof raw.phone === 'string' && raw.phone.trim().length > 0 ? raw.phone.trim() : undefined,
-    url: typeof raw.url === 'string' && raw.url.trim().length > 0 ? raw.url.trim() : undefined,
+    message: typeof raw.message === 'string' && raw.message.trim().length > 0 ? raw.message.trim() : undefined,
   };
 }
 
@@ -40,10 +36,6 @@ export function normalizeActionButtons(value: unknown): ActionButtonsConfig {
     whatsappEnquiry: normalizeButtonConfig(
       raw.whatsappEnquiry,
       DEFAULT_ACTION_BUTTONS.whatsappEnquiry,
-    ),
-    confirmBooking: normalizeButtonConfig(
-      raw.confirmBooking,
-      DEFAULT_ACTION_BUTTONS.confirmBooking,
     ),
   };
 }

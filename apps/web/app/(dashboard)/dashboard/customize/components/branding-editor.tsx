@@ -21,6 +21,8 @@ export default function BrandingEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -30,11 +32,17 @@ export default function BrandingEditor() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      if (response?.data) {
-        setSettings(response.data);
+      if (response?.data?.data) {
+        setSettings(response.data.data);
+        setError(null);
+      } else if (response?.error) {
+        setError(response.error);
+      } else {
+        setError('Invalid response format');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load settings');
     } finally {
       setLoading(false);
     }
@@ -44,6 +52,8 @@ export default function BrandingEditor() {
     if (!file) return;
 
     setUploading(type);
+    setError(null);
+    setSuccess(null);
     try {
       const api = getTenantApiClient();
       const formData = new FormData();
@@ -60,13 +70,17 @@ export default function BrandingEditor() {
           [fieldName]: uploadResponse.url,
         });
 
-        if (updateResponse?.data) {
-          setSettings(updateResponse.data);
+        if (updateResponse?.data?.data) {
+          setSettings(updateResponse.data.data);
+          setSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
+          setTimeout(() => setSuccess(null), 3000);
         }
+      } else if (uploadResponse?.error) {
+        setError(uploadResponse.error);
       }
     } catch (error) {
       console.error(`Failed to upload ${type}:`, error);
-      alert(`Failed to upload ${type}. Please try again.`);
+      setError(error instanceof Error ? error.message : `Failed to upload ${type}`);
     } finally {
       setUploading(null);
     }
@@ -74,15 +88,21 @@ export default function BrandingEditor() {
 
   const handleUpdate = async (updates: Partial<TenantSettings>) => {
     setSaving(true);
+    setError(null);
+    setSuccess(null);
     try {
       const api = getTenantApiClient();
       const response = await api.put('/settings', updates);
-      if (response?.data) {
-        setSettings(response.data);
+      if (response?.data?.data) {
+        setSettings(response.data.data);
+        setSuccess('Changes saved successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      } else if (response?.error) {
+        setError(response.error);
       }
     } catch (error) {
       console.error('Failed to update settings:', error);
-      alert('Failed to save changes. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to save changes');
     } finally {
       setSaving(false);
     }
@@ -100,13 +120,45 @@ export default function BrandingEditor() {
   if (!settings) {
     return (
       <div style={{ textAlign: 'center', padding: 40 }}>
-        <p style={{ color: '#dc2626' }}>Failed to load settings</p>
+        <p style={{ color: '#dc2626', fontSize: 14 }}>
+          {error || 'Failed to load settings'}
+        </p>
       </div>
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      {/* Status Messages */}
+      {error && (
+        <div
+          style={{
+            border: '1px solid #fca5a5',
+            background: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 14,
+          }}
+        >
+          {error}
+        </div>
+      )}
+      {success && (
+        <div
+          style={{
+            border: '1px solid #86efac',
+            background: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 14,
+          }}
+        >
+          {success}
+        </div>
+      )}
+
       {/* Logo Upload */}
       <div
         style={{

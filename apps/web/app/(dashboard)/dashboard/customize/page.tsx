@@ -24,9 +24,14 @@ export default function CustomizePage() {
     { id: 'actionButtons' as TabType, label: 'Action Buttons', icon: MousePointerClick },
   ];
 
-  const handlePreview = () => {
+  const handlePreview = (section?: string) => {
     const tenantSlug = tenant?.slug ?? tenant?.id ?? 'default';
-    window.open(`/${tenantSlug}?preview=true`, '_blank');
+    const params = new URLSearchParams();
+    params.append('preview', 'true');
+    if (section) {
+      params.append('section', section);
+    }
+    window.open(`/${tenantSlug}?${params.toString()}`, '_blank');
   };
 
   return (
@@ -42,7 +47,16 @@ export default function CustomizePage() {
         <MobilePageTitle title="Customize" />
         <button
           type="button"
-          onClick={handlePreview}
+          onClick={() => {
+            const sectionMap: Record<TabType, string | undefined> = {
+              branding: 'hero',
+              gallery: 'gallery',
+              services: 'services',
+              social: undefined,
+              actionButtons: undefined,
+            };
+            handlePreview(sectionMap[activeTab]);
+          }}
           style={{
             border: '1px solid var(--card-border)',
             background: 'var(--card)',
@@ -58,7 +72,7 @@ export default function CustomizePage() {
           }}
         >
           <Eye size={16} />
-          Preview
+          Preview {activeTab === 'branding' ? 'Hero' : activeTab === 'gallery' ? 'Gallery' : activeTab === 'services' ? 'Services' : 'Page'}
         </button>
       </div>
 

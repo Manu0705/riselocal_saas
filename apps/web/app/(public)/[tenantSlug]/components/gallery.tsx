@@ -9,6 +9,7 @@ import {
   type ActionButtonsConfig,
 } from '@/lib/action-buttons';
 import LeadCaptureModal from './lead-capture-modal';
+import ImageViewerModal from './image-viewer-modal';
 
 type GalleryImage = {
   url: string;
@@ -40,6 +41,7 @@ export default function Gallery({
   const [pendingEnquiry, setPendingEnquiry] = useState<{ image: string; category: string } | null>(
     null,
   );
+  const [selectedImage, setSelectedImage] = useState<{ url: string; category: string } | null>(null);
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
 
@@ -164,6 +166,7 @@ export default function Gallery({
         {filtered.map((img) => (
           <div
             key={`${img.url}-${img.category}`}
+            onClick={() => setSelectedImage({ url: img.url, category: img.category })}
             style={{
               height: 200,
               borderRadius: 12,
@@ -172,6 +175,14 @@ export default function Gallery({
               backgroundImage: `url(${img.url})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
             }}
           >
             {/* Button inside image */}
@@ -198,6 +209,13 @@ export default function Gallery({
           </div>
         ))}
       </div>
+
+      <ImageViewerModal
+        open={Boolean(selectedImage)}
+        imageUrl={selectedImage?.url || ''}
+        imageCategory={selectedImage?.category || ''}
+        onClose={() => setSelectedImage(null)}
+      />
 
       <LeadCaptureModal
         open={Boolean(pendingEnquiry)}

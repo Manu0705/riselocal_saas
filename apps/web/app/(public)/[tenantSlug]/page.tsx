@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getTenant, isReservedTenantSlug } from '@/lib/tenant-resolver';
+import TenantPageWrapper from './tenant-page-wrapper';
 
 import Hero from './components/hero';
 import QuickActions from './components/quick-actions';
@@ -48,31 +49,35 @@ export default async function TenantPage({ params }: Props) {
   };
 
   return (
-    <div
-      style={{
-        // Expose tenant brand colors to descendant components.
-        ['--tenant-primary' as string]: tenant.primaryColor || '#000000',
-        ['--tenant-secondary' as string]: tenant.secondaryColor || '#FFFFFF',
-      }}
-    >
-      {sectionOrder.map((sectionKey: string) => (
-        <div key={sectionKey}>{sections[sectionKey] ?? null}</div>
-      ))}
+    <TenantPageWrapper>
+      <div
+        style={{
+          // Expose tenant brand colors to descendant components.
+          ['--tenant-primary' as string]: tenant.primaryColor || '#000000',
+          ['--tenant-secondary' as string]: tenant.secondaryColor || '#FFFFFF',
+        }}
+      >
+        {sectionOrder.map((sectionKey: string) => (
+          <div key={sectionKey} id={sectionKey}>
+            {sections[sectionKey] ?? null}
+          </div>
+        ))}
 
-      <QuickActions
-        phone={tenant.whatsapp || tenant.phone}
-        tenantId={tenant.id}
-        tenantSlug={tenantSlug}
-        actionButtons={tenant.actionButtons}
-      />
-      <HowItWorks />
-      <Booking tenantId={tenant.id} tenantSlug={tenantSlug} actionButtons={tenant.actionButtons} />
-      <Contact
-        tenant={tenant}
-        tenantId={tenant.id}
-        tenantSlug={tenantSlug}
-        actionButtons={tenant.actionButtons}
-      />
-    </div>
+        <QuickActions
+          phone={tenant.whatsapp || tenant.phone}
+          tenantId={tenant.id}
+          tenantSlug={tenantSlug}
+          actionButtons={tenant.actionButtons}
+        />
+        <HowItWorks />
+        <Booking tenantId={tenant.id} tenantSlug={tenantSlug} actionButtons={tenant.actionButtons} />
+        <Contact
+          tenant={tenant}
+          tenantId={tenant.id}
+          tenantSlug={tenantSlug}
+          actionButtons={tenant.actionButtons}
+        />
+      </div>
+    </TenantPageWrapper>
   );
 }

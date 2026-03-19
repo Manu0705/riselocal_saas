@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, Loader2, X } from 'lucide-react';
+import { Upload, Loader2, X, Plus, Edit2, Check, AlertCircle } from 'lucide-react';
 import { getTenantApiClient } from '@/lib/tenant-client';
 
 interface GalleryImage {
@@ -12,27 +12,53 @@ interface GalleryImage {
   alt?: string;
 }
 
-const categories = ['gallery', 'before-after', 'team', 'workspace'];
+const DEFAULT_CATEGORIES = ['gallery', 'before-after', 'team', 'workspace'];
 
 export default function GalleryManager() {
   const [images, setImages] = useState<GalleryImage[]>([]);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('gallery');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingNewCategory, setAddingNewCategory] = useState(false);
 
   useEffect(() => {
     loadImages();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const api = getTenantApiClient();
+      const response = await api.get('/settings');
+      if (response?.data?.data?.galleryCategories && Array.isArray(response.data.data.galleryCategories)) {
+        setCategories(response.data.data.galleryCategories);
+      } else {
+        setCategories(DEFAULT_CATEGORIES);
+      }
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      setCategories(DEFAULT_CATEGORIES);
+    }
+  };
 
   const loadImages = async () => {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/gallery');
-      if (response?.data) {
-        setImages(response.data);
+      if (response?.data?.data) {
+        setImages(response.data.data);
+        setError(null);
+      } else if (response?.error) {
+        setError(response.error);
       }
     } catch (error) {
       console.error('Failed to load gallery:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load gallery');
     } finally {
       setLoading(false);
     }
@@ -42,6 +68,8 @@ export default function GalleryManager() {
     if (!file) return;
 
     setUploading(true);
+    setError(null);
+    setSuccess(null);
     try {
       const api = getTenantApiClient();
 
@@ -60,13 +88,17 @@ export default function GalleryManager() {
           alt: file.name,
         });
 
-        if (createResponse?.data) {
-          setImages([...images, createResponse.data]);
+        if (createResponse?.data?.data) {
+          setImages([...images, createResponse.data.data]);
+          setSuccess('Image uploaded successfully');
+          setTimeout(() => setSuccess(null), 3000);
         }
+      } else if (uploadResponse?.error) {
+        setError(uploadResponse.error);
       }
     } catch (error) {
       console.error('Failed to upload image:', error);
-      alert('Failed to upload image. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to upload image');
     } finally {
       setUploading(false);
     }
@@ -89,12 +121,84 @@ export default function GalleryManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.put(`/gallery/${imageId}`, { category: newCategory });
-      if (response?.data) {
-        setImages(images.map((img) => (img.id === imageId ? response.data : img)));
+      if (response?.data?.data) {
+        setImages(images.map((img) => (img.id === imageId ? response.data.data : img)));
       }
     } catch (error) {
       console.error('Failed to update category:', error);
     }
+  };
+
+  const saveCategories = async (newCategories: string[]) => {
+    try {
+      const api = getTenantApiClient();
+      const response = await api.put('/settings', {
+        galleryCategories: newCategories,
+      });
+      if (response?.data?.data) {
+        setCategories(newCategories);
+        setSuccess('Categories updated successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to save categories:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save categories');
+    }
+  };
+
+  const handleAddCategory = async () => {
+    const trimmed = newCategoryName.trim().toLowerCase();
+    if (!trimmed) return;
+    if (categories.includes(trimmed)) {
+      setError('This category already exists');
+      return;
+    }
+
+    const updated = [...categories, trimmed];
+    setNewCategoryName('');
+    setAddingNewCategory(false);
+    await saveCategories(updated);
+  };
+
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    const trimmed = newName.trim().toLowerCase();
+    if (!trimmed) return;
+    if (categories.includes(trimmed) && trimmed !== oldName) {
+      setError('This category already exists');
+      return;
+    }
+
+    const updated = categories.map((cat) => (cat === oldName ? trimmed : cat));
+    setEditingCategory(null);
+
+    // Also update all images in this category
+    const imagesToUpdate = images.filter((img) => img.category === oldName);
+    for (const img of imagesToUpdate) {
+      try {
+        await getTenantApiClient().put(`/gallery/${img.id}`, { category: trimmed });
+      } catch (error) {
+        console.error(`Failed to update image ${img.id}:`, error);
+      }
+    }
+
+    setImages(images.map((img) => (img.category === oldName ? { ...img, category: trimmed } : img)));
+    await saveCategories(updated);
+  };
+
+  const handleDeleteCategory = async (categoryToDelete: string) => {
+    const imagesInCategory = images.filter((img) => img.category === categoryToDelete);
+    if (imagesInCategory.length > 0) {
+      setError(
+        `Cannot delete "${categoryToDelete}" - it has ${imagesInCategory.length} image(s). Please move or delete the images first.`,
+      );
+      return;
+    }
+
+    const updated = categories.filter((cat) => cat !== categoryToDelete);
+    if (selectedCategory === categoryToDelete) {
+      setSelectedCategory(updated[0] || 'gallery');
+    }
+    await saveCategories(updated);
   };
 
   const imagesByCategory = images.filter((img) => img.category === selectedCategory);
@@ -110,6 +214,215 @@ export default function GalleryManager() {
 
   return (
     <div>
+      {/* Status Messages */}
+      {error && (
+        <div
+          style={{
+            border: '1px solid #fca5a5',
+            background: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 14,
+            marginBottom: 16,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+          }}
+        >
+          <AlertCircle size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div>{error}</div>
+        </div>
+      )}
+      {success && (
+        <div
+          style={{
+            border: '1px solid #86efac',
+            background: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 14,
+            marginBottom: 16,
+          }}
+        >
+          {success}
+        </div>
+      )}
+
+      {/* Category Management Section */}
+      <div
+        style={{
+          border: '1px solid var(--card-border)',
+          background: 'var(--card)',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Gallery Categories</h3>
+          {!addingNewCategory && (
+            <button
+              type="button"
+              onClick={() => setAddingNewCategory(true)}
+              style={{
+                border: 'none',
+                background: '#3b82f6',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Plus size={14} />
+              Add Category
+            </button>
+          )}
+        </div>
+
+        {/* Add New Category Input */}
+        {addingNewCategory && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="e.g., blinds, zebra, folds..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddCategory();
+                }
+              }}
+              style={{
+                flex: 1,
+                border: '1px solid var(--card-border)',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 14,
+              }}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleAddCategory}
+              style={{
+                border: 'none',
+                background: '#16a34a',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Check size={14} />
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddingNewCategory(false);
+                setNewCategoryName('');
+              }}
+              style={{
+                border: '1px solid var(--card-border)',
+                background: 'transparent',
+                color: 'var(--muted)',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Category Pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {categories.map((cat) => {
+            const isEditing = editingCategory === cat;
+            const imageCount = images.filter((img) => img.category === cat).length;
+            return (
+              <div
+                key={cat}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  background: 'var(--background)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 20,
+                  fontSize: 13,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {isEditing ? (
+                  <>
+                    <input
+                      type="text"
+                      defaultValue={cat}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleRenameCategory(cat, newCategoryName || cat);
+                        }
+                      }}
+                      style={{
+                        border: '1px solid #3b82f6',
+                        borderRadius: 4,
+                        padding: '4px 8px',
+                        fontSize: 12,
+                        width: 100,
+                      }}
+                      autoFocus
+                    />
+                    <Check
+                      size={14}
+                      style={{ cursor: 'pointer', color: '#16a34a' }}
+                      onClick={() => handleRenameCategory(cat, newCategoryName || cat)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      {cat} ({imageCount})
+                    </span>
+                    <Edit2
+                      size={12}
+                      style={{ cursor: 'pointer', color: 'var(--muted)', marginLeft: 4 }}
+                      onClick={() => {
+                        setEditingCategory(cat);
+                        setNewCategoryName(cat);
+                      }}
+                    />
+                    {categories.length > 1 && imageCount === 0 && (
+                      <X
+                        size={12}
+                        style={{ cursor: 'pointer', color: '#dc2626' }}
+                        onClick={() => handleDeleteCategory(cat)}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Category Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
         {categories.map((cat) => (
