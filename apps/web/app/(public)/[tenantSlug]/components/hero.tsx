@@ -50,137 +50,72 @@ export default function Hero({ tenant }: Props) {
   const socialLinks = tenantSocialLinks.length ? tenantSocialLinks : dummySocialLinks;
 
   return (
-    <div style={{ padding: 16 }}>
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
+    <div className="px-4 py-4">
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {/* Slide 1: Banner */}
-        <section
-          style={{
-            minWidth: '100%',
-            scrollSnapAlign: 'start',
-            borderRadius: 14,
-            border: '1px solid var(--card-border)',
-            overflow: 'hidden',
-            background: 'var(--card)',
-          }}
-        >
+        <section className="min-w-full snap-start overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-sm">
           <img
             src={
               tenant?.bannerUrl ||
               'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80&auto=format&fit=crop'
             }
             alt="Business banner"
-            style={{
-              width: '100%',
-              height: 180,
-              objectFit: 'cover',
-              display: 'block',
-            }}
+            className="block h-48 w-full object-cover sm:h-56"
           />
-          <div style={{ padding: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{tenant?.name || 'Business Banner'}</div>
-            <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0' }}>
+          <div className="space-y-2 p-4">
+            <div className="text-base font-bold text-[var(--text)] sm:text-lg">
+              {tenant?.name || 'Business Banner'}
+            </div>
+            <p className="m-0 text-sm leading-6 text-[var(--muted)]">
               {tenant?.tagline || 'Premium curtains and blinds for your home.'}
             </p>
           </div>
         </section>
 
         {/* Slide 2: Visiting Card Details */}
-        <section
-          style={{
-            minWidth: '100%',
-            scrollSnapAlign: 'start',
-            borderRadius: 14,
-            border: '1px solid var(--card-border)',
-            background: 'var(--card)',
-            padding: 14,
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              fontWeight: 700,
-              marginBottom: 12,
-            }}
-          >
+        <section className="min-w-full snap-start rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-[var(--text)]">
             <MapPin size={16} />
             Visiting Card Details
           </div>
 
-          <div
-            style={{
-              border: '1px solid var(--card-border)',
-              borderRadius: 12,
-              padding: 12,
-              display: 'grid',
-              gap: 8,
-              background: 'rgba(0,0,0,0.01)',
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{tenant?.name || 'Business Name'}</div>
+          <div className="grid gap-2 rounded-xl border border-[var(--card-border)] bg-black/[0.02] p-4">
+            <div className="text-base font-bold text-[var(--text)]">
+              {tenant?.name || 'Business Name'}
+            </div>
 
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+            <div className="text-sm text-[var(--muted)]">
               {tenant?.tagline || 'Your business tagline'}
             </div>
 
-            <div style={{ fontSize: 13 }}>
+            <div className="text-sm text-[var(--text)]">
               <strong>Phone:</strong> {phone || 'N/A'}
             </div>
 
-            <div style={{ fontSize: 13 }}>
+            <div className="text-sm text-[var(--text)]">
               <strong>Address:</strong> {tenant?.address || 'Home visit available in nearby areas'}
             </div>
 
-            <div style={{ fontSize: 13 }}>
+            <div className="text-sm text-[var(--text)]">
               <strong>Hours:</strong> 10:00 AM - 8:00 PM
             </div>
           </div>
         </section>
 
         {/* Slide 3: Social Links */}
-        <section
-          style={{
-            minWidth: '100%',
-            scrollSnapAlign: 'start',
-            borderRadius: 14,
-            border: '1px solid var(--card-border)',
-            background: 'var(--card)',
-            padding: 14,
-            boxSizing: 'border-box',
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Social Media</div>
+        <section className="min-w-full snap-start rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
+          <div className="mb-3 text-sm font-bold tracking-wide text-[var(--text)]">Social Media</div>
 
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div className="grid gap-2">
             {socialLinks.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  textDecoration: 'none',
-                  color: 'var(--text)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                }}
+                className="flex items-center justify-between rounded-xl border border-[var(--card-border)] px-3 py-3 text-[var(--text)] no-underline transition hover:border-[var(--tenant-primary,#2563eb)] hover:bg-blue-50/50"
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="flex items-center gap-2 text-sm font-medium">
                   {item.icon}
                   {item.label}
                 </span>
@@ -191,16 +126,10 @@ export default function Hero({ tenant }: Props) {
         </section>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-        <span
-          style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--card-border)' }}
-        />
-        <span
-          style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--card-border)' }}
-        />
-        <span
-          style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--card-border)' }}
-        />
+      <div className="mt-3 flex justify-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--card-border)]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--card-border)]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--card-border)]" />
       </div>
     </div>
   );

@@ -239,6 +239,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       name: tenant.name,
       slug: tenant.slug,
       domain: tenant.domain,
+      createdAt: tenant.createdAt,
       settings: tenant.settings
         ? {
             logoUrl: tenant.settings.logoUrl,

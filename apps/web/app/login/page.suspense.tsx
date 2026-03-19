@@ -7,6 +7,18 @@ import { useAuth } from '@/context/AuthContext';
 
 export const dynamic = 'force-dynamic';
 
+function isLikelyColdStartIssue(message: string | null): boolean {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('network') ||
+    normalized.includes('timed out') ||
+    normalized.includes('server returned html') ||
+    normalized.includes('unexpected token')
+  );
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +49,8 @@ function LoginContent() {
       }
 
       const tenantSlugFromServer = data?.user?.tenantSlug;
-      loginWithContext(data.token, tenant ?? tenantSlugFromServer);
+      const userNameFromServer = data?.user?.name;
+      loginWithContext(data.token, tenant ?? tenantSlugFromServer, userNameFromServer);
       router.push('/dashboard');
     } finally {
       setLoading(false);
@@ -60,6 +73,27 @@ function LoginContent() {
           }}
         >
           {error}
+          {isLikelyColdStartIssue(error) ? (
+            <div style={{ marginTop: 8, fontSize: 13, color: '#7f1d1d' }}>
+              The API may be waking up from cold start. Wait 20-60 seconds and try again.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!error ? (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: 10,
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: 8,
+            color: '#1e3a8a',
+            fontSize: 13,
+          }}
+        >
+          First login after inactivity can take 20-60 seconds while the backend wakes up.
         </div>
       ) : null}
 
@@ -106,6 +140,12 @@ function LoginContent() {
       >
         {loading ? 'Logging in...' : 'Login'}
       </button>
+
+      {loading ? (
+        <p style={{ margin: '10px 0 0', fontSize: 12, color: '#6b7280' }}>
+          If this takes longer than usual, the server is likely warming up. Please keep this page open.
+        </p>
+      ) : null}
     </div>
   );
 }

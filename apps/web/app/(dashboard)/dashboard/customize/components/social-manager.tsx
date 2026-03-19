@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import CustomizePanelSkeleton from './customize-panel-skeleton';
+import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
 
 interface SocialLink {
@@ -26,6 +28,9 @@ const platforms = [
 export default function SocialLinksManager() {
   const [links, setLinks] = useState<SocialLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ platform: 'facebook', url: '', label: '' });
 
@@ -40,8 +45,10 @@ export default function SocialLinksManager() {
       if (response?.data) {
         setLinks(response.data);
       }
+      setLoadError(null);
     } catch (error) {
       console.error('Failed to load social links:', error);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load social links');
     } finally {
       setLoading(false);
     }
@@ -49,36 +56,40 @@ export default function SocialLinksManager() {
 
   const handleCreate = async () => {
     if (!formData.url.trim()) {
-      alert('URL is required');
+      setStatusError('URL is required');
       return;
     }
 
     // Check if platform already exists
     if (links.some((link) => link.platform === formData.platform)) {
-      alert(`${formData.platform} link already exists. Edit the existing one instead.`);
+      setStatusError(`${formData.platform} link already exists. Edit the existing one instead.`);
       return;
     }
 
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       const response = await api.post('/social', formData);
       if (response?.data) {
         setLinks([...links, response.data]);
         setFormData({ platform: 'facebook', url: '', label: '' });
+        setStatusSuccess('Social link added successfully');
+        globalThis.setTimeout(() => setStatusSuccess(null), 2500);
       }
     } catch (error) {
       console.error('Failed to create link:', error);
-      alert('Failed to create link');
+      setStatusError(error instanceof Error ? error.message : 'Failed to create link');
     }
   };
 
   const handleUpdate = async (id: string) => {
     if (!formData.url.trim()) {
-      alert('URL is required');
+      setStatusError('URL is required');
       return;
     }
 
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       const response = await api.put(`/social/${id}`, {
         url: formData.url,
@@ -88,10 +99,12 @@ export default function SocialLinksManager() {
         setLinks(links.map((link) => (link.id === id ? response.data : link)));
         setEditingId(null);
         setFormData({ platform: 'facebook', url: '', label: '' });
+        setStatusSuccess('Social link updated successfully');
+        globalThis.setTimeout(() => setStatusSuccess(null), 2500);
       }
     } catch (error) {
       console.error('Failed to update link:', error);
-      alert('Failed to update link');
+      setStatusError(error instanceof Error ? error.message : 'Failed to update link');
     }
   };
 
@@ -99,12 +112,15 @@ export default function SocialLinksManager() {
     if (!confirm('Delete this social link?')) return;
 
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       await api.delete(`/social/${id}`);
       setLinks(links.filter((link) => link.id !== id));
+      setStatusSuccess('Social link deleted successfully');
+      globalThis.setTimeout(() => setStatusSuccess(null), 2500);
     } catch (error) {
       console.error('Failed to delete link:', error);
-      alert('Failed to delete link');
+      setStatusError(error instanceof Error ? error.message : 'Failed to delete link');
     }
   };
 
@@ -127,16 +143,54 @@ export default function SocialLinksManager() {
   };
 
   if (loading) {
+    return <CustomizePanelSkeleton title="Loading social links..." />;
+  }
+
+  if (loadError) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-        <Loader2 size={24} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-        <p style={{ marginTop: 12 }}>Loading social links...</p>
-      </div>
+      <PageErrorState
+        title="Social links could not be loaded"
+        message={loadError}
+        retryLabel="Retry social links"
+        onRetry={() => {
+          setLoading(true);
+          void loadLinks();
+        }}
+      />
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      {statusError ? (
+        <div
+          style={{
+            border: '1px solid #fca5a5',
+            background: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusError}
+        </div>
+      ) : null}
+      {statusSuccess ? (
+        <div
+          style={{
+            border: '1px solid #86efac',
+            background: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusSuccess}
+        </div>
+      ) : null}
+
       {/* Add/Edit Form */}
       <div
         style={{

@@ -8,6 +8,7 @@ import MobilePageTitle from '../components/mobile-page-title';
 import { Plus, X } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { announceDashboardDataRefresh } from '@/lib/dashboard-events';
+import { toast } from 'sonner';
 
 function formatText(text: string): string {
   return text
@@ -39,7 +40,7 @@ export default function LeadsPage() {
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
 
     if (!tenantId || !tenantRouteKey) {
-      alert('Tenant information not available');
+      toast.error('Tenant information not available');
       return;
     }
 
@@ -62,9 +63,10 @@ export default function LeadsPage() {
       // Refresh leads
       refresh();
       announceDashboardDataRefresh(tenantRouteKey);
+      toast.success('Lead added successfully');
     } catch (error) {
       console.error('Error adding lead:', error);
-      alert('Failed to add lead. Please try again.');
+      toast.error('Failed to add lead. Please try again.');
     } finally {
       setSubmitting(false);
     }

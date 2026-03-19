@@ -5,6 +5,7 @@ import { Star, Check, X } from 'lucide-react';
 import MobilePageTitle from '../components/mobile-page-title';
 import { api } from '@/lib/api-client';
 import { useDashboardData } from '@/context/DashboardDataContext';
+import { toast } from 'sonner';
 
 type Review = {
   id: string;
@@ -72,9 +73,10 @@ export default function ReviewsPage() {
       await api.patch(`/feedback/${reviewId}/approve`);
       // Refresh reviews
       void fetchReviews();
+      toast.success('Review approved');
     } catch (err) {
       console.error('Error approving review:', err);
-      alert('Failed to approve review');
+      toast.error('Failed to approve review');
     }
   }
 
@@ -83,9 +85,10 @@ export default function ReviewsPage() {
       await api.patch(`/feedback/${reviewId}/reject`);
       // Refresh reviews
       void fetchReviews();
+      toast.success('Review rejected');
     } catch (err) {
       console.error('Error rejecting review:', err);
-      alert('Failed to reject review');
+      toast.error('Failed to reject review');
     }
   }
 

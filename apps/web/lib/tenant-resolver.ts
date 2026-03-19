@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
+import { fetchWithRetry } from '@/lib/retry';
 
 export const RESERVED_ROUTES = [
   'dashboard',
@@ -56,10 +57,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       { name: 'Consultation', description: 'Guidance on styles, pricing, and timelines.' },
     ],
     products: ['Service'],
-    gallery: [
-      { url: '/gallery/curtain1.jpeg', category: 'Gallery' },
-      { url: '/gallery/curtain2.jpeg', category: 'Gallery' },
-    ],
+    gallery: [],
     sectionOrder: ['hero', 'services', 'gallery'],
     galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
     socialLinks: [],
@@ -149,62 +147,67 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return normalized.length > 0 ? normalized : defaults.services;
   };
 
-  try {
-    for (const apiBase of getApiBaseCandidates()) {
-      try {
-        const res = await fetch(
-          buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
-          {
-            cache: 'no-store',
-          },
-        );
+  let sawNotFound = false;
+  let lastError: Error | null = null;
 
-        if (!res.ok) {
-          continue;
-        }
+  for (const apiBase of getApiBaseCandidates()) {
+    try {
+      const res = await fetchWithRetry(
+        buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
+        {
+          cache: 'no-store',
+        },
+      );
 
-        const payload = await res.json();
-        const tenant = payload?.data;
-
-        if (!tenant) {
-          continue;
-        }
-
-        const settings = (tenant.settings ?? {}) as Record<string, unknown>;
-
-        return {
-          ...defaults,
-          id: tenant.id,
-          name: tenant.name,
-          slug: tenant.slug,
-          domain: tenant.domain,
-          phone: toStringOr(settings.businessPhone, defaults.phone),
-          whatsapp: toStringOr(settings.businessWhatsApp, toStringOr(settings.businessPhone, defaults.whatsapp)),
-          tagline: toStringOr(settings.tagline, undefined),
-          logoUrl: toStringOr(settings.logoUrl, undefined),
-          bannerUrl: toStringOr(settings.bannerUrl, undefined),
-          logoShape: toStringOr(settings.logoShape, defaults.logoShape),
-          primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
-          secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
-          sectionOrder: normalizeSectionOrder(settings.sectionOrder),
-          galleryCategories: normalizeGalleryCategories(settings.sectionOrder),
-          actionButtons: normalizeSettingsActionButtons(settings),
-          services: normalizeServices(tenant.services),
-          gallery:
-            Array.isArray(tenant.galleryImages) && tenant.galleryImages.length > 0
-              ? tenant.galleryImages
-              : defaults.gallery,
-          socialLinks: Array.isArray(tenant.socialLinks)
-            ? tenant.socialLinks
-            : defaults.socialLinks,
-        };
-      } catch (error) {
-        console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);
+      if (res.status === 404) {
+        sawNotFound = true;
+        continue;
       }
+
+      if (!res.ok) {
+        lastError = new Error(`Tenant request failed with status ${res.status}`);
+        continue;
+      }
+
+      const payload = await res.json();
+      const tenant = payload?.data;
+
+      if (!tenant) {
+        continue;
+      }
+
+      const settings = (tenant.settings ?? {}) as Record<string, unknown>;
+
+      return {
+        ...defaults,
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        domain: tenant.domain,
+        phone: toStringOr(settings.businessPhone, defaults.phone),
+        whatsapp: toStringOr(settings.businessWhatsApp, toStringOr(settings.businessPhone, defaults.whatsapp)),
+        tagline: toStringOr(settings.tagline),
+        logoUrl: toStringOr(settings.logoUrl),
+        bannerUrl: toStringOr(settings.bannerUrl),
+        logoShape: toStringOr(settings.logoShape, defaults.logoShape),
+        primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
+        secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
+        sectionOrder: normalizeSectionOrder(settings.sectionOrder),
+        galleryCategories: normalizeGalleryCategories(settings.sectionOrder),
+        actionButtons: normalizeSettingsActionButtons(settings),
+        services: normalizeServices(tenant.services),
+        gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
+        socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
+      };
+    } catch (error) {
+      console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);
+      lastError = error instanceof Error ? error : new Error('Failed to fetch tenant');
     }
-  } catch (error) {
-    // Return null on error - do not create mock tenants
-    console.error(`Failed to fetch tenant: ${slug}`, error);
-    return null;
   }
+
+  if (lastError && !sawNotFound) {
+    throw lastError;
+  }
+
+  return null;
 });

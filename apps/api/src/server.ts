@@ -11,6 +11,18 @@ import { requestContextMiddleware } from './middleware/request-context.middlewar
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 import { inputSanitizeMiddleware } from './middleware/input-sanitize.middleware';
 
+const startupAdminPassword = process.env.ADMIN_PASSWORD?.trim();
+
+if (!startupAdminPassword) {
+  console.error('[startup] Missing ADMIN_PASSWORD. Refusing to start API server.');
+  process.exit(1);
+}
+
+if (startupAdminPassword.length < 12) {
+  console.error('[startup] ADMIN_PASSWORD must be at least 12 characters. Refusing to start API server.');
+  process.exit(1);
+}
+
 const app = express();
 
 const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;

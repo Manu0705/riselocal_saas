@@ -3,6 +3,7 @@ import tenantRoutes from './modules/tenant/presentation/tenant.routes';
 import leadRoutes from './modules/lead/presentation/lead.routes';
 import leadPublicRoutes from './modules/lead/presentation/lead.public.routes';
 import feedbackRoutes from './modules/feedback/presentation/feedback.routes';
+import feedbackPublicRoutes from './modules/feedback/presentation/feedback.public.routes';
 import { authMiddleware } from './modules/auth/presentation/auth.middleware';
 import authRoutes from './modules/auth/presentation/auth.routes';
 import tenantUserRoutes from './modules/tenant/presentation/tenant-user.routes';
@@ -23,6 +24,7 @@ router.use('/auth', authRoutes);
 router.use(tenantRoutes);
 router.use(tenantUserRoutes);
 router.use(leadPublicRoutes);
+router.use(feedbackPublicRoutes);
 
 /* =========================================
    AUTH PROTECTED ROUTES

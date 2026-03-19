@@ -1,4 +1,5 @@
 import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
+import { fetchWithRetry } from '@/lib/retry';
 
 function buildUrl(path: string) {
   if (globalThis.window !== undefined) {
@@ -27,12 +28,22 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
   handleUnauthorizedResponse(res);
 
   const text = await res.text();
+  let payload: unknown = null;
 
   try {
-    return JSON.parse(text) as T;
+    payload = text ? (JSON.parse(text) as T) : null;
   } catch {
     throw new Error('API did not return JSON: ' + text.slice(0, 100));
   }
+
+  if (!res.ok) {
+    const errorPayload = payload as { error?: string; message?: string } | null;
+    throw new Error(
+      errorPayload?.error || errorPayload?.message || `Request failed with status ${res.status}`,
+    );
+  }
+
+  return payload as T;
 }
 
 function getStoredTenantSlug(): string | null {
@@ -67,7 +78,7 @@ function buildAuthHeaders(includeJson = false): Record<string, string> {
 
 export const api = {
   async get<T = unknown>(path: string): Promise<T> {
-    const res = await fetch(buildUrl(withTenantQuery(path)), {
+    const res = await fetchWithRetry(buildUrl(withTenantQuery(path)), {
       headers: buildAuthHeaders(),
     });
 

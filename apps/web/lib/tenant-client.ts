@@ -1,5 +1,6 @@
 import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 import { api } from '@/lib/api-client';
+import { fetchWithRetry } from '@/lib/retry';
 
 function buildApiUrl(path: string): string {
   if (globalThis.window !== undefined) {
@@ -69,7 +70,7 @@ export function getTenantApiClient() {
   return {
     async get(path: string) {
       const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-      const res = await fetch(buildApiUrl(normalizedPath), {
+      const res = await fetchWithRetry(buildApiUrl(normalizedPath), {
         headers: getAuthHeaders(),
       });
       return parseApiResponse(res);
@@ -199,17 +200,21 @@ export async function fetchLeadsForTenant(tenantKey: string): Promise<any[]> {
   let lastError = 'Tenant not found';
 
   for (const key of candidateKeys) {
-    const leadsResponse = await api.get(`/tenant/${key}/leads`);
+    try {
+      const leadsResponse = await api.get(`/tenant/${key}/leads`);
 
-    if ((leadsResponse as { success?: boolean; message?: string })?.success === false) {
-      lastError = (leadsResponse as { message?: string })?.message ?? 'Failed to fetch leads';
-      continue;
-    }
+      if ((leadsResponse as { success?: boolean; message?: string })?.success === false) {
+        lastError = (leadsResponse as { message?: string })?.message ?? 'Failed to fetch leads';
+        continue;
+      }
 
-    const items = toArrayPayload(leadsResponse);
+      const items = toArrayPayload(leadsResponse);
 
-    if (items.length > 0 || (leadsResponse as { success?: boolean })?.success === true) {
-      return items;
+      if (items.length > 0 || (leadsResponse as { success?: boolean })?.success === true) {
+        return items;
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'Failed to fetch leads';
     }
   }
 
@@ -231,17 +236,21 @@ export async function fetchLeadAnalyticsForTenant(
   );
 
   for (const key of candidateKeys) {
-    const analyticsResponse = await api.get(`/tenant/${key}/leads/analytics?partition=${partition}`);
+    try {
+      const analyticsResponse = await api.get(`/tenant/${key}/leads/analytics?partition=${partition}`);
 
-    if ((analyticsResponse as { success?: boolean })?.success === false) {
-      continue;
-    }
-
-    if ((analyticsResponse as { data?: unknown })?.data) {
-      const payload = (analyticsResponse as { data: unknown }).data;
-      if (payload && typeof payload === 'object') {
-        return payload as Record<string, unknown>;
+      if ((analyticsResponse as { success?: boolean })?.success === false) {
+        continue;
       }
+
+      if ((analyticsResponse as { data?: unknown })?.data) {
+        const payload = (analyticsResponse as { data: unknown }).data;
+        if (payload && typeof payload === 'object') {
+          return payload as Record<string, unknown>;
+        }
+      }
+    } catch {
+      continue;
     }
   }
 
@@ -256,16 +265,20 @@ export async function fetchFeedbackForTenant(tenantKey: string): Promise<any[]> 
   );
 
   for (const key of candidateKeys) {
-    const feedbackResponse = await api.get(`/tenant/${key}/feedback`);
+    try {
+      const feedbackResponse = await api.get(`/tenant/${key}/feedback`);
 
-    if ((feedbackResponse as { success?: boolean })?.success === false) {
+      if ((feedbackResponse as { success?: boolean })?.success === false) {
+        continue;
+      }
+
+      const items = toArrayPayload(feedbackResponse);
+
+      if (items.length > 0 || (feedbackResponse as { success?: boolean })?.success === true) {
+        return items;
+      }
+    } catch {
       continue;
-    }
-
-    const items = toArrayPayload(feedbackResponse);
-
-    if (items.length > 0 || (feedbackResponse as { success?: boolean })?.success === true) {
-      return items;
     }
   }
 
@@ -280,15 +293,19 @@ export async function fetchTenantSettingsForTenant(tenantKey: string): Promise<R
   );
 
   for (const key of candidateKeys) {
-    const response = await api.get(`/tenant/${key}/settings`);
+    try {
+      const response = await api.get(`/tenant/${key}/settings`);
 
-    if ((response as { success?: boolean })?.success === false) {
+      if ((response as { success?: boolean })?.success === false) {
+        continue;
+      }
+
+      const data = (response as { data?: unknown })?.data;
+      if (data && typeof data === 'object') {
+        return data as Record<string, unknown>;
+      }
+    } catch {
       continue;
-    }
-
-    const data = (response as { data?: unknown })?.data;
-    if (data && typeof data === 'object') {
-      return data as Record<string, unknown>;
     }
   }
 

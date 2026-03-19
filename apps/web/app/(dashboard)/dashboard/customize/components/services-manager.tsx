@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import CustomizePanelSkeleton from './customize-panel-skeleton';
+import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
 
 interface Service {
@@ -15,6 +17,9 @@ interface Service {
 export default function ServicesManager() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '', icon: '' });
 
@@ -29,8 +34,10 @@ export default function ServicesManager() {
       if (response?.data) {
         setServices(response.data);
       }
+      setLoadError(null);
     } catch (error) {
       console.error('Failed to load services:', error);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load services');
     } finally {
       setLoading(false);
     }
@@ -38,35 +45,46 @@ export default function ServicesManager() {
 
   const handleCreate = async () => {
     if (!formData.name.trim()) {
-      alert('Service name is required');
+      setStatusError('Service name is required');
       return;
     }
 
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       const response = await api.post('/services', formData);
       if (response?.data) {
         setServices([...services, response.data]);
         setFormData({ name: '', description: '', icon: '' });
+        setStatusSuccess('Service added successfully');
+        globalThis.setTimeout(() => setStatusSuccess(null), 2500);
       }
     } catch (error) {
       console.error('Failed to create service:', error);
-      alert('Failed to create service');
+      setStatusError(error instanceof Error ? error.message : 'Failed to create service');
     }
   };
 
   const handleUpdate = async (id: string) => {
+    if (!formData.name.trim()) {
+      setStatusError('Service name is required');
+      return;
+    }
+
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       const response = await api.put(`/services/${id}`, formData);
       if (response?.data) {
         setServices(services.map((s) => (s.id === id ? response.data : s)));
         setEditingId(null);
         setFormData({ name: '', description: '', icon: '' });
+        setStatusSuccess('Service updated successfully');
+        globalThis.setTimeout(() => setStatusSuccess(null), 2500);
       }
     } catch (error) {
       console.error('Failed to update service:', error);
-      alert('Failed to update service');
+      setStatusError(error instanceof Error ? error.message : 'Failed to update service');
     }
   };
 
@@ -74,12 +92,15 @@ export default function ServicesManager() {
     if (!confirm('Delete this service?')) return;
 
     try {
+      setStatusError(null);
       const api = getTenantApiClient();
       await api.delete(`/services/${id}`);
       setServices(services.filter((s) => s.id !== id));
+      setStatusSuccess('Service deleted successfully');
+      globalThis.setTimeout(() => setStatusSuccess(null), 2500);
     } catch (error) {
       console.error('Failed to delete service:', error);
-      alert('Failed to delete service');
+      setStatusError(error instanceof Error ? error.message : 'Failed to delete service');
     }
   };
 
@@ -98,16 +119,54 @@ export default function ServicesManager() {
   };
 
   if (loading) {
+    return <CustomizePanelSkeleton title="Loading services..." />;
+  }
+
+  if (loadError) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-        <Loader2 size={24} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-        <p style={{ marginTop: 12 }}>Loading services...</p>
-      </div>
+      <PageErrorState
+        title="Services could not be loaded"
+        message={loadError}
+        retryLabel="Retry services"
+        onRetry={() => {
+          setLoading(true);
+          void loadServices();
+        }}
+      />
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      {statusError ? (
+        <div
+          style={{
+            border: '1px solid #fca5a5',
+            background: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusError}
+        </div>
+      ) : null}
+      {statusSuccess ? (
+        <div
+          style={{
+            border: '1px solid #86efac',
+            background: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusSuccess}
+        </div>
+      ) : null}
+
       {/* Add/Edit Form */}
       <div
         style={{

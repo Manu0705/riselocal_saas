@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { capturePublicCtaLead, getLeadCapturePrefill } from '@/lib/public-lead-capture';
 import {
   DEFAULT_ACTION_BUTTONS,
@@ -14,6 +14,7 @@ import ImageViewerModal from './image-viewer-modal';
 type GalleryImage = {
   url: string;
   category: string;
+  alt?: string;
 };
 
 type Props = {
@@ -29,222 +30,231 @@ export default function Gallery({
   images = [],
   galleryCategories = [],
   tenantSlug,
-  tenantId,
   phone,
   actionButtons,
 }: Readonly<Props>) {
-  const sectionRef = useRef<HTMLDivElement | null>(null);
-  const chipScrollRef = useRef<HTMLDivElement | null>(null);
-
   const [active, setActive] = useState('');
-  const [isInView, setIsInView] = useState(false);
-  const [hasTouchedCategory, setHasTouchedCategory] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showSkeletons, setShowSkeletons] = useState(true);
   const [pendingEnquiry, setPendingEnquiry] = useState<{ image: string; category: string } | null>(
     null,
   );
   const [selectedImage, setSelectedImage] = useState<{ url: string; category: string } | null>(null);
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
+  const itemsPerPage = 8;
+
+  const toCategoryKey = (value: unknown) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  const toCategoryLabel = (value: string) =>
+    value
+      .trim()
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
 
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+    setShowSkeletons(true);
+    const timeout = globalThis.setTimeout(() => {
+      setShowSkeletons(false);
+    }, 250);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { threshold: 0.35 },
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
-  const updateScrollProgress = () => {
-    const row = chipScrollRef.current;
-    if (!row) return;
-
-    const maxScroll = row.scrollWidth - row.clientWidth;
-    if (maxScroll <= 0) {
-      setScrollProgress(0);
-      return;
-    }
-
-    setScrollProgress(Math.min(1, Math.max(0, row.scrollLeft / maxScroll)));
-  };
+    return () => globalThis.clearTimeout(timeout);
+  }, [images, active]);
 
   function enquiry(image: string, category: string) {
     setPendingEnquiry({ image, category });
   }
 
   const categories = useMemo(() => {
-    const ordered: string[] = [];
+    const ordered: Array<{ key: string; label: string }> = [];
     const seen = new Set<string>();
 
     const pushCategory = (value: unknown) => {
-      const normalized = String(value ?? '').trim();
-      if (!normalized) return;
-      if (normalized.toLowerCase() === 'all') return;
+      const raw = typeof value === 'string' ? value.trim() : '';
+      if (!raw) return;
 
-      const key = normalized.toLowerCase();
+      const key = toCategoryKey(raw);
+      if (key === 'all') return;
       if (seen.has(key)) return;
+
       seen.add(key);
-      ordered.push(normalized);
+      ordered.push({ key, label: toCategoryLabel(raw) });
     };
 
     galleryCategories.forEach(pushCategory);
     images.forEach((image) => pushCategory(image.category));
 
-    return [...ordered, 'All'];
+    return [...ordered, { key: 'all', label: 'All' }];
   }, [galleryCategories, images]);
 
   useEffect(() => {
     if (categories.length === 0) {
-      setActive('All');
+      setActive('all');
       return;
     }
 
-    if (!active || !categories.includes(active) || active === 'All') {
-      setActive(categories[0]);
+    const activeExists = categories.some((category) => category.key === active);
+    if (!active || !activeExists || active === 'all') {
+      setActive(categories[0]?.key ?? 'all');
     }
   }, [categories, active]);
 
-  const filtered = active === 'All' ? images : images.filter((img) => img.category === active);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [active]);
 
-  const activeIndex = Math.max(0, categories.indexOf(active));
-  const maxIndex = Math.max(1, categories.length - 1);
-  const selectionProgress = activeIndex / maxIndex;
+  const filtered = useMemo(() => {
+    if (active === 'all') return images;
+    return images.filter((img) => toCategoryKey(img.category) === active);
+  }, [active, images]);
 
-  const shouldShowTraversal = isInView && hasTouchedCategory;
-  const traversalProgress = shouldShowTraversal
-    ? Math.max(0.02, selectionProgress, scrollProgress)
-    : 0;
-  const traversalDegrees = Math.round(traversalProgress * 360);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const paginatedImages = filtered.slice(startIndex, startIndex + itemsPerPage);
+  const showingFrom = filtered.length === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + itemsPerPage, filtered.length);
 
-  return (
-    <div ref={sectionRef} style={{ padding: 16 }}>
-      <h2 style={{ marginBottom: 12 }}>Gallery</h2>
+  const skeletonCards = Array.from({ length: 6 }, (_, index) => index);
 
-      {/* Category scroll activates after touching a chip in view */}
-      <div
-        style={{
-          marginBottom: 16,
-          borderRadius: 14,
-          border: '1.5px solid transparent',
-          background: shouldShowTraversal
-            ? `linear-gradient(var(--card), var(--card)) padding-box, conic-gradient(from 225deg, #10b981 0deg, #10b981 ${traversalDegrees}deg, var(--card-border) ${traversalDegrees}deg 360deg) border-box`
-            : 'transparent',
-          boxShadow: 'none',
-          transition: 'background 220ms ease',
-        }}
-      >
-        <div
-          ref={chipScrollRef}
-          onScroll={updateScrollProgress}
-          style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            padding: 8,
-            borderRadius: 12.5,
-            background: 'transparent',
-            border: '1px solid transparent',
-            transition: 'border-color 220ms ease',
-          }}
-        >
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                setActive(cat);
-                if (isInView) {
-                  setHasTouchedCategory(true);
-                  requestAnimationFrame(updateScrollProgress);
-                }
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 20,
-                border: '1px solid var(--card-border)',
-                background: active === cat ? '#2563eb' : 'transparent',
-                color: active === cat ? '#ffffff' : 'var(--text)',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+  let content: ReactNode;
+
+  if (showSkeletons) {
+    content = (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {skeletonCards.map((card) => (
+          <div
+            key={card}
+            className="h-64 animate-pulse rounded-lg border border-gray-200 bg-gray-100 shadow-sm"
+          />
+        ))}
       </div>
-
-      {/* Gallery grid */}
-      {filtered.length === 0 ? (
-        <p style={{ color: 'var(--muted)', margin: 0 }}>No images available in this category.</p>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 12,
-          }}
-        >
-          {filtered.map((img) => (
+    );
+  } else if (filtered.length === 0) {
+    content = (
+      <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center text-sm text-gray-500">
+        No images found
+      </div>
+    );
+  } else {
+    content = (
+      <>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {paginatedImages.map((img) => (
             <button
               key={`${img.url}-${img.category}`}
               type="button"
-              onClick={() => setSelectedImage({ url: img.url, category: img.category })}
-              style={{
-                height: 200,
-                borderRadius: 12,
-                overflow: 'hidden',
-                position: 'relative',
-                backgroundImage: `url(${img.url})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                border: 'none',
-                padding: 0,
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-              }}
+              onClick={() => setSelectedImage({ url: img.url, category: toCategoryLabel(img.category) })}
+              className="group relative h-64 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-left shadow-sm transition-all duration-300 hover:shadow-md"
             >
-            {/* Button inside image */}
-            {buttons.whatsappEnquiry.enabled && (
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  enquiry(img.url, img.category);
-                }}
-                style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: '1.5px solid #fff',
-                  background: 'transparent',
-                  color: '#fff',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                WhatsApp Enquiry
-              </button>
-            )}
+              <img
+                src={img.url}
+                alt={img.alt || toCategoryLabel(img.category)}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
+
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {toCategoryLabel(img.category)}
+                  </p>
+                  <p className="truncate text-xs text-white/80">
+                    Tap to preview image
+                  </p>
+                </div>
+
+                {buttons.whatsappEnquiry.enabled ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      enquiry(img.url, toCategoryLabel(img.category));
+                    }}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white opacity-0 transition-all duration-300 group-hover:opacity-100 hover:bg-green-600"
+                  >
+                    WhatsApp Enquiry
+                  </button>
+                ) : null}
+              </div>
             </button>
           ))}
         </div>
-      )}
+
+        {totalPages > 1 ? (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safePage === 1}
+              className="rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                className={`rounded-full px-3 py-2 text-sm font-medium transition ${
+                  safePage === page
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safePage === totalPages}
+              className="rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold text-[var(--text)]">Gallery</h2>
+        <p className="text-sm text-[var(--muted)]">
+          {showingFrom}-{showingTo} of {filtered.length}
+        </p>
+      </div>
+
+      <div className="mb-5 flex flex-wrap gap-3">
+        {categories.map((category) => {
+          const isActive = active === category.key;
+          return (
+            <button
+              key={category.key}
+              type="button"
+              onClick={() => setActive(category.key)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {content}
 
       <ImageViewerModal
         open={Boolean(selectedImage)}

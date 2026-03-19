@@ -108,7 +108,8 @@ router.post('/admin-login', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  const configuredAdminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const configuredAdminPassword = process.env.ADMIN_PASSWORD as string;
+
   if (password !== configuredAdminPassword) {
     return res.status(401).json({ error: 'Invalid admin credentials' });
   }

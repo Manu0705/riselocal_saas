@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import { api } from '@/lib/api-client';
 import { announceDashboardDataRefresh } from '@/lib/dashboard-events';
+import { toast } from 'sonner';
 
 const STATUS_OPTIONS = ['New', 'Contacted', 'Follow-Up', 'Converted', 'Lost'] as const;
 const REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -83,7 +84,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
 
   const handleSendReview = () => {
     if (!lead?.id || !tenantSlug) {
-      alert('Unable to generate review link');
+      toast.error('Unable to generate review link');
       return;
     }
 
@@ -102,9 +103,14 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
       }
     } else {
       // Copy link to clipboard if no phone
-      navigator.clipboard.writeText(reviewUrl).then(() => {
-        alert(`Review link copied to clipboard!\n\n${reviewUrl}`);
-      });
+      navigator.clipboard
+        .writeText(reviewUrl)
+        .then(() => {
+          toast.success('Review link copied to clipboard');
+        })
+        .catch(() => {
+          toast.error('Failed to copy review link');
+        });
     }
   };
 

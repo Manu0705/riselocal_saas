@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
+import CustomizePanelSkeleton from './customize-panel-skeleton';
+import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
 
 interface TenantSettings {
@@ -145,21 +147,20 @@ export default function BrandingEditor() {
   };
 
   if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-        <Loader2 size={24} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-        <p style={{ marginTop: 12 }}>Loading settings...</p>
-      </div>
-    );
+    return <CustomizePanelSkeleton title="Loading branding settings..." />;
   }
 
   if (!settings || !displayed) {
     return (
-      <div style={{ textAlign: 'center', padding: 40 }}>
-        <p style={{ color: '#dc2626', fontSize: 14 }}>
-          {error || 'Failed to load settings'}
-        </p>
-      </div>
+      <PageErrorState
+        title="Branding settings could not be loaded"
+        message={error || 'Failed to load settings'}
+        retryLabel="Retry branding"
+        onRetry={() => {
+          setLoading(true);
+          void loadSettings();
+        }}
+      />
     );
   }
 

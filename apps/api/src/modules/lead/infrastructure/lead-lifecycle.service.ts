@@ -26,6 +26,9 @@ type ListLeadsInput = {
   tenantId: string;
   role: LeadVisibilityRole;
   userId: string;
+  page: number;
+  limit: number;
+  includeTimeline: boolean;
 };
 
 type AnalyticsPartition = 'week' | 'month' | 'quarter' | 'year';
@@ -720,6 +723,31 @@ export class LeadLifecycleService {
     const role = asRole(input.role);
     const teamId = role === 'manager' ? await getActorTeam(input.userId) : null;
     const visibility = buildVisibilityCondition(role, input.userId, teamId);
+    const offset = Math.max(0, (input.page - 1) * input.limit);
+
+    const timelineSelect = input.includeTimeline
+      ? Prisma.sql`COALESCE((
+          SELECT json_agg(activity_rows ORDER BY activity_rows."timestamp" DESC)
+          FROM (
+            SELECT a."id", a."type", a."timestamp", a."metadata"
+            FROM "LeadActivity" a
+            WHERE a."leadId" = l."id"
+              AND a."archivedAt" IS NULL
+            ORDER BY a."timestamp" DESC
+            LIMIT 50
+          ) AS activity_rows
+        ), '[]'::json) AS "timeline"`
+      : Prisma.sql`'[]'::json AS "timeline"`;
+
+    const totals = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS total
+      FROM "Lead" l
+      WHERE l."tenantId" = ${input.tenantId}
+        AND l."deletedAt" IS NULL
+        AND ${visibility}
+    `);
+
+    const total = Number(totals[0]?.total ?? 0n);
 
     const leads = await prisma.$queryRaw<LeadRecord[]>(Prisma.sql`
       SELECT
@@ -751,30 +779,32 @@ export class LeadLifecycleService {
         l."updatedAt",
         l."deletedAt",
         u."name" AS "assignedToName",
-        COALESCE((
-          SELECT json_agg(activity_rows ORDER BY activity_rows."timestamp" DESC)
-          FROM (
-            SELECT a."id", a."type", a."timestamp", a."metadata"
-            FROM "LeadActivity" a
-            WHERE a."leadId" = l."id"
-              AND a."archivedAt" IS NULL
-            ORDER BY a."timestamp" DESC
-            LIMIT 50
-          ) AS activity_rows
-        ), '[]'::json) AS "timeline"
+        ${timelineSelect}
       FROM "Lead" l
       LEFT JOIN "TenantUser" u ON u."id" = l."assignedTo"
       WHERE l."tenantId" = ${input.tenantId}
         AND l."deletedAt" IS NULL
         AND ${visibility}
       ORDER BY l."createdAt" DESC
+      LIMIT ${input.limit}
+      OFFSET ${offset}
     `);
 
-    return leads.map((lead) => ({
+    const items = leads.map((lead) => ({
       ...lead,
       status: normalizeStatus(lead.status),
-      timeline: toSerializableTimeline(lead.timeline),
+      timeline: input.includeTimeline ? toSerializableTimeline(lead.timeline) : [],
     }));
+
+    return {
+      items,
+      pagination: {
+        page: input.page,
+        limit: input.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / input.limit)),
+      },
+    };
   }
 
   async getAnalytics(input: GetAnalyticsInput) {

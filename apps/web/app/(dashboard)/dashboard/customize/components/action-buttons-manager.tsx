@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, Pencil, Save, Trash2 } from 'lucide-react';
+import CustomizePanelSkeleton from './customize-panel-skeleton';
+import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
 import {
   DEFAULT_ACTION_BUTTONS,
@@ -30,6 +32,9 @@ const BUTTONS: ButtonMeta[] = [
 
 export default function ActionButtonsManager() {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [buttons, setButtons] = useState<ActionButtonsConfig>(DEFAULT_ACTION_BUTTONS);
   const [savedButtons, setSavedButtons] = useState<ActionButtonsConfig>(DEFAULT_ACTION_BUTTONS);
@@ -49,9 +54,12 @@ export default function ActionButtonsManager() {
       const normalized = normalizeActionButtons(data.actionButtons);
       setButtons(normalized);
       setSavedButtons(normalized);
+      setLoadError(null);
     } catch (error) {
       console.error('Failed to load action button settings:', error);
       setButtons(DEFAULT_ACTION_BUTTONS);
+      setSavedButtons(DEFAULT_ACTION_BUTTONS);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load action button settings');
     } finally {
       setLoading(false);
     }
@@ -94,13 +102,16 @@ export default function ActionButtonsManager() {
         const normalized = normalizeActionButtons(data.actionButtons);
         setButtons(normalized);
         setSavedButtons(normalized);
+        setStatusSuccess('Action button settings saved');
+        globalThis.setTimeout(() => setStatusSuccess(null), 2500);
       } else {
         throw new Error('Unexpected response while saving action buttons');
       }
     } catch (error) {
       console.error('Failed to save action button settings:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save Action Buttons settings. Please try again.');
-      throw error;
+      setStatusError(
+        error instanceof Error ? error.message : 'Failed to save Action Buttons settings. Please try again.',
+      );
     } finally {
       setSaving(false);
     }
@@ -125,16 +136,54 @@ export default function ActionButtonsManager() {
   };
 
   if (loading) {
+    return <CustomizePanelSkeleton title="Loading action button settings..." />;
+  }
+
+  if (loadError) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-        <Loader2 size={24} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-        <p style={{ marginTop: 12 }}>Loading action button settings...</p>
-      </div>
+      <PageErrorState
+        title="Action button settings could not be loaded"
+        message={loadError}
+        retryLabel="Retry action buttons"
+        onRetry={() => {
+          setLoading(true);
+          void loadSettings();
+        }}
+      />
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      {statusError ? (
+        <div
+          style={{
+            border: '1px solid #fca5a5',
+            background: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusError}
+        </div>
+      ) : null}
+      {statusSuccess ? (
+        <div
+          style={{
+            border: '1px solid #86efac',
+            background: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+          }}
+        >
+          {statusSuccess}
+        </div>
+      ) : null}
+
       <div
         style={{
           border: '1px solid var(--card-border)',

@@ -251,6 +251,41 @@ export class LeadController {
     }
   }
 
+  async publicGetLead(req: Request, res: Response) {
+    try {
+      const tenantId = await resolveTenantIdFromPublicSlug(req);
+      const leadId = getParam(req.params.id).trim();
+
+      if (!leadId) {
+        return res.status(400).json({ success: false, message: 'Lead id is required' });
+      }
+
+      const lead = await prisma.lead.findFirst({
+        where: {
+          id: leadId,
+          tenantId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+        },
+      });
+
+      if (!lead) {
+        return res.status(404).json({ success: false, message: 'Lead not found' });
+      }
+
+      return res.json({ success: true, data: lead });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error?.message ?? 'Failed to fetch lead',
+      });
+    }
+  }
+
   async upsert(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = await resolveTenantIdFromRequest(req);
@@ -303,16 +338,23 @@ export class LeadController {
       const tenantId = await resolveTenantIdFromRequest(req);
       const role = String(req.user?.role ?? 'staff').toLowerCase();
       const userId = String(req.user?.id ?? '').trim();
+      const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
+      const limit = Math.min(100, Math.max(1, Number.parseInt(String(req.query.limit ?? '50'), 10) || 50));
+      const includeTimeline = String(req.query.includeTimeline ?? 'false').toLowerCase() === 'true';
 
       const result = await lifecycleService.listLeads({
         tenantId,
         role: role as any,
         userId,
+        page,
+        limit,
+        includeTimeline,
       });
 
       return res.json({
         success: true,
-        data: result,
+        data: result.items,
+        pagination: result.pagination,
       });
     } catch (error: any) {
       return res.status(400).json({

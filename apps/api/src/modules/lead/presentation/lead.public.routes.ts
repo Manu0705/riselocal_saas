@@ -9,5 +9,6 @@ const controller = new LeadController();
 ========================================= */
 
 router.post('/public/tenant/:tenantSlug/leads/upsert', controller.publicUpsert.bind(controller));
+router.get('/public/tenant/:tenantSlug/leads/:id', controller.publicGetLead.bind(controller));
 
 export default router;

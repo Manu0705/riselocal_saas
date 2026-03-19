@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Upload, Loader2, X, Plus, Edit2, Check, AlertCircle } from 'lucide-react';
+import CustomizePanelSkeleton from './customize-panel-skeleton';
+import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
 
 interface GalleryImage {
@@ -113,12 +115,15 @@ export default function GalleryManager() {
     if (!confirm('Delete this image?')) return;
 
     try {
+      setError(null);
       const api = getTenantApiClient();
       await api.delete(`/gallery/${id}`);
       setImages(images.filter((img) => img.id !== id));
+      setSuccess('Image deleted successfully');
+      globalThis.setTimeout(() => setSuccess(null), 2500);
     } catch (error) {
       console.error('Failed to delete image:', error);
-      alert('Failed to delete image.');
+      setError(error instanceof Error ? error.message : 'Failed to delete image.');
     }
   };
 
@@ -212,11 +217,21 @@ export default function GalleryManager() {
   const imagesByCategory = images.filter((img) => img.category === selectedCategory);
 
   if (loading) {
+    return <CustomizePanelSkeleton title="Loading gallery..." />;
+  }
+
+  if (error && images.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-        <Loader2 size={24} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-        <p style={{ marginTop: 12 }}>Loading gallery...</p>
-      </div>
+      <PageErrorState
+        title="Gallery could not be loaded"
+        message={error}
+        retryLabel="Retry gallery"
+        onRetry={() => {
+          setLoading(true);
+          setError(null);
+          void Promise.all([loadImages(), loadCategories()]);
+        }}
+      />
     );
   }
 

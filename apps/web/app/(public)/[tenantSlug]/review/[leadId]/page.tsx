@@ -8,9 +8,8 @@ import { api } from '@/lib/api-client';
 type Lead = {
   id: string;
   name: string;
+  status?: string;
 };
-
-type ApiListResponse<T> = T[] | { data?: T[] };
 
 export default function ReviewPage() {
   const params = useParams();
@@ -26,20 +25,22 @@ export default function ReviewPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const fetchLead = useCallback(async () => {
     try {
       setLoading(true);
-      const leadsResponse = (await api.get(`/tenant/${tenantSlug}/leads`)) as ApiListResponse<Lead>;
-      const leads = Array.isArray(leadsResponse) ? leadsResponse : leadsResponse.data || [];
-      const leadData = leads.find((lead) => lead.id === leadId);
+      const response = (await api.get(`/public/tenant/${tenantSlug}/leads/${leadId}`)) as {
+        success?: boolean;
+        data?: Lead;
+      };
 
-      if (!leadData) {
+      if (!response?.data) {
         setError('Lead not found');
         return;
       }
 
-      setLead({ ...leadData });
+      setLead({ ...response.data });
     } catch (err) {
       console.error('Error fetching lead:', err);
       setError('Unable to load review form');
@@ -54,14 +55,15 @@ export default function ReviewPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError('');
 
     if (!rating) {
-      alert('Please select a rating');
+      setFormError('Please select a rating');
       return;
     }
 
     if (!comment.trim()) {
-      alert('Please write a comment');
+      setFormError('Please write a comment');
       return;
     }
 
@@ -71,7 +73,7 @@ export default function ReviewPage() {
     try {
       const type = rating >= 4 ? 'POSITIVE' : rating >= 3 ? 'NEUTRAL' : 'NEGATIVE';
 
-      await api.post(`/tenant/${tenantSlug}/feedback`, {
+      await api.post(`/public/tenant/${tenantSlug}/review`, {
         leadId: lead.id,
         comment: comment.trim(),
         type,
@@ -81,7 +83,7 @@ export default function ReviewPage() {
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting review:', err);
-      alert('Failed to submit review. Please try again.');
+      setFormError(err instanceof Error ? err.message : 'Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -245,6 +247,22 @@ export default function ReviewPage() {
         </p>
 
         <form onSubmit={handleSubmit}>
+          {formError ? (
+            <div
+              style={{
+                border: '1px solid #fca5a5',
+                background: '#fee2e2',
+                color: '#dc2626',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 13,
+                marginBottom: 14,
+              }}
+            >
+              {formError}
+            </div>
+          ) : null}
+
           {/* Star Rating */}
           <div style={{ marginBottom: 28 }}>
             <label

@@ -90,7 +90,16 @@ export default function SettingsPage() {
     }
   };
 
-  const joinedAt = tenant?.createdAt ? new Date(tenant.createdAt).toLocaleDateString() : 'N/A';
+  const tenantSlug = tenant?.slug ?? 'N/A';
+  const publicUrl = tenant?.slug ? `https://riselocal.in/${tenant.slug}` : 'N/A';
+  const loginUrl = tenant?.slug ? `https://riselocal.in/login?tenant=${tenant.slug}` : 'N/A';
+  const joinedAt = tenant?.createdAt
+    ? new Date(tenant.createdAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'N/A';
 
   const handleLogout = () => {
     logout();
@@ -123,8 +132,9 @@ export default function SettingsPage() {
             </p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>Business: {tenant?.name ?? 'N/A'}</p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>Tenant ID: {tenant?.id ?? 'N/A'}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Domain: {tenant?.domain ?? 'N/A'}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Slug: {tenant?.slug ?? 'N/A'}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Public URL: {publicUrl}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Login URL: {loginUrl}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Slug: {tenantSlug}</p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>Joined: {joinedAt}</p>
           </div>
 
