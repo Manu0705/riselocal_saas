@@ -40,7 +40,7 @@ router.use(leadRoutes);
 router.use(feedbackRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/gallery', galleryRoutes);
-router.use('/settings', tenantSettingsRoutes);
+router.use(tenantSettingsRoutes);
 router.use(contentRoutes);
 
 export default router;

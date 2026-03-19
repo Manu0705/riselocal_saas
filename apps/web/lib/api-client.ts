@@ -45,6 +45,9 @@ function withTenantQuery(path: string): string {
   const slug = getStoredTenantSlug();
   if (!slug) return path;
 
+  // Skip appending slug when the path is already scoped to a specific tenant
+  if (/\/tenants?\/[^/]/.test(path)) return path;
+
   const separator = path.includes('?') ? '&' : '?';
   return `${path}${separator}tenantSlug=${encodeURIComponent(slug)}`;
 }

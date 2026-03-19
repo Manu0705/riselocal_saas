@@ -274,6 +274,31 @@ async function resolveAutoAssignment(tenantId: string): Promise<{ assigneeId: st
   };
 }
 
+async function resolveManualAssignment(
+  tenantId: string,
+  actorUserId?: string,
+): Promise<{ assigneeId: string | null; teamId: string | null } | null> {
+  const userId = String(actorUserId ?? '').trim();
+  if (!userId) return null;
+
+  const actorRows = await prisma.$queryRaw<Array<{ id: string; teamId: string | null }>>`
+    SELECT "id", "teamId"
+    FROM "TenantUser"
+    WHERE "id" = ${userId}
+      AND "tenantId" = ${tenantId}
+      AND "isActive" = true
+    LIMIT 1
+  `;
+
+  const actor = actorRows[0];
+  if (!actor) return null;
+
+  return {
+    assigneeId: actor.id,
+    teamId: actor.teamId,
+  };
+}
+
 function buildVisibilityCondition(
   role: LeadVisibilityRole,
   userId: string,
@@ -318,10 +343,21 @@ export class LeadLifecycleService {
         `;
 
         const isNewLead = existing.length === 0;
-        const assigned = isNewLead ? await resolveAutoAssignment(input.tenantId) : {
-          assigneeId: existing[0].assignedTo,
-          teamId: existing[0].teamId,
-        };
+        let assigned: { assigneeId: string | null; teamId: string | null };
+
+        if (isNewLead) {
+          const prefersActorAssignment = input.actionType === 'manual_create';
+          const manualAssignment = prefersActorAssignment
+            ? await resolveManualAssignment(input.tenantId, input.actorUserId)
+            : null;
+
+          assigned = manualAssignment ?? (await resolveAutoAssignment(input.tenantId));
+        } else {
+          assigned = {
+            assigneeId: existing[0].assignedTo,
+            teamId: existing[0].teamId,
+          };
+        }
 
         const upserted = await tx.$queryRaw<Array<{ id: string }>>`
           INSERT INTO "Lead" (
