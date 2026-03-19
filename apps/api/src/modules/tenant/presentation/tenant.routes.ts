@@ -52,11 +52,13 @@ function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfi
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
+  galleryCategories: string[];
 } {
   if (Array.isArray(rawValue)) {
     return {
       sectionOrder: rawValue.filter((entry): entry is string => typeof entry === 'string'),
       actionButtons: getDefaultActionButtons(),
+      galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
     };
   }
 
@@ -65,12 +67,16 @@ function extractSectionOrderConfig(rawValue: unknown): {
     const sections = Array.isArray(raw.sections)
       ? raw.sections.filter((entry): entry is string => typeof entry === 'string')
       : ['hero', 'services', 'gallery'];
+    const galleryCategories = Array.isArray(raw.galleryCategories)
+      ? raw.galleryCategories.filter((entry): entry is string => typeof entry === 'string')
+      : ['gallery', 'before-after', 'team', 'workspace'];
     const buttonRaw = raw.actionButtons && typeof raw.actionButtons === 'object'
       ? (raw.actionButtons as Record<string, unknown>)
       : {};
 
     return {
       sectionOrder: sections,
+      galleryCategories,
       actionButtons: {
         chatWhatsApp: normalizeActionButtonConfig(
           buttonRaw.chatWhatsApp,
@@ -92,6 +98,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
   return {
     sectionOrder: ['hero', 'services', 'gallery'],
     actionButtons: getDefaultActionButtons(),
+    galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
   };
 }
 
@@ -248,6 +255,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
             primaryColor: tenant.settings.primaryColor,
             secondaryColor: tenant.settings.secondaryColor,
             sectionOrder: sectionConfig.sectionOrder,
+            galleryCategories: sectionConfig.galleryCategories,
             actionButtons: sectionConfig.actionButtons,
             businessPhone: tenant.settings.businessPhone,
             businessWhatsApp: tenant.settings.businessWhatsApp,

@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboardData } from '@/context/DashboardDataContext';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Moon, Sun, Menu } from 'lucide-react';
 
 export default function DashboardHeader() {
   const { logout, tenantSlug: storedTenantSlug } = useAuth();
   const { tenant } = useDashboardData();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [dark, setDark] = useState(false);
@@ -100,6 +101,25 @@ export default function DashboardHeader() {
     setMenuOpen(false);
   };
 
+  const currentMenuKey = (() => {
+    if (pathname === '/dashboard') return 'home';
+    if (pathname.startsWith('/dashboard/customize')) return 'customize';
+    if (pathname.startsWith('/dashboard/analytics')) return 'analytics';
+    if (pathname.startsWith('/dashboard/settings')) return 'settings';
+    if (pathname.startsWith('/dashboard/help')) return 'help';
+    return null;
+  })();
+
+  const menuItems = [
+    { key: 'home', label: 'Home', onPress: goHome },
+    { key: 'lead-view', label: 'Lead View', onPress: goToLeadView },
+    { key: 'customize', label: 'Customize', onPress: goToCustomize },
+    { key: 'analytics', label: 'Analytics', onPress: goToAnalytics },
+    { key: 'settings', label: 'Settings', onPress: goToSettings },
+    { key: 'help', label: 'Help', onPress: goToHelp },
+    { key: 'logout', label: 'Logout', onPress: handleLogout },
+  ].filter((item) => item.key === 'logout' || item.key !== currentMenuKey);
+
   return (
     <div
       style={{
@@ -170,18 +190,10 @@ export default function DashboardHeader() {
             zIndex: 200,
           }}
         >
-          {[
-            { label: 'Home', onPress: goHome },
-            { label: 'Lead View', onPress: goToLeadView },
-            { label: 'Customize', onPress: goToCustomize },
-            { label: 'Analytics', onPress: goToAnalytics },
-            { label: 'Settings', onPress: goToSettings },
-            { label: 'Help', onPress: goToHelp },
-            { label: 'Logout', onPress: handleLogout },
-          ].map((item) => (
+          {menuItems.map((item) => (
             <button
               type="button"
-              key={item.label}
+              key={item.key}
               onClick={item.onPress}
               style={{
                 width: '100%',

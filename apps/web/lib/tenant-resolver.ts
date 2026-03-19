@@ -1,4 +1,3 @@
-import { cache } from 'react';
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
 import { fetchWithRetry } from '@/lib/retry';
@@ -43,7 +42,7 @@ type ResolvedTenant = {
   products?: string[];
 };
 
-export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | null> => {
+export const getTenant = async (slug: string): Promise<ResolvedTenant | null> => {
   // prevent dashboard routes from being treated as tenants
   if (isReservedTenantSlug(slug)) {
     return null;
@@ -84,9 +83,18 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return defaults.sectionOrder;
   };
 
-  const normalizeGalleryCategories = (value: unknown): string[] => {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const raw = value as Record<string, unknown>;
+  const normalizeGalleryCategories = (settings: Record<string, unknown>): string[] => {
+    const direct = settings.galleryCategories;
+    if (Array.isArray(direct)) {
+      const items = direct.filter(
+        (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0,
+      );
+      return items.length > 0 ? items : defaults.galleryCategories;
+    }
+
+    const sectionOrder = settings.sectionOrder;
+    if (sectionOrder && typeof sectionOrder === 'object' && !Array.isArray(sectionOrder)) {
+      const raw = sectionOrder as Record<string, unknown>;
       if (Array.isArray(raw.galleryCategories)) {
         const items = raw.galleryCategories.filter(
           (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0,
@@ -193,7 +201,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
         secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
         sectionOrder: normalizeSectionOrder(settings.sectionOrder),
-        galleryCategories: normalizeGalleryCategories(settings.sectionOrder),
+        galleryCategories: normalizeGalleryCategories(settings),
         actionButtons: normalizeSettingsActionButtons(settings),
         services: normalizeServices(tenant.services),
         gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
@@ -210,4 +218,4 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
   }
 
   return null;
-});
+};

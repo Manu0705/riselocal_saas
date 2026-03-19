@@ -85,7 +85,12 @@ export default function Gallery({
     };
 
     galleryCategories.forEach(pushCategory);
-    images.forEach((image) => pushCategory(image.category));
+
+    // Respect tenant-configured categories first. If none are configured,
+    // derive categories from image metadata as a fallback.
+    if (ordered.length === 0) {
+      images.forEach((image) => pushCategory(image.category));
+    }
 
     return [...ordered, { key: 'all', label: 'All' }];
   }, [galleryCategories, images]);
