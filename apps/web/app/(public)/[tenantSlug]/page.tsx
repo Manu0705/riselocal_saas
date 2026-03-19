@@ -61,15 +61,17 @@ export default async function TenantPage({ params }: Props) {
         {sectionOrder.map((sectionKey: string) => (
           <div key={sectionKey} id={sectionKey}>
             {sections[sectionKey] ?? null}
+
+            {sectionKey === 'hero' ? (
+              <QuickActions
+                phone={tenant.whatsapp || tenant.phone}
+                tenantId={tenant.id}
+                tenantSlug={tenantSlug}
+                actionButtons={tenant.actionButtons}
+              />
+            ) : null}
           </div>
         ))}
-
-        <QuickActions
-          phone={tenant.whatsapp || tenant.phone}
-          tenantId={tenant.id}
-          tenantSlug={tenantSlug}
-          actionButtons={tenant.actionButtons}
-        />
         <HowItWorks />
         <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
         <Contact

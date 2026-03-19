@@ -8,9 +8,11 @@ import { Menu } from 'lucide-react';
 type Props = {
   title: string;
   tenantSlug?: string;
+  logoUrl?: string;
+  logoShape?: string;
 };
 
-export default function TopHeader({ title, tenantSlug }: Readonly<Props>) {
+export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Readonly<Props>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, tenantSlug: storedTenant, setTenant, logout } = useAuth();
@@ -55,6 +57,11 @@ export default function TopHeader({ title, tenantSlug }: Readonly<Props>) {
     setMenuOpen(false);
   };
 
+  const goToCustomize = () => {
+    router.push(`/dashboard/customize?tenant=${activeTenant}`);
+    setMenuOpen(false);
+  };
+
   const goToLeadView = () => {
     router.push(`/${activeTenant}?view=public`);
     setMenuOpen(false);
@@ -63,11 +70,6 @@ export default function TopHeader({ title, tenantSlug }: Readonly<Props>) {
   const goToMyView = () => {
     router.push(`/${activeTenant}`);
     setMenuOpen(false);
-  };
-
-  const goToHelp = () => {
-    setMenuOpen(false);
-    alert('Help center will be available soon.');
   };
 
   const handleLogout = () => {
@@ -138,7 +140,7 @@ export default function TopHeader({ title, tenantSlug }: Readonly<Props>) {
             >
               {[
                 { label: 'Dashboard', onPress: goToDashboard },
-                { label: 'Help', onPress: goToHelp },
+                { label: 'Customize', onPress: goToCustomize },
                 { label: 'Logout', onPress: handleLogout },
               ].map((item) => (
                 <button
@@ -163,13 +165,14 @@ export default function TopHeader({ title, tenantSlug }: Readonly<Props>) {
           </>
         ) : (
           <img
-            src="/logo/JB_Logo.jpeg"
+            src={logoUrl || '/logo/JB_Logo.jpeg'}
             alt="logo"
             style={{
               width: 40,
               height: 40,
-              borderRadius: '50%',
+              borderRadius: logoShape === 'square' ? 4 : '50%',
               objectFit: 'cover',
+              border: '1px solid var(--card-border)',
             }}
           />
         )}

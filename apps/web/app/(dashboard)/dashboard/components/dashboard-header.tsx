@@ -84,8 +84,8 @@ export default function DashboardHeader() {
 
   const goToHelp = () => {
     const tenantQuery = searchParams.get('tenant');
-    const query = tenantQuery ? `?tenant=${tenantQuery}&tab=help` : '?tab=help';
-    router.push(`/dashboard/settings${query}`);
+    const query = tenantQuery ? `?tenant=${tenantQuery}` : '';
+    router.push(`/dashboard/help${query}`);
     setMenuOpen(false);
   };
 

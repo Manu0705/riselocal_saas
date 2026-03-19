@@ -28,7 +28,12 @@ export default async function TenantLayout({
   return (
     <MobileContainer>
       <Suspense fallback={null}>
-        <TopHeader title={tenant.name ?? 'Business'} tenantSlug={tenantSlug} />
+        <TopHeader
+          title={tenant.name ?? 'Business'}
+          tenantSlug={tenantSlug}
+          logoUrl={tenant.logoUrl}
+          logoShape={tenant.logoShape}
+        />
 
         <div
           style={{

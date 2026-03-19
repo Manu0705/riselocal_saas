@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { capturePublicCtaLead, getLeadCapturePrefill } from '@/lib/public-lead-capture';
 import {
   DEFAULT_ACTION_BUTTONS,
@@ -36,7 +36,7 @@ export default function Gallery({
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const chipScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const [active, setActive] = useState('All');
+  const [active, setActive] = useState('');
   const [isInView, setIsInView] = useState(false);
   const [hasTouchedCategory, setHasTouchedCategory] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -79,15 +79,37 @@ export default function Gallery({
     setPendingEnquiry({ image, category });
   }
 
-  const configuredCategories = Array.from(
-    new Set(
-      galleryCategories
-        .map((category) => String(category).trim())
-        .filter((category) => category.length > 0),
-    ),
-  );
-  const uniqueImageCategories = Array.from(new Set(images.map((i) => i.category)));
-  const categories = [...new Set([...configuredCategories, ...uniqueImageCategories]), 'All'];
+  const categories = useMemo(() => {
+    const ordered: string[] = [];
+    const seen = new Set<string>();
+
+    const pushCategory = (value: unknown) => {
+      const normalized = String(value ?? '').trim();
+      if (!normalized) return;
+      if (normalized.toLowerCase() === 'all') return;
+
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      ordered.push(normalized);
+    };
+
+    galleryCategories.forEach(pushCategory);
+    images.forEach((image) => pushCategory(image.category));
+
+    return [...ordered, 'All'];
+  }, [galleryCategories, images]);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setActive('All');
+      return;
+    }
+
+    if (!active || !categories.includes(active) || active === 'All') {
+      setActive(categories[0]);
+    }
+  }, [categories, active]);
 
   const filtered = active === 'All' ? images : images.filter((img) => img.category === active);
 

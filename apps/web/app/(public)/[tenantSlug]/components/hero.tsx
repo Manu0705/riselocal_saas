@@ -86,20 +86,6 @@ export default function Hero({ tenant }: Props) {
             }}
           />
           <div style={{ padding: 12 }}>
-            {tenant?.logoUrl ? (
-              <img
-                src={tenant.logoUrl}
-                alt="Business logo"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: tenant.logoShape === 'circle' ? '50%' : tenant.logoShape === 'square' ? 4 : '50%',
-                  objectFit: 'cover',
-                  border: '2px solid var(--tenant-primary, var(--card-border))',
-                  marginBottom: 10,
-                }}
-              />
-            ) : null}
             <div style={{ fontWeight: 700, fontSize: 16 }}>{tenant?.name || 'Business Banner'}</div>
             <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0' }}>
               {tenant?.tagline || 'Premium curtains and blinds for your home.'}
