@@ -3,6 +3,7 @@
 
 export const DUMMY_LEADS: any[] = [
   {
+    __isMock: true,
     id: 'lead-001',
     name: 'Sarah Johnson',
     phone: '+1 (555) 234-5678',
@@ -13,6 +14,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null,
   },
   {
+    __isMock: true,
     id: 'lead-002',
     name: 'Michael Chen',
     phone: '+1 (555) 345-6789',
@@ -23,6 +25,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: new Date(2026, 2, 8).toISOString(), // Today
   },
   {
+    __isMock: true,
     id: 'lead-003',
     name: 'Emma Rodriguez',
     phone: '+1 (555) 456-7890',
@@ -33,6 +36,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null,
   },
   {
+    __isMock: true,
     id: 'lead-004',
     name: 'James Wilson',
     phone: '+1 (555) 567-8901',
@@ -43,6 +47,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: new Date(2026, 2, 6).toISOString(), // Overdue
   },
   {
+    __isMock: true,
     id: 'lead-005',
     name: 'Olivia Martinez',
     phone: '+1 (555) 678-9012',
@@ -53,6 +58,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null,
   },
   {
+    __isMock: true,
     id: 'lead-006',
     name: 'David Kim',
     phone: '+1 (555) 789-0123',
@@ -63,6 +69,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null,
   },
   {
+    __isMock: true,
     id: 'lead-007',
     name: 'Sophia Patel',
     phone: '+1 (555) 890-1234',
@@ -73,6 +80,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null, // Unscheduled
   },
   {
+    __isMock: true,
     id: 'lead-008',
     name: 'Lucas Anderson',
     phone: '+1 (555) 901-2345',
@@ -83,6 +91,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: null,
   },
   {
+    __isMock: true,
     id: 'lead-009',
     name: 'Isabella Brown',
     phone: '+1 (555) 012-3456',
@@ -93,6 +102,7 @@ export const DUMMY_LEADS: any[] = [
     followUpAt: new Date(2026, 2, 10).toISOString(), // Future
   },
   {
+    __isMock: true,
     id: 'lead-010',
     name: 'Ethan Taylor',
     phone: '+1 (555) 123-4567',

@@ -24,24 +24,27 @@ type LeadLike = {
 
 export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const { tenantSlug } = useAuth();
-  const { tenant, refresh } = useDashboardData();
+  const { tenant } = useDashboardData();
   const [status, setStatus] = useState(toUiStatus(lead?.status));
   const [selectedReminderDay, setSelectedReminderDay] = useState(3);
+  const isMockLead = Boolean((lead as { __isMock?: boolean })?.__isMock);
 
   const createdAtLabel = getRelativeTime(lead?.createdAt);
   const showReviewButton = status === 'Converted';
 
   const handleCall = () => {
-    void logActivity('call_click');
-    announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
+    if (!isMockLead) {
+      void logActivity('call_click');
+    }
     if (lead?.phone) {
       globalThis.location.href = `tel:${lead.phone}`;
     }
   };
 
   const handleWhatsApp = () => {
-    void logActivity('whatsapp_click');
-    announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
+    if (!isMockLead) {
+      void logActivity('whatsapp_click');
+    }
     if (lead?.phone) {
       const cleanPhone = lead.phone.replaceAll(/\D/g, '');
       globalThis.open(`https://wa.me/${cleanPhone}`, '_blank');
@@ -58,11 +61,15 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     const message = `Hi ${lead.name || 'there'}! Thank you for choosing our service. We'd love to hear your feedback: ${reviewUrl}`;
 
     if (lead?.phone) {
-      void logActivity('enquiry_click');
+      if (!isMockLead) {
+        void logActivity('enquiry_click');
+      }
       const cleanPhone = lead.phone.replaceAll(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
       globalThis.open(whatsappUrl, '_blank');
-      announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
+      if (!isMockLead) {
+        announceDashboardDataRefresh(tenantSlug || tenant?.slug || tenant?.id);
+      }
     } else {
       // Copy link to clipboard if no phone
       navigator.clipboard.writeText(reviewUrl).then(() => {
@@ -78,7 +85,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
     const apiStatus = toApiStatus(newStatus);
 
-    if (!leadId || !tenantRouteKey || !apiStatus) {
+    if (isMockLead || !leadId || !tenantRouteKey || !apiStatus) {
       return;
     }
 
@@ -86,7 +93,6 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
       await api.patch(`/tenant/${tenantRouteKey}/leads/${leadId}/status`, {
         status: apiStatus,
       });
-      refresh();
       announceDashboardDataRefresh(tenantRouteKey);
     } catch {
       // Keep optimistic UI. Dashboard context refresh will reconcile eventual consistency.
@@ -114,7 +120,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const logActivity = async (type: 'whatsapp_click' | 'call_click' | 'enquiry_click' | 'booking') => {
     const leadId = String(lead?.id ?? '').trim();
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
-    if (!leadId || !tenantRouteKey) {
+    if (isMockLead || !leadId || !tenantRouteKey) {
       return;
     }
 
@@ -133,7 +139,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const setFollowUp = async (days: number) => {
     const leadId = String(lead?.id ?? '').trim();
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
-    if (!leadId || !tenantRouteKey) {
+    if (isMockLead || !leadId || !tenantRouteKey) {
       return;
     }
 
@@ -144,7 +150,6 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         followUpAt,
         note: `Reminder set for ${days} day(s)`,
       });
-      refresh();
       announceDashboardDataRefresh(tenantRouteKey);
     } catch {
       // Keep wheel interaction responsive even when API call fails.

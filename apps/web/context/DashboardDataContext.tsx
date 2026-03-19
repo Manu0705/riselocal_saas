@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -181,15 +182,10 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const hasLoadedOnceRef = useRef(false);
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
-  }, []);
-
-  const clearBeforeRefresh = useCallback(() => {
-    setLeads([]);
-    setAnalytics(null);
-    setLoading(true);
   }, []);
 
   const shouldHandleRefreshForTenant = useCallback(
@@ -229,7 +225,6 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       const custom = event as CustomEvent<{ tenantKey?: string | null }>;
       const tenantKey = custom.detail?.tenantKey ?? null;
       if (!shouldHandleRefreshForTenant(tenantKey)) return;
-      clearBeforeRefresh();
       triggerRefresh();
     };
 
@@ -238,7 +233,6 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       const payload = parseDashboardRefreshPayload(event.newValue);
       if (!payload) return;
       if (!shouldHandleRefreshForTenant(payload.tenantKey)) return;
-      clearBeforeRefresh();
       triggerRefresh();
     };
 
@@ -249,20 +243,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       globalThis.window.removeEventListener(eventName, handleCustomRefresh as EventListener);
       globalThis.window.removeEventListener('storage', handleStorageRefresh);
     };
-  }, [shouldHandleRefreshForTenant, clearBeforeRefresh, triggerRefresh]);
-
-  // Polling-based realtime updates.
-  useEffect(() => {
-    if (!tenantSlug) return;
-
-    const timer = globalThis.window.setInterval(() => {
-      triggerRefresh();
-    }, 12_000);
-
-    return () => {
-      globalThis.window.clearInterval(timer);
-    };
-  }, [tenantSlug, triggerRefresh]);
+  }, [shouldHandleRefreshForTenant, triggerRefresh]);
 
   useEffect(() => {
     if (!tenantSlug) {
@@ -271,7 +252,9 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
     setError(null);
 
     Promise.allSettled([
@@ -318,7 +301,10 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
         setLeads(DUMMY_LEADS);
         setAnalytics(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        hasLoadedOnceRef.current = true;
+      });
   }, [tenantSlug, refreshKey]);
 
   const metrics = useMemo<DashboardMetrics>(() => {
