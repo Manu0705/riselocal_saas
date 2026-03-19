@@ -6,31 +6,55 @@ import MobilePageTitle from '../components/mobile-page-title';
 import { useDashboardData } from '@/context/DashboardDataContext';
 
 export default function NotificationsPage() {
-  const { leads, loading, error } = useDashboardData();
+  const { metrics, loading, error } = useDashboardData();
 
-  const sampleName = leads[0]?.name ?? 'Sarah Johnson';
-  const secondName = leads[1]?.name ?? 'Michael Chen';
+  const activities = metrics.recentActivities.slice(0, 8);
 
-  const notifications = [
-    {
-      id: 'followup',
-      icon: Clock3,
-      title: `Followup Reminder - ${sampleName}`,
-      time: '2h ago',
-    },
-    {
-      id: 'missed',
-      icon: Phone,
-      title: `Missed Lead - ${secondName}`,
-      time: '4h ago',
-    },
-    {
-      id: 'review',
-      icon: Star,
-      title: 'Review Request Pending',
-      time: '1d ago',
-    },
-  ] as const;
+  const notifications = activities.map((activity) => {
+    const type = String(activity.type || '').toUpperCase();
+    let icon = Star;
+    if (type.includes('CALL')) {
+      icon = Phone;
+    } else if (type.includes('FOLLOW')) {
+      icon = Clock3;
+    }
+    const title = `${activity.leadName} - ${type.replaceAll('_', ' ').toLowerCase()}`;
+    const time = activity.timestamp
+      ? new Date(activity.timestamp).toLocaleString()
+      : 'Just now';
+
+    return {
+      id: activity.id,
+      icon,
+      title,
+      time,
+    };
+  });
+
+  const notificationsContent =
+    notifications.length > 0 ? (
+      <div
+        style={{
+          display: 'grid',
+          gap: 12,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        }}
+      >
+        {notifications.map((item) => (
+          <NotificationItem
+            key={item.id}
+            icon={item.icon}
+            title={item.title}
+            time={item.time}
+            onClick={() => {}}
+          />
+        ))}
+      </div>
+    ) : (
+      <p style={{ color: 'var(--muted)' }}>
+        No live notifications yet. New lead activity will appear here.
+      </p>
+    );
 
   return (
     <div style={{ padding: 16, paddingBottom: 100 }}>
@@ -39,25 +63,7 @@ export default function NotificationsPage() {
       {loading ? <p style={{ color: 'var(--muted)' }}>Loading notifications...</p> : null}
       {error ? <p style={{ color: '#b91c1c' }}>Error: {error}</p> : null}
 
-      {!loading && !error ? (
-        <div
-          style={{
-            display: 'grid',
-            gap: 12,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          }}
-        >
-          {notifications.map((item) => (
-            <NotificationItem
-              key={item.id}
-              icon={item.icon}
-              title={item.title}
-              time={item.time}
-              onClick={() => alert(item.title)}
-            />
-          ))}
-        </div>
-      ) : null}
+      {!loading && !error ? notificationsContent : null}
     </div>
   );
 }

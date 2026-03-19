@@ -17,12 +17,9 @@ import {
   resolveTenant,
   type TenantRecord,
 } from '@/lib/tenant-client';
-import { DUMMY_LEADS } from '@/lib/mock-data';
 import {
   getDashboardRefreshEventName,
   getDashboardRefreshStorageKey,
-  hasTenantLiveData,
-  markTenantAsLive,
   parseDashboardRefreshPayload,
 } from '@/lib/dashboard-events';
 
@@ -117,6 +114,44 @@ function mapStatus(raw?: string): string {
   if (value === 'CONVERTED') return 'CONVERTED';
   if (value === 'CLOSED' || value === 'LOST') return 'CLOSED';
   return 'NEW';
+}
+
+function isLegacyDemoLead(lead: any): boolean {
+  const name = String(lead?.name ?? '')
+    .trim()
+    .toLowerCase();
+  const phone = String(lead?.phone ?? '')
+    .trim()
+    .toLowerCase();
+
+  const knownDemoNames = new Set([
+    'sarah johnson',
+    'michael chen',
+    'emma rodriguez',
+    'james wilson',
+    'olivia martinez',
+    'david kim',
+    'sophia patel',
+    'lucas anderson',
+    'isabella brown',
+    'ethan taylor',
+  ]);
+
+  return Boolean(
+    (lead as { __isMock?: boolean })?.__isMock ||
+      knownDemoNames.has(name) ||
+      phone.includes('(555)') ||
+      phone.includes('+1 (555)'),
+  );
+}
+
+function normalizeTenantLeads(input: any[]): any[] {
+  const leads = Array.isArray(input) ? input : [];
+  if (leads.length === 0) return [];
+
+  const liveLeads = leads.filter((lead) => !isLegacyDemoLead(lead));
+  // As soon as at least one real lead exists, hide legacy/demo rows for that tenant.
+  return liveLeads.length > 0 ? liveLeads : leads.filter((lead) => !((lead as { __isMock?: boolean })?.__isMock));
 }
 
 function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
@@ -248,6 +283,8 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
   useEffect(() => {
     if (!tenantSlug) {
       setError('Tenant not available');
+      setLeads([]);
+      setAnalytics(null);
       setLoading(false);
       return;
     }
@@ -263,8 +300,6 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       fetchLeadAnalyticsForTenant(tenantSlug, 'week'),
     ])
       .then(([tenantResult, leadsResult, analyticsResult]) => {
-        const resolvedTenant = tenantResult.status === 'fulfilled' ? tenantResult.value : null;
-
         if (tenantResult.status === 'fulfilled') {
           setTenant(tenantResult.value);
         } else {
@@ -277,28 +312,19 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
 
         if (leadsResult.status === 'fulfilled') {
           const fetchedLeads = leadsResult.value;
-
-          if (fetchedLeads.length > 0) {
-            setLeads(fetchedLeads);
-            markTenantAsLive(tenantSlug);
-            markTenantAsLive(resolvedTenant?.id);
-            markTenantAsLive(resolvedTenant?.slug);
-            return;
-          }
-
-          const hasLiveData =
-            hasTenantLiveData(tenantSlug) ||
-            hasTenantLiveData(resolvedTenant?.id) ||
-            hasTenantLiveData(resolvedTenant?.slug);
-
-          setLeads(hasLiveData ? [] : DUMMY_LEADS);
+          setLeads(normalizeTenantLeads(fetchedLeads));
         } else {
-          setLeads(DUMMY_LEADS);
+          const message =
+            leadsResult.reason instanceof Error
+              ? leadsResult.reason.message
+              : 'Failed to fetch leads';
+          setError(message);
+          setLeads([]);
         }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
-        setLeads(DUMMY_LEADS);
+        setLeads([]);
         setAnalytics(null);
       })
       .finally(() => {
