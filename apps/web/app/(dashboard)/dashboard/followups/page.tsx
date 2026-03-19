@@ -5,19 +5,54 @@ import FollowupCard from '@/components/followup-card';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import MobilePageTitle from '../components/mobile-page-title';
 
+function classifyFollowup(item: any): 'today' | 'overdue' | 'upcoming' | 'unscheduled' {
+  const followUpAt = item?.followUpAt;
+  if (!followUpAt) return 'unscheduled';
+  const now = Date.now();
+  const followUp = new Date(followUpAt).getTime();
+  const diffMs = followUp - now;
+  if (diffMs < 0) return 'overdue';
+  if (diffMs < 24 * 60 * 60 * 1000) return 'today';
+  return 'upcoming';
+}
+
+function SectionHeader({ label, color }: { label: string; color: string }) {
+  return (
+    <p
+      style={{
+        margin: '16px 0 8px',
+        fontWeight: 700,
+        fontSize: 13,
+        color,
+        letterSpacing: '0.5px',
+        textTransform: 'uppercase',
+      }}
+    >
+      {label}
+    </p>
+  );
+}
+
 export default function FollowupsPage() {
   const { leads, metrics, loading, error } = useDashboardData();
 
-  const followupItems = useMemo(
-    () =>
-      leads.filter((item) => {
-        const status = String(item?.status ?? '')
-          .trim()
-          .toUpperCase();
-        return status === 'QUALIFIED' || status === 'FOLLOW-UP' || status === 'FOLLOWUP';
-      }),
-    [leads],
-  );
+  const { today, overdue, upcoming, unscheduled } = useMemo(() => {
+    const items = leads.filter((item) => {
+      const status = String(item?.status ?? '')
+        .trim()
+        .toUpperCase();
+      return status === 'QUALIFIED' || status === 'FOLLOW-UP' || status === 'FOLLOWUP';
+    });
+
+    return {
+      today: items.filter((i) => classifyFollowup(i) === 'today'),
+      overdue: items.filter((i) => classifyFollowup(i) === 'overdue'),
+      upcoming: items.filter((i) => classifyFollowup(i) === 'upcoming'),
+      unscheduled: items.filter((i) => classifyFollowup(i) === 'unscheduled'),
+    };
+  }, [leads]);
+
+  const allEmpty = today.length === 0 && overdue.length === 0 && upcoming.length === 0 && unscheduled.length === 0;
 
   return (
     <div style={{ padding: 16, color: 'var(--text)' }}>
@@ -58,7 +93,7 @@ export default function FollowupsPage() {
               }}
             >
               <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>Today</p>
-              <p style={{ margin: '4px 0 0', color: '#2563eb', fontSize: 18, fontWeight: 700 }}>
+              <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 18, fontWeight: 700 }}>
                 {metrics.followUpsToday}
               </p>
             </div>
@@ -90,13 +125,53 @@ export default function FollowupsPage() {
             </div>
           </div>
 
-          {followupItems.length === 0 ? (
+          {allEmpty ? (
             <p style={{ color: 'var(--muted)' }}>No follow-ups right now.</p>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {followupItems.map((item: any) => (
-                <FollowupCard key={item.id} item={item} />
-              ))}
+            <div>
+              {today.length > 0 && (
+                <>
+                  <SectionHeader label="Followups Today" color="#ef4444" />
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {today.map((item: any) => (
+                      <FollowupCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {overdue.length > 0 && (
+                <>
+                  <SectionHeader label="Overdue" color="#f59e0b" />
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {overdue.map((item: any) => (
+                      <FollowupCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {upcoming.length > 0 && (
+                <>
+                  <SectionHeader label="Upcoming" color="#2563eb" />
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {upcoming.map((item: any) => (
+                      <FollowupCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {unscheduled.length > 0 && (
+                <>
+                  <SectionHeader label="Unscheduled" color="#6b7280" />
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {unscheduled.map((item: any) => (
+                      <FollowupCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>

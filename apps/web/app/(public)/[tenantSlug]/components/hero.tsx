@@ -93,9 +93,9 @@ export default function Hero({ tenant }: Props) {
                 style={{
                   width: 56,
                   height: 56,
-                  borderRadius: tenant.logoShape === 'square' ? 10 : '50%',
+                  borderRadius: tenant.logoShape === 'circle' ? '50%' : tenant.logoShape === 'square' ? 4 : '50%',
                   objectFit: 'cover',
-                  border: '2px solid var(--card-border)',
+                  border: '2px solid var(--tenant-primary, var(--card-border))',
                   marginBottom: 10,
                 }}
               />

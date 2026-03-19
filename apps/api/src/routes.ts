@@ -38,8 +38,8 @@ router.use(tenantAccessMiddleware);
 
 router.use(leadRoutes);
 router.use(feedbackRoutes);
-router.use('/upload', uploadRoutes);
-router.use('/gallery', galleryRoutes);
+router.use(uploadRoutes);
+router.use(galleryRoutes);
 router.use(tenantSettingsRoutes);
 router.use(contentRoutes);
 

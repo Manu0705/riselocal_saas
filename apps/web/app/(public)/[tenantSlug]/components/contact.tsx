@@ -60,6 +60,7 @@ export default function Contact({
             style={{
               ...buttonStyles.call,
               marginTop: 0,
+              background: 'var(--tenant-primary, #3b82f6)',
             }}
           >
             Call Now

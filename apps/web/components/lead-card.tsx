@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, MessageCircle, Clock, Star } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboardData } from '@/context/DashboardDataContext';
@@ -20,28 +20,42 @@ type LeadLike = {
   timeline?: Array<{ id?: string; type?: string; timestamp?: string; metadata?: Record<string, unknown> }>;
   location?: string;
   createdAt?: string;
+  followUpAt?: string;
 };
+
+function computeDaysFromFollowUp(followUpAt?: string): number {
+  if (!followUpAt) return 3;
+  const now = Date.now();
+  const followUp = new Date(followUpAt).getTime();
+  const diffMs = followUp - now;
+  if (diffMs <= 0) return 1; // overdue or within today → show as 1d (Today label will override)
+  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  return Math.max(1, Math.min(7, diffDays));
+}
 
 export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const { tenantSlug } = useAuth();
   const { tenant } = useDashboardData();
   const [status, setStatus] = useState(toUiStatus(lead?.status));
-  const [selectedReminderDay, setSelectedReminderDay] = useState(3);
+  const [selectedReminderDay, setSelectedReminderDay] = useState(
+    () => computeDaysFromFollowUp(lead?.followUpAt),
+  );
   const isMockLead = Boolean((lead as { __isMock?: boolean })?.__isMock);
+
+  // Keep reminder day in sync with the actual followUpAt from server data
+  useEffect(() => {
+    setSelectedReminderDay(computeDaysFromFollowUp(lead?.followUpAt));
+  }, [lead?.followUpAt]);
 
   const createdAtLabel = getRelativeTime(lead?.createdAt);
   const showReviewButton = status === 'Converted';
   const showReminderButton = status === 'Follow-Up';
 
-  const followUpDate = lead?.followUpAt
-    ? new Date(lead.followUpAt)
-    : undefined;
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const followUpDate = lead?.followUpAt ? new Date(lead.followUpAt) : undefined;
+  const now = Date.now();
+  // "Today" = followUp is within the next 24 hours OR already past (overdue)
   const isFollowUpToday =
-    followUpDate &&
-    followUpDate.getTime() >= todayStart.getTime() &&
-    followUpDate.getTime() < todayStart.getTime() + 24 * 60 * 60 * 1000;
+    followUpDate !== undefined && followUpDate.getTime() - now < 24 * 60 * 60 * 1000;
 
   const reminderLabel = isFollowUpToday ? 'Today' : `${selectedReminderDay}d`;
   const reminderBackground = isFollowUpToday ? '#ef4444' : 'var(--background)';

@@ -101,6 +101,7 @@ export default function QuickActions({
               justifyContent: 'center',
               gap: 8,
               marginTop: 0,
+              background: 'var(--tenant-primary, #3b82f6)',
             }}
           >
             <Phone size={18} />

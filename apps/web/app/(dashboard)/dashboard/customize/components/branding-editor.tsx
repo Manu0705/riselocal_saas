@@ -18,11 +18,17 @@ interface TenantSettings {
 
 export default function BrandingEditor() {
   const [settings, setSettings] = useState<TenantSettings | null>(null);
+  const [pending, setPending] = useState<Partial<TenantSettings>>({}); // unsaved field changes
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Merge pending into settings for display
+  const displayed: TenantSettings | null = settings
+    ? { ...settings, ...pending }
+    : null;
 
   useEffect(() => {
     loadSettings();
@@ -36,6 +42,7 @@ export default function BrandingEditor() {
         setError(response?.message || response?.error || 'Failed to load settings');
       } else if (response?.data) {
         setSettings(response.data);
+        setPending({});
         setError(null);
       } else if (response?.error) {
         setError(response.error);
@@ -52,6 +59,13 @@ export default function BrandingEditor() {
 
   const handleImageUpload = async (type: 'logo' | 'banner', file: File) => {
     if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(jpe?g|png|webp|gif|img)$/i)) {
+      setError('Please upload a valid image file (JPEG, PNG, WebP, or GIF).');
+      return;
+    }
 
     setUploading(type);
     setError(null);
@@ -107,6 +121,7 @@ export default function BrandingEditor() {
         setError(response?.message || response?.error || 'Failed to save changes');
       } else if (response?.data) {
         setSettings(response.data);
+        setPending({});
         setSuccess('Changes saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       } else if (response?.error) {
@@ -122,6 +137,13 @@ export default function BrandingEditor() {
     }
   };
 
+  // Save all pending field changes (shape, colors, tagline, contact)
+  const handleSaveAll = () => {
+    if (!displayed) return;
+    const { logoUrl: _l, bannerUrl: _b, id: _id, ...saveable } = displayed;
+    void handleUpdate(saveable);
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
@@ -131,7 +153,7 @@ export default function BrandingEditor() {
     );
   }
 
-  if (!settings) {
+  if (!settings || !displayed) {
     return (
       <div style={{ textAlign: 'center', padding: 40 }}>
         <p style={{ color: '#dc2626', fontSize: 14 }}>
@@ -194,7 +216,7 @@ export default function BrandingEditor() {
                 width: 64,
                 height: 64,
                 objectFit: 'cover',
-                borderRadius: settings.logoShape === 'circle' ? '50%' : 8,
+                borderRadius: displayed.logoShape === 'circle' ? '50%' : 8,
                 border: '2px solid var(--card-border)',
               }}
             />
@@ -221,7 +243,7 @@ export default function BrandingEditor() {
             )}
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif,.img"
               style={{ display: 'none' }}
               onChange={(e) => e.target.files?.[0] && handleImageUpload('logo', e.target.files[0])}
             />
@@ -234,21 +256,21 @@ export default function BrandingEditor() {
             Logo Shape
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
-            {['circle', 'square'].map((shape) => (
+            {(['circle', 'square'] as const).map((shape) => (
               <button
                 type="button"
                 key={shape}
-                onClick={() => handleUpdate({ logoShape: shape as 'circle' | 'square' })}
+                onClick={() => setPending((p) => ({ ...p, logoShape: shape }))}
                 style={{
                   flex: 1,
                   border:
-                    settings.logoShape === shape
+                    displayed.logoShape === shape
                       ? '2px solid #3b82f6'
                       : '1px solid var(--card-border)',
-                  background: settings.logoShape === shape ? '#eff6ff' : 'transparent',
+                  background: displayed.logoShape === shape ? '#eff6ff' : 'transparent',
                   borderRadius: 8,
                   padding: '8px 12px',
-                  color: settings.logoShape === shape ? '#3b82f6' : 'var(--text)',
+                  color: displayed.logoShape === shape ? '#3b82f6' : 'var(--text)',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -274,6 +296,9 @@ export default function BrandingEditor() {
         <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
           Banner Image
         </label>
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--muted)' }}>
+          Recommended: 1200 &times; 400 px (3:1 ratio) &mdash; JPEG, PNG, or WebP
+        </p>
         {settings.bannerUrl && (
           <img
             src={settings.bannerUrl}
@@ -310,7 +335,7 @@ export default function BrandingEditor() {
           )}
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif,.img"
             style={{ display: 'none' }}
             onChange={(e) => e.target.files?.[0] && handleImageUpload('banner', e.target.files[0])}
           />
@@ -337,8 +362,8 @@ export default function BrandingEditor() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="color"
-                value={settings.primaryColor}
-                onChange={(e) => handleUpdate({ primaryColor: e.target.value })}
+                value={displayed.primaryColor}
+                onChange={(e) => setPending((p) => ({ ...p, primaryColor: e.target.value }))}
                 style={{
                   width: 48,
                   height: 48,
@@ -349,8 +374,8 @@ export default function BrandingEditor() {
               />
               <input
                 type="text"
-                value={settings.primaryColor}
-                onChange={(e) => handleUpdate({ primaryColor: e.target.value })}
+                value={displayed.primaryColor}
+                onChange={(e) => setPending((p) => ({ ...p, primaryColor: e.target.value }))}
                 style={{
                   flex: 1,
                   border: '1px solid var(--card-border)',
@@ -370,8 +395,8 @@ export default function BrandingEditor() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="color"
-                value={settings.secondaryColor}
-                onChange={(e) => handleUpdate({ secondaryColor: e.target.value })}
+                value={displayed.secondaryColor}
+                onChange={(e) => setPending((p) => ({ ...p, secondaryColor: e.target.value }))}
                 style={{
                   width: 48,
                   height: 48,
@@ -382,8 +407,8 @@ export default function BrandingEditor() {
               />
               <input
                 type="text"
-                value={settings.secondaryColor}
-                onChange={(e) => handleUpdate({ secondaryColor: e.target.value })}
+                value={displayed.secondaryColor}
+                onChange={(e) => setPending((p) => ({ ...p, secondaryColor: e.target.value }))}
                 style={{
                   flex: 1,
                   border: '1px solid var(--card-border)',
@@ -412,9 +437,8 @@ export default function BrandingEditor() {
         </label>
         <input
           type="text"
-          value={settings.tagline || ''}
-          onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-          onBlur={() => handleUpdate({ tagline: settings.tagline })}
+          value={displayed.tagline || ''}
+          onChange={(e) => setPending((p) => ({ ...p, tagline: e.target.value }))}
           placeholder="e.g., Your trusted home service provider"
           style={{
             width: '100%',
@@ -445,9 +469,8 @@ export default function BrandingEditor() {
             </label>
             <input
               type="tel"
-              value={settings.businessPhone || ''}
-              onChange={(e) => setSettings({ ...settings, businessPhone: e.target.value })}
-              onBlur={() => handleUpdate({ businessPhone: settings.businessPhone })}
+              value={displayed.businessPhone || ''}
+              onChange={(e) => setPending((p) => ({ ...p, businessPhone: e.target.value }))}
               placeholder="+1 234 567 8900"
               style={{
                 width: '100%',
@@ -462,12 +485,14 @@ export default function BrandingEditor() {
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
               WhatsApp Number
+              <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 6 }}>
+                (used for Chat on WhatsApp &amp; WhatsApp Enquiry buttons on public page)
+              </span>
             </label>
             <input
               type="tel"
-              value={settings.businessWhatsApp || ''}
-              onChange={(e) => setSettings({ ...settings, businessWhatsApp: e.target.value })}
-              onBlur={() => handleUpdate({ businessWhatsApp: settings.businessWhatsApp })}
+              value={displayed.businessWhatsApp || ''}
+              onChange={(e) => setPending((p) => ({ ...p, businessWhatsApp: e.target.value }))}
               placeholder="+1 234 567 8900"
               style={{
                 width: '100%',
@@ -481,11 +506,37 @@ export default function BrandingEditor() {
         </div>
       </div>
 
-      {saving && (
-        <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-          Saving changes...
-        </div>
-      )}
+      {/* Save All Changes Button */}
+      <button
+        type="button"
+        onClick={handleSaveAll}
+        disabled={saving || Object.keys(pending).length === 0}
+        style={{
+          width: '100%',
+          padding: '14px 20px',
+          background: saving || Object.keys(pending).length === 0 ? 'var(--card-border)' : '#3b82f6',
+          color: saving || Object.keys(pending).length === 0 ? 'var(--muted)' : 'white',
+          border: 'none',
+          borderRadius: 12,
+          fontSize: 15,
+          fontWeight: 700,
+          cursor: saving || Object.keys(pending).length === 0 ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'background 0.2s',
+        }}
+      >
+        {saving ? (
+          <>
+            <Loader2 size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+            Saving...
+          </>
+        ) : (
+          'Save Changes'
+        )}
+      </button>
     </div>
   );
 }
