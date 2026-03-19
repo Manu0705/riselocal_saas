@@ -65,23 +65,11 @@ function getAuthHeaders(extra?: Record<string, string>): Record<string, string> 
   return headers;
 }
 
-function buildTenantApiPath(path: string): string {
-  const tenantSlug = globalThis.window === undefined ? null : localStorage.getItem('tenantSlug');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  
-  // Use tenant-scoped path if we have tenantSlug, fallback to direct path
-  if (tenantSlug) {
-    return `/tenant/${tenantSlug}${cleanPath}`;
-  }
-  
-  return cleanPath;
-}
-
-
 export function getTenantApiClient() {
   return {
     async get(path: string) {
-      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      const res = await fetch(buildApiUrl(normalizedPath), {
         headers: getAuthHeaders(),
       });
       return parseApiResponse(res);
@@ -96,8 +84,9 @@ export function getTenantApiClient() {
         delete rawHeaders['Content-Type'];
       }
       const headers = getAuthHeaders(rawHeaders);
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
-      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
+      const res = await fetch(buildApiUrl(normalizedPath), {
         method: 'POST',
         headers,
         body: isFormData ? body : JSON.stringify(body),
@@ -114,8 +103,9 @@ export function getTenantApiClient() {
         delete rawHeaders['Content-Type'];
       }
       const headers = getAuthHeaders(rawHeaders);
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
-      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
+      const res = await fetch(buildApiUrl(normalizedPath), {
         method: 'PUT',
         headers,
         body: isFormData ? body : JSON.stringify(body),
@@ -124,7 +114,8 @@ export function getTenantApiClient() {
     },
 
     async delete(path: string) {
-      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      const res = await fetch(buildApiUrl(normalizedPath), {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
