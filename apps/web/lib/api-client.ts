@@ -1,11 +1,38 @@
 import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 
 function buildUrl(path: string) {
-  if (typeof window !== 'undefined') {
+  if (globalThis.window !== undefined) {
     return buildBrowserApiUrl(path);
   }
 
   return buildUpstreamApiUrl(getApiBaseCandidates()[0], path);
+}
+
+function handleUnauthorizedResponse(res: Response): void {
+  if (res.status !== 401 || globalThis.window === undefined) return;
+
+  const tenantSlug = getStoredTenantSlug();
+  localStorage.removeItem('token');
+
+  const loginPath = tenantSlug
+    ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
+    : '/login';
+
+  if (!globalThis.location.pathname.startsWith('/login')) {
+    globalThis.location.assign(loginPath);
+  }
+}
+
+async function parseJsonResponse<T>(res: Response): Promise<T> {
+  handleUnauthorizedResponse(res);
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('API did not return JSON: ' + text.slice(0, 100));
+  }
 }
 
 function getStoredTenantSlug(): string | null {
@@ -41,13 +68,7 @@ export const api = {
       headers: buildAuthHeaders(),
     });
 
-    const text = await res.text();
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      throw new Error('API did not return JSON: ' + text.slice(0, 100));
-    }
+    return parseJsonResponse<T>(res);
   },
 
   async post<TResponse = unknown, TBody = unknown>(path: string, data: TBody): Promise<TResponse> {
@@ -57,7 +78,7 @@ export const api = {
       body: JSON.stringify(data),
     });
 
-    return res.json() as Promise<TResponse>;
+    return parseJsonResponse<TResponse>(res);
   },
 
   async patch<TResponse = unknown, TBody = unknown>(
@@ -78,6 +99,6 @@ export const api = {
       body,
     });
 
-    return res.json() as Promise<TResponse>;
+    return parseJsonResponse<TResponse>(res);
   },
 };

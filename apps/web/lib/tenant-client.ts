@@ -2,17 +2,32 @@ import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@
 import { api } from '@/lib/api-client';
 
 function buildApiUrl(path: string): string {
-  if (typeof window !== 'undefined') {
+  if (globalThis.window !== undefined) {
     return buildBrowserApiUrl(path);
   }
 
   return buildUpstreamApiUrl(getApiBaseCandidates()[0], path);
 }
 
+function handleUnauthorizedResponse(res: Response): void {
+  if (res.status !== 401 || globalThis.window === undefined) return;
+
+  const tenantSlug = localStorage.getItem('tenantSlug');
+  localStorage.removeItem('token');
+
+  const loginPath = tenantSlug
+    ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
+    : '/login';
+
+  if (!globalThis.location.pathname.startsWith('/login')) {
+    globalThis.location.assign(loginPath);
+  }
+}
+
 function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
-  const headers: Record<string, string> = { ...(extra || {}) };
-  const token = globalThis.window !== undefined ? localStorage.getItem('token') : null;
-  const tenantSlug = globalThis.window !== undefined ? localStorage.getItem('tenantSlug') : null;
+  const headers: Record<string, string> = { ...extra };
+  const token = globalThis.window === undefined ? null : localStorage.getItem('token');
+  const tenantSlug = globalThis.window === undefined ? null : localStorage.getItem('tenantSlug');
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -31,14 +46,15 @@ export function getTenantApiClient() {
       const res = await fetch(buildApiUrl(path), {
         headers: getAuthHeaders(),
       });
+      handleUnauthorizedResponse(res);
       return res.json();
     },
 
     async post(path: string, body: any, options?: { headers?: Record<string, string> }) {
       const isFormData = body instanceof FormData;
       const rawHeaders = isFormData
-        ? { ...(options?.headers || {}) }
-        : { 'Content-Type': 'application/json', ...(options?.headers || {}) };
+        ? { ...options?.headers }
+        : { 'Content-Type': 'application/json', ...options?.headers };
       if (isFormData) {
         delete rawHeaders['Content-Type'];
       }
@@ -49,14 +65,15 @@ export function getTenantApiClient() {
         headers,
         body: isFormData ? body : JSON.stringify(body),
       });
+      handleUnauthorizedResponse(res);
       return res.json();
     },
 
     async put(path: string, body: any, options?: { headers?: Record<string, string> }) {
       const isFormData = body instanceof FormData;
       const rawHeaders = isFormData
-        ? { ...(options?.headers || {}) }
-        : { 'Content-Type': 'application/json', ...(options?.headers || {}) };
+        ? { ...options?.headers }
+        : { 'Content-Type': 'application/json', ...options?.headers };
       if (isFormData) {
         delete rawHeaders['Content-Type'];
       }
@@ -67,6 +84,7 @@ export function getTenantApiClient() {
         headers,
         body: isFormData ? body : JSON.stringify(body),
       });
+      handleUnauthorizedResponse(res);
       return res.json();
     },
 
@@ -75,6 +93,7 @@ export function getTenantApiClient() {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
+      handleUnauthorizedResponse(res);
       return res.json();
     },
   };
@@ -118,11 +137,29 @@ export function matchTenant(tenant: TenantRecord, tenantKey: string): boolean {
 }
 
 export async function resolveTenant(tenantKey: string): Promise<TenantRecord | null> {
-  const response = await api.get('/tenants');
-  const tenants = toArrayPayload(response) as TenantRecord[];
-
   if (!tenantKey) return null;
 
+  try {
+    const bySlugResponse = await api.get<{ success?: boolean; data?: TenantRecord }>(
+      `/tenants/slug/${encodeURIComponent(tenantKey)}`,
+    );
+
+    if (bySlugResponse?.success && bySlugResponse.data) {
+      const resolved = bySlugResponse.data;
+      return {
+        id: String(resolved.id ?? ''),
+        name: resolved.name,
+        slug: resolved.slug,
+        domain: resolved.domain,
+        createdAt: resolved.createdAt,
+      };
+    }
+  } catch {
+    // fallback to protected listing endpoint if slug route is unavailable
+  }
+
+  const response = await api.get('/tenants');
+  const tenants = toArrayPayload(response) as TenantRecord[];
   const tenant = tenants.find((entry) => matchTenant(entry, tenantKey));
   return tenant ?? null;
 }

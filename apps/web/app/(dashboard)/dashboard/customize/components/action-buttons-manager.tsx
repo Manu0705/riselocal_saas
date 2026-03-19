@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Pencil, Save, Trash2 } from 'lucide-react';
 import { getTenantApiClient } from '@/lib/tenant-client';
 import {
   DEFAULT_ACTION_BUTTONS,
@@ -61,6 +61,21 @@ export default function ActionButtonsManager() {
     }));
   };
 
+  const focusCard = (key: ActionButtonKey) => {
+    const element = globalThis.document?.getElementById(`action-button-card-${key}`);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const clearRecord = (key: ActionButtonKey) => {
+    updateButton(key, 'phone', '');
+    updateButton(key, 'message', '');
+  };
+
+  const savedRecords = BUTTONS.filter((meta) => {
+    const config = buttons[meta.key];
+    return Boolean(config.phone || (meta.showMessage && config.message));
+  });
+
   const saveSettings = async () => {
     setSaving(true);
     try {
@@ -111,6 +126,7 @@ export default function ActionButtonsManager() {
 
         return (
           <div
+            id={`action-button-card-${meta.key}`}
             key={meta.key}
             style={{
               border: '1px solid var(--card-border)',
@@ -173,42 +189,6 @@ export default function ActionButtonsManager() {
                 }}
               />
             )}
-
-            <div
-              style={{
-                border: '1px dashed var(--card-border)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                fontSize: 12,
-                color: 'var(--muted)',
-                display: 'grid',
-                gap: 6,
-              }}
-            >
-              <div>Phone: {config.phone || 'Not set'}</div>
-              {meta.showMessage ? <div>Message: {config.message || 'Not set'}</div> : null}
-              <button
-                type="button"
-                onClick={() => {
-                  updateButton(meta.key, 'phone', '');
-                  if (meta.showMessage) {
-                    updateButton(meta.key, 'message', '');
-                  }
-                }}
-                style={{
-                  justifySelf: 'start',
-                  border: '1px solid #ef4444',
-                  background: 'transparent',
-                  color: '#ef4444',
-                  borderRadius: 6,
-                  padding: '4px 8px',
-                  fontSize: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                Clear values
-              </button>
-            </div>
           </div>
         );
       })}
@@ -236,6 +216,95 @@ export default function ActionButtonsManager() {
         {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
         {saving ? 'Saving...' : 'Save Action Buttons'}
       </button>
+
+      <div
+        style={{
+          border: '1px solid var(--card-border)',
+          background: 'var(--card)',
+          borderRadius: 12,
+          padding: 16,
+          display: 'grid',
+          gap: 10,
+        }}
+      >
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Saved Action Button Records</h4>
+        {savedRecords.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+            No saved phone/message records yet.
+          </p>
+        ) : (
+          savedRecords.map((meta) => {
+            const config = buttons[meta.key];
+            return (
+              <div
+                key={`saved-${meta.key}`}
+                style={{
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 10,
+                  padding: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{meta.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Phone: {config.phone || '-'}
+                  </div>
+                  {meta.showMessage ? (
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      Message: {config.message || '-'}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    title="Edit"
+                    onClick={() => focusCard(meta.key)}
+                    style={{
+                      border: '1px solid var(--card-border)',
+                      borderRadius: 8,
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Delete"
+                    onClick={() => clearRecord(meta.key)}
+                    style={{
+                      border: '1px solid #ef4444',
+                      borderRadius: 8,
+                      background: 'transparent',
+                      color: '#ef4444',
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
