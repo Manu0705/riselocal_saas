@@ -77,7 +77,7 @@ export default function QuickActions({
               marginTop: 0,
             }}
           >
-            <span>{buttons.chatWhatsApp.label || 'Chat on WhatsApp'}</span>
+            <span>Chat on WhatsApp</span>
             <span>&gt;</span>
           </a>
         )}
@@ -104,7 +104,7 @@ export default function QuickActions({
             }}
           >
             <Phone size={18} />
-            {buttons.call.label || 'Call'}
+            Call
           </a>
         )}
       </div>

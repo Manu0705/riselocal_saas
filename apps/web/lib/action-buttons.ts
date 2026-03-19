@@ -45,18 +45,15 @@ export function resolveActionHref(
   fallbackHref: string,
   options?: { whatsappMessage?: string },
 ): string {
-  if (button.url && button.url.trim().length > 0) {
-    return button.url.trim();
-  }
-
   const phoneDigits = String(button.phone ?? '').replaceAll(/\D/g, '');
   if (!phoneDigits) {
     return fallbackHref;
   }
 
   if (fallbackHref.startsWith('https://wa.me/')) {
-    const encodedMessage = options?.whatsappMessage
-      ? `?text=${encodeURIComponent(options.whatsappMessage)}`
+    const message = button.message ?? options?.whatsappMessage;
+    const encodedMessage = message
+      ? `?text=${encodeURIComponent(message)}`
       : '';
     return `https://wa.me/${phoneDigits}${encodedMessage}`;
   }

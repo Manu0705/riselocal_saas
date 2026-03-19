@@ -24,6 +24,7 @@ export default function GalleryManager() {
   const [success, setSuccess] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [editDraftName, setEditDraftName] = useState('');
   const [addingNewCategory, setAddingNewCategory] = useState(false);
 
   useEffect(() => {
@@ -35,8 +36,12 @@ export default function GalleryManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      if (response?.data?.data?.galleryCategories && Array.isArray(response.data.data.galleryCategories)) {
-        setCategories(response.data.data.galleryCategories);
+      if (response?.data?.galleryCategories && Array.isArray(response.data.galleryCategories)) {
+        const loaded = response.data.galleryCategories;
+        setCategories(loaded);
+        if (loaded.length > 0 && !loaded.includes(selectedCategory)) {
+          setSelectedCategory(loaded[0]);
+        }
       } else {
         setCategories(DEFAULT_CATEGORIES);
       }
@@ -50,8 +55,8 @@ export default function GalleryManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/gallery');
-      if (response?.data?.data) {
-        setImages(response.data.data);
+      if (response?.data) {
+        setImages(response.data);
         setError(null);
       } else if (response?.error) {
         setError(response.error);
@@ -88,8 +93,8 @@ export default function GalleryManager() {
           alt: file.name,
         });
 
-        if (createResponse?.data?.data) {
-          setImages([...images, createResponse.data.data]);
+        if (createResponse?.data) {
+          setImages([...images, createResponse.data]);
           setSuccess('Image uploaded successfully');
           setTimeout(() => setSuccess(null), 3000);
         }
@@ -121,8 +126,8 @@ export default function GalleryManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.put(`/gallery/${imageId}`, { category: newCategory });
-      if (response?.data?.data) {
-        setImages(images.map((img) => (img.id === imageId ? response.data.data : img)));
+      if (response?.data) {
+        setImages(images.map((img) => (img.id === imageId ? response.data : img)));
       }
     } catch (error) {
       console.error('Failed to update category:', error);
@@ -135,7 +140,7 @@ export default function GalleryManager() {
       const response = await api.put('/settings', {
         galleryCategories: newCategories,
       });
-      if (response?.data?.data) {
+      if (response?.data) {
         setCategories(newCategories);
         setSuccess('Categories updated successfully');
         setTimeout(() => setSuccess(null), 3000);
@@ -147,9 +152,9 @@ export default function GalleryManager() {
   };
 
   const handleAddCategory = async () => {
-    const trimmed = newCategoryName.trim().toLowerCase();
+    const trimmed = newCategoryName.trim();
     if (!trimmed) return;
-    if (categories.includes(trimmed)) {
+    if (categories.some((cat) => cat.toLowerCase() === trimmed.toLowerCase())) {
       setError('This category already exists');
       return;
     }
@@ -161,9 +166,12 @@ export default function GalleryManager() {
   };
 
   const handleRenameCategory = async (oldName: string, newName: string) => {
-    const trimmed = newName.trim().toLowerCase();
+    const trimmed = newName.trim();
     if (!trimmed) return;
-    if (categories.includes(trimmed) && trimmed !== oldName) {
+    if (
+      categories.some((cat) => cat.toLowerCase() === trimmed.toLowerCase()) &&
+      trimmed.toLowerCase() !== oldName.toLowerCase()
+    ) {
       setError('This category already exists');
       return;
     }
@@ -373,11 +381,11 @@ export default function GalleryManager() {
                   <>
                     <input
                       type="text"
-                      defaultValue={cat}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      value={editDraftName}
+                      onChange={(e) => setEditDraftName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          handleRenameCategory(cat, newCategoryName || cat);
+                          handleRenameCategory(cat, editDraftName || cat);
                         }
                       }}
                       style={{
@@ -392,7 +400,7 @@ export default function GalleryManager() {
                     <Check
                       size={14}
                       style={{ cursor: 'pointer', color: '#16a34a' }}
-                      onClick={() => handleRenameCategory(cat, newCategoryName || cat)}
+                      onClick={() => handleRenameCategory(cat, editDraftName || cat)}
                     />
                   </>
                 ) : (
@@ -405,7 +413,7 @@ export default function GalleryManager() {
                       style={{ cursor: 'pointer', color: 'var(--muted)', marginLeft: 4 }}
                       onClick={() => {
                         setEditingCategory(cat);
-                        setNewCategoryName(cat);
+                        setEditDraftName(cat);
                       }}
                     />
                     {categories.length > 1 && imageCount === 0 && (

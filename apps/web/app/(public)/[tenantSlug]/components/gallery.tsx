@@ -18,6 +18,7 @@ type GalleryImage = {
 
 type Props = {
   images?: GalleryImage[];
+  galleryCategories?: string[];
   tenantSlug: string;
   tenantId?: string;
   phone?: string;
@@ -26,6 +27,7 @@ type Props = {
 
 export default function Gallery({
   images = [],
+  galleryCategories = [],
   tenantSlug,
   tenantId,
   phone,
@@ -77,13 +79,15 @@ export default function Gallery({
     setPendingEnquiry({ image, category });
   }
 
-  if (!images.length) {
-    return <p style={{ padding: 16 }}>No images available</p>;
-  }
-
-  const uniqueCategories = Array.from(new Set(images.map((i) => i.category)));
-
-  const categories = [...uniqueCategories, 'All'];
+  const configuredCategories = Array.from(
+    new Set(
+      galleryCategories
+        .map((category) => String(category).trim())
+        .filter((category) => category.length > 0),
+    ),
+  );
+  const uniqueImageCategories = Array.from(new Set(images.map((i) => i.category)));
+  const categories = [...new Set([...configuredCategories, ...uniqueImageCategories]), 'All'];
 
   const filtered = active === 'All' ? images : images.filter((img) => img.category === active);
 
@@ -156,39 +160,48 @@ export default function Gallery({
       </div>
 
       {/* Gallery grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-        }}
-      >
-        {filtered.map((img) => (
-          <div
-            key={`${img.url}-${img.category}`}
-            onClick={() => setSelectedImage({ url: img.url, category: img.category })}
-            style={{
-              height: 200,
-              borderRadius: 12,
-              overflow: 'hidden',
-              position: 'relative',
-              backgroundImage: `url(${img.url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-            }}
-          >
+      {filtered.length === 0 ? (
+        <p style={{ color: 'var(--muted)', margin: 0 }}>No images available in this category.</p>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 12,
+          }}
+        >
+          {filtered.map((img) => (
+            <button
+              key={`${img.url}-${img.category}`}
+              type="button"
+              onClick={() => setSelectedImage({ url: img.url, category: img.category })}
+              style={{
+                height: 200,
+                borderRadius: 12,
+                overflow: 'hidden',
+                position: 'relative',
+                backgroundImage: `url(${img.url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                border: 'none',
+                padding: 0,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+              }}
+            >
             {/* Button inside image */}
             {buttons.whatsappEnquiry.enabled && (
               <button
-                onClick={() => enquiry(img.url, img.category)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  enquiry(img.url, img.category);
+                }}
                 style={{
                   position: 'absolute',
                   bottom: 10,
@@ -203,12 +216,13 @@ export default function Gallery({
                   cursor: 'pointer',
                 }}
               >
-                {buttons.whatsappEnquiry.label || 'WhatsApp Enquiry'}
+                WhatsApp Enquiry
               </button>
             )}
-          </div>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <ImageViewerModal
         open={Boolean(selectedImage)}

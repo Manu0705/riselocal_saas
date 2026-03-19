@@ -40,6 +40,7 @@ export default async function TenantPage({ params }: Props) {
     gallery: (
       <Gallery
         images={tenant.gallery || []}
+        galleryCategories={tenant.galleryCategories || []}
         tenantSlug={tenantSlug}
         tenantId={tenant.id}
         phone={tenant.whatsapp || tenant.phone}
@@ -70,7 +71,7 @@ export default async function TenantPage({ params }: Props) {
           actionButtons={tenant.actionButtons}
         />
         <HowItWorks />
-        <Booking tenantId={tenant.id} tenantSlug={tenantSlug} actionButtons={tenant.actionButtons} />
+        <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
         <Contact
           tenant={tenant}
           tenantId={tenant.id}

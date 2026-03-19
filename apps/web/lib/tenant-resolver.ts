@@ -34,6 +34,7 @@ type ResolvedTenant = {
   primaryColor?: string;
   secondaryColor?: string;
   sectionOrder?: string[];
+  galleryCategories?: string[];
   actionButtons?: ActionButtonsConfig;
   services?: Array<{ name: string; description?: string }>;
   gallery?: Array<{ url: string; category: string }>;
@@ -60,6 +61,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       { url: '/gallery/curtain2.jpeg', category: 'Gallery' },
     ],
     sectionOrder: ['hero', 'services', 'gallery'],
+    galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
     socialLinks: [],
     primaryColor: '#000000',
     secondaryColor: '#FFFFFF',
@@ -82,6 +84,20 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     }
 
     return defaults.sectionOrder;
+  };
+
+  const normalizeGalleryCategories = (value: unknown): string[] => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const raw = value as Record<string, unknown>;
+      if (Array.isArray(raw.galleryCategories)) {
+        const items = raw.galleryCategories.filter(
+          (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0,
+        );
+        return items.length > 0 ? items : defaults.galleryCategories;
+      }
+    }
+
+    return defaults.galleryCategories;
   };
 
   const toStringOr = (value: unknown, fallback?: string): string | undefined => {
@@ -171,6 +187,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
           secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
           sectionOrder: normalizeSectionOrder(settings.sectionOrder),
+          galleryCategories: normalizeGalleryCategories(settings.sectionOrder),
           actionButtons: normalizeSettingsActionButtons(settings),
           services: normalizeServices(tenant.services),
           gallery:

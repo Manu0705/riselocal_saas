@@ -62,7 +62,7 @@ export default function Contact({
               marginTop: 0,
             }}
           >
-            {buttons.call.label || 'Call Now'}
+            Call Now
           </a>
         )}
 
@@ -85,7 +85,7 @@ export default function Contact({
               marginTop: 0,
             }}
           >
-            {buttons.chatWhatsApp.label || 'WhatsApp'}
+            WhatsApp
           </a>
         )}
       </div>

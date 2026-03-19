@@ -32,8 +32,8 @@ export default function BrandingEditor() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      if (response?.data?.data) {
-        setSettings(response.data.data);
+      if (response?.data) {
+        setSettings(response.data);
         setError(null);
       } else if (response?.error) {
         setError(response.error);
@@ -70,8 +70,8 @@ export default function BrandingEditor() {
           [fieldName]: uploadResponse.url,
         });
 
-        if (updateResponse?.data?.data) {
-          setSettings(updateResponse.data.data);
+        if (updateResponse?.data) {
+          setSettings(updateResponse.data);
           setSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
           setTimeout(() => setSuccess(null), 3000);
         }
@@ -93,8 +93,8 @@ export default function BrandingEditor() {
     try {
       const api = getTenantApiClient();
       const response = await api.put('/settings', updates);
-      if (response?.data?.data) {
-        setSettings(response.data.data);
+      if (response?.data) {
+        setSettings(response.data);
         setSuccess('Changes saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       } else if (response?.error) {

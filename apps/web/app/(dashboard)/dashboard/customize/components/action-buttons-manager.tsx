@@ -31,7 +31,6 @@ const BUTTONS: ButtonMeta[] = [
 export default function ActionButtonsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [sectionOrder, setSectionOrder] = useState<string[]>(['hero', 'services', 'gallery']);
   const [buttons, setButtons] = useState<ActionButtonsConfig>(DEFAULT_ACTION_BUTTONS);
 
   useEffect(() => {
@@ -42,9 +41,7 @@ export default function ActionButtonsManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      const data = (response?.data?.data || {}) as SettingsResponse;
-
-      setSectionOrder(Array.isArray(data.sectionOrder) ? data.sectionOrder : ['hero', 'services', 'gallery']);
+      const data = (response?.data || {}) as SettingsResponse;
       setButtons(normalizeActionButtons(data.actionButtons));
     } catch (error) {
       console.error('Failed to load action button settings:', error);
@@ -69,13 +66,11 @@ export default function ActionButtonsManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.put('/settings', {
-        sectionOrder,
         actionButtons: buttons,
       });
 
-      if (response?.data?.data) {
-        const data = response.data.data as SettingsResponse;
-        setSectionOrder(Array.isArray(data.sectionOrder) ? data.sectionOrder : sectionOrder);
+      if (response?.data) {
+        const data = response.data as SettingsResponse;
         setButtons(normalizeActionButtons(data.actionButtons));
       }
     } catch (error) {
@@ -178,6 +173,42 @@ export default function ActionButtonsManager() {
                 }}
               />
             )}
+
+            <div
+              style={{
+                border: '1px dashed var(--card-border)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 12,
+                color: 'var(--muted)',
+                display: 'grid',
+                gap: 6,
+              }}
+            >
+              <div>Phone: {config.phone || 'Not set'}</div>
+              {meta.showMessage ? <div>Message: {config.message || 'Not set'}</div> : null}
+              <button
+                type="button"
+                onClick={() => {
+                  updateButton(meta.key, 'phone', '');
+                  if (meta.showMessage) {
+                    updateButton(meta.key, 'message', '');
+                  }
+                }}
+                style={{
+                  justifySelf: 'start',
+                  border: '1px solid #ef4444',
+                  background: 'transparent',
+                  color: '#ef4444',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                Clear values
+              </button>
+            </div>
           </div>
         );
       })}
