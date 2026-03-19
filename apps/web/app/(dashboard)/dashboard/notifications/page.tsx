@@ -6,7 +6,7 @@ import MobilePageTitle from '../components/mobile-page-title';
 import { useDashboardData } from '@/context/DashboardDataContext';
 
 export default function NotificationsPage() {
-  const { metrics, loading, error } = useDashboardData();
+  const { metrics, missedFollowUps, loading, error } = useDashboardData();
 
   const activities = metrics.recentActivities.slice(0, 8);
 
@@ -31,8 +31,21 @@ export default function NotificationsPage() {
     };
   });
 
+  const missedFollowUpNotifications = missedFollowUps.map((entry) => {
+    const missedLabel = entry.daysMissed === 1 ? 'yesterday' : `${entry.daysMissed} days ago`;
+
+    return {
+      id: entry.id,
+      icon: Clock3,
+      title: `${entry.leadName} - Missed follow-up ${missedLabel}`,
+      time: new Date(entry.followUpAt).toLocaleDateString(),
+    };
+  });
+
+  const mergedNotifications = [...missedFollowUpNotifications, ...notifications].slice(0, 20);
+
   const notificationsContent =
-    notifications.length > 0 ? (
+    mergedNotifications.length > 0 ? (
       <div
         style={{
           display: 'grid',
@@ -40,7 +53,7 @@ export default function NotificationsPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
-        {notifications.map((item) => (
+        {mergedNotifications.map((item) => (
           <NotificationItem
             key={item.id}
             icon={item.icon}

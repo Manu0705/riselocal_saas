@@ -65,10 +65,23 @@ function getAuthHeaders(extra?: Record<string, string>): Record<string, string> 
   return headers;
 }
 
+function buildTenantApiPath(path: string): string {
+  const tenantSlug = globalThis.window === undefined ? null : localStorage.getItem('tenantSlug');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Use tenant-scoped path if we have tenantSlug, fallback to direct path
+  if (tenantSlug) {
+    return `/tenant/${tenantSlug}${cleanPath}`;
+  }
+  
+  return cleanPath;
+}
+
+
 export function getTenantApiClient() {
   return {
     async get(path: string) {
-      const res = await fetch(buildApiUrl(path), {
+      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
         headers: getAuthHeaders(),
       });
       return parseApiResponse(res);
@@ -84,7 +97,7 @@ export function getTenantApiClient() {
       }
       const headers = getAuthHeaders(rawHeaders);
 
-      const res = await fetch(buildApiUrl(path), {
+      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
         method: 'POST',
         headers,
         body: isFormData ? body : JSON.stringify(body),
@@ -102,7 +115,7 @@ export function getTenantApiClient() {
       }
       const headers = getAuthHeaders(rawHeaders);
 
-      const res = await fetch(buildApiUrl(path), {
+      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
         method: 'PUT',
         headers,
         body: isFormData ? body : JSON.stringify(body),
@@ -111,7 +124,7 @@ export function getTenantApiClient() {
     },
 
     async delete(path: string) {
-      const res = await fetch(buildApiUrl(path), {
+      const res = await fetch(buildApiUrl(buildTenantApiPath(path)), {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -238,6 +251,53 @@ export async function fetchLeadAnalyticsForTenant(
       if (payload && typeof payload === 'object') {
         return payload as Record<string, unknown>;
       }
+    }
+  }
+
+  return null;
+}
+
+export async function fetchFeedbackForTenant(tenantKey: string): Promise<any[]> {
+  const tenant = await resolveTenant(tenantKey).catch(() => null);
+
+  const candidateKeys = [tenant?.slug, tenant?.id, tenantKey].filter(
+    (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
+  );
+
+  for (const key of candidateKeys) {
+    const feedbackResponse = await api.get(`/tenant/${key}/feedback`);
+
+    if ((feedbackResponse as { success?: boolean })?.success === false) {
+      continue;
+    }
+
+    const items = toArrayPayload(feedbackResponse);
+
+    if (items.length > 0 || (feedbackResponse as { success?: boolean })?.success === true) {
+      return items;
+    }
+  }
+
+  return [];
+}
+
+export async function fetchTenantSettingsForTenant(tenantKey: string): Promise<Record<string, unknown> | null> {
+  const tenant = await resolveTenant(tenantKey).catch(() => null);
+
+  const candidateKeys = [tenant?.slug, tenant?.id, tenantKey].filter(
+    (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
+  );
+
+  for (const key of candidateKeys) {
+    const response = await api.get(`/tenant/${key}/settings`);
+
+    if ((response as { success?: boolean })?.success === false) {
+      continue;
+    }
+
+    const data = (response as { data?: unknown })?.data;
+    if (data && typeof data === 'object') {
+      return data as Record<string, unknown>;
     }
   }
 

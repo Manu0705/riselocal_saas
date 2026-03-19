@@ -12,8 +12,10 @@ import {
 } from 'react';
 import { useAuth } from './AuthContext';
 import {
+  fetchFeedbackForTenant,
   fetchLeadAnalyticsForTenant,
   fetchLeadsForTenant,
+  fetchTenantSettingsForTenant,
   resolveTenant,
   type TenantRecord,
 } from '@/lib/tenant-client';
@@ -52,6 +54,13 @@ type DashboardDataContextType = {
   tenant: TenantRecord | null;
   tenantSlug: string | null;
   leads: any[];
+  missedFollowUps: Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    followUpAt: string;
+    daysMissed: number;
+  }>;
   metrics: DashboardMetrics;
   loading: boolean;
   error: string | null;
@@ -79,7 +88,53 @@ type LeadAnalyticsPayload = {
   recentActivities?: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
 };
 
+type FeedbackEntry = {
+  leadId: string;
+  createdAt?: string;
+  status?: string;
+};
+
+type LeadLifecyclePolicy = {
+  convertedKeepDays: number;
+  lostKeepDays: number;
+  missedFollowupNotifyDays: number;
+};
+
 const PUBLIC_ACTIVITY_TYPES = new Set(['whatsapp_click', 'call_click', 'enquiry_click', 'booking']);
+const DEFAULT_LEAD_LIFECYCLE_POLICY: LeadLifecyclePolicy = {
+  convertedKeepDays: 14,
+  lostKeepDays: 21,
+  missedFollowupNotifyDays: 7,
+};
+
+function getConfiguredLifecyclePolicy(raw: unknown): LeadLifecyclePolicy {
+  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+
+  const toBoundedInt = (value: unknown, fallback: number, min: number, max: number): number => {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    const rounded = Math.round(parsed);
+    if (rounded < min) return min;
+    if (rounded > max) return max;
+    return rounded;
+  };
+
+  return {
+    convertedKeepDays: toBoundedInt(
+      source.convertedKeepDays,
+      DEFAULT_LEAD_LIFECYCLE_POLICY.convertedKeepDays,
+      1,
+      60,
+    ),
+    lostKeepDays: toBoundedInt(source.lostKeepDays, DEFAULT_LEAD_LIFECYCLE_POLICY.lostKeepDays, 1, 90),
+    missedFollowupNotifyDays: toBoundedInt(
+      source.missedFollowupNotifyDays,
+      DEFAULT_LEAD_LIFECYCLE_POLICY.missedFollowupNotifyDays,
+      1,
+      14,
+    ),
+  };
+}
 
 const DashboardDataContext = createContext<DashboardDataContextType | undefined>(undefined);
 
@@ -102,6 +157,21 @@ function parseFollowUpDate(item: any): number | null {
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return null;
 
+  return parsed.getTime();
+}
+
+function parseDateTimestamp(value: unknown): number | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.getTime();
+  }
+
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
   return parsed.getTime();
 }
 
@@ -154,6 +224,105 @@ function normalizeTenantLeads(input: any[]): any[] {
   const liveLeads = leads.filter((lead) => !isLegacyDemoLead(lead));
   // As soon as at least one real lead exists, hide legacy/demo rows for that tenant.
   return liveLeads.length > 0 ? liveLeads : leads.filter((lead) => !((lead as { __isMock?: boolean })?.__isMock));
+}
+
+function buildReviewedLeadSet(feedback: FeedbackEntry[]): Set<string> {
+  const leadIds = feedback
+    .map((entry) => String(entry?.leadId ?? '').trim())
+    .filter(Boolean);
+
+  return new Set(leadIds);
+}
+
+function shouldDisplayLeadInActiveBoard(
+  lead: any,
+  reviewedLeadSet: Set<string>,
+  nowMs: number,
+  policy: LeadLifecyclePolicy,
+): boolean {
+  const leadId = String(lead?.id ?? '').trim();
+  const status = mapStatus(lead?.status);
+
+  if (status === 'CONVERTED') {
+    if (leadId && reviewedLeadSet.has(leadId)) {
+      return false;
+    }
+
+    const convertedAtMs =
+      parseDateTimestamp(lead?.convertedAt) ??
+      parseDateTimestamp(lead?.updatedAt) ??
+      parseDateTimestamp(lead?.createdAt) ??
+      nowMs;
+    const ageDays = Math.floor((nowMs - convertedAtMs) / (24 * 60 * 60 * 1000));
+    return ageDays <= policy.convertedKeepDays;
+  }
+
+  if (status === 'CLOSED') {
+    const closedAtMs =
+      parseDateTimestamp(lead?.updatedAt) ?? parseDateTimestamp(lead?.createdAt) ?? nowMs;
+    const ageDays = Math.floor((nowMs - closedAtMs) / (24 * 60 * 60 * 1000));
+    return ageDays <= policy.lostKeepDays;
+  }
+
+  return true;
+}
+
+function orderLeadsForBoard(leads: any[]): any[] {
+  return [...leads].sort((a, b) => {
+    const statusA = mapStatus(a?.status);
+    const statusB = mapStatus(b?.status);
+    const isClosedA = statusA === 'CLOSED';
+    const isClosedB = statusB === 'CLOSED';
+
+    if (isClosedA !== isClosedB) {
+      return isClosedA ? 1 : -1;
+    }
+
+    const createdA = parseDateTimestamp(a?.createdAt) ?? 0;
+    const createdB = parseDateTimestamp(b?.createdAt) ?? 0;
+    return createdB - createdA;
+  });
+}
+
+function deriveMissedFollowUpNotifications(leads: any[], policy: LeadLifecyclePolicy) {
+  const todayStart = getStartOfDay(new Date());
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const notifications = leads
+    .map((lead) => {
+      const status = mapStatus(lead?.status);
+      if (status !== 'QUALIFIED') return null;
+
+      const followUpAt = parseFollowUpDate(lead);
+      if (!followUpAt) return null;
+
+      const followUpDay = new Date(followUpAt);
+      followUpDay.setHours(0, 0, 0, 0);
+      const followUpStartMs = followUpDay.getTime();
+
+      const daysMissed = Math.floor((todayStart - followUpStartMs) / dayMs);
+      if (daysMissed < 1 || daysMissed > policy.missedFollowupNotifyDays) {
+        return null;
+      }
+
+      return {
+        id: `missed-followup-${String(lead?.id ?? '')}-${followUpStartMs}`,
+        leadId: String(lead?.id ?? ''),
+        leadName: String(lead?.name ?? 'Lead'),
+        followUpAt: new Date(followUpStartMs).toISOString(),
+        daysMissed,
+      };
+    })
+    .filter(Boolean) as Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    followUpAt: string;
+    daysMissed: number;
+  }>;
+
+  notifications.sort((a, b) => a.daysMissed - b.daysMissed);
+  return notifications;
 }
 
 function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
@@ -251,6 +420,9 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
   const [tenant, setTenant] = useState<TenantRecord | null>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<LeadAnalyticsPayload | null>(null);
+  const [missedFollowUps, setMissedFollowUps] = useState<
+    Array<{ id: string; leadId: string; leadName: string; followUpAt: string; daysMissed: number }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -335,8 +507,10 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       resolveTenant(tenantSlug),
       fetchLeadsForTenant(tenantSlug),
       fetchLeadAnalyticsForTenant(tenantSlug, 'week'),
+      fetchFeedbackForTenant(tenantSlug),
+      fetchTenantSettingsForTenant(tenantSlug),
     ])
-      .then(([tenantResult, leadsResult, analyticsResult]) => {
+      .then(([tenantResult, leadsResult, analyticsResult, feedbackResult, settingsResult]) => {
         if (tenantResult.status === 'fulfilled') {
           setTenant(tenantResult.value);
         } else {
@@ -347,9 +521,30 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
           analyticsResult.status === 'fulfilled' && analyticsResult.value ? analyticsResult.value : null;
         setAnalytics(analyticsPayload);
 
+        const leadLifecycleConfigRaw =
+          settingsResult.status === 'fulfilled' &&
+          settingsResult.value &&
+          typeof settingsResult.value === 'object'
+            ? (settingsResult.value as Record<string, unknown>).leadLifecycle
+            : undefined;
+        const policy = getConfiguredLifecyclePolicy(leadLifecycleConfigRaw);
+
         if (leadsResult.status === 'fulfilled') {
           const fetchedLeads = leadsResult.value;
-          setLeads(normalizeTenantLeads(fetchedLeads));
+          const normalizedLeads = normalizeTenantLeads(fetchedLeads);
+          const feedbackEntries =
+            feedbackResult.status === 'fulfilled' && Array.isArray(feedbackResult.value)
+              ? (feedbackResult.value as FeedbackEntry[])
+              : [];
+          const reviewedLeadSet = buildReviewedLeadSet(feedbackEntries);
+          const nowMs = Date.now();
+
+          const visibleLeads = normalizedLeads.filter((lead) =>
+            shouldDisplayLeadInActiveBoard(lead, reviewedLeadSet, nowMs, policy),
+          );
+
+          setLeads(orderLeadsForBoard(visibleLeads));
+          setMissedFollowUps(deriveMissedFollowUpNotifications(normalizedLeads, policy));
         } else {
           const message =
             leadsResult.reason instanceof Error
@@ -357,11 +552,13 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
               : 'Failed to fetch leads';
           setError(message);
           setLeads([]);
+          setMissedFollowUps([]);
         }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
         setLeads([]);
+        setMissedFollowUps([]);
         setAnalytics(null);
       })
       .finally(() => {
@@ -426,12 +623,13 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       tenant,
       tenantSlug,
       leads,
+      missedFollowUps,
       metrics,
       loading,
       error,
       refresh,
     }),
-    [tenant, tenantSlug, leads, metrics, loading, error, refresh],
+    [tenant, tenantSlug, leads, missedFollowUps, metrics, loading, error, refresh],
   );
 
   return (

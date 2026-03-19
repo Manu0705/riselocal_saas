@@ -33,6 +33,21 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const showReviewButton = status === 'Converted';
   const showReminderButton = status === 'Follow-Up';
 
+  const followUpDate = lead?.followUpAt
+    ? new Date(lead.followUpAt)
+    : undefined;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const isFollowUpToday =
+    followUpDate &&
+    followUpDate.getTime() >= todayStart.getTime() &&
+    followUpDate.getTime() < todayStart.getTime() + 24 * 60 * 60 * 1000;
+
+  const reminderLabel = isFollowUpToday ? 'Today' : `${selectedReminderDay}d`;
+  const reminderBackground = isFollowUpToday ? '#ef4444' : 'var(--background)';
+  const reminderColor = isFollowUpToday ? 'white' : 'var(--text)';
+
+
   const handleCall = () => {
     if (!isMockLead) {
       void logActivity('call_click');
@@ -108,6 +123,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   };
 
   const cycleReminderDay = (direction: 1 | -1) => {
+    if (isFollowUpToday) return; // Don't cycle if today
     const currentIndex = REMINDER_DAYS.indexOf(
       selectedReminderDay as (typeof REMINDER_DAYS)[number],
     );
@@ -292,10 +308,10 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
               justifyContent: 'center',
               gap: 4,
               padding: '10px 8px',
-              border: '1px solid var(--card-border)',
+              border: isFollowUpToday ? '1px solid #ef4444' : '1px solid var(--card-border)',
               borderRadius: 999,
-              background: 'var(--background)',
-              color: 'var(--text)',
+              background: reminderBackground,
+              color: reminderColor,
               fontSize: 12,
               fontWeight: 600,
               whiteSpace: 'nowrap',
@@ -304,7 +320,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
             title="Scroll or tap to change reminder days"
           >
             <Clock size={16} />
-            {selectedReminderDay}d
+            {reminderLabel}
           </button>
         ) : null}
       </div>
