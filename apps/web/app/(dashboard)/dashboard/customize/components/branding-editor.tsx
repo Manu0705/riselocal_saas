@@ -32,7 +32,9 @@ export default function BrandingEditor() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
-      if (response?.data) {
+      if (response?.success === false) {
+        setError(response?.message || response?.error || 'Failed to load settings');
+      } else if (response?.data) {
         setSettings(response.data);
         setError(null);
       } else if (response?.error) {
@@ -64,19 +66,27 @@ export default function BrandingEditor() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (uploadResponse?.url) {
+      if (uploadResponse?.success === false) {
+        setError(uploadResponse?.message || uploadResponse?.error || `Failed to upload ${type}`);
+      } else if (uploadResponse?.url) {
         const fieldName = type === 'logo' ? 'logoUrl' : 'bannerUrl';
         const updateResponse = await api.put('/settings', {
           [fieldName]: uploadResponse.url,
         });
 
-        if (updateResponse?.data) {
+        if (updateResponse?.success === false) {
+          setError(updateResponse?.message || updateResponse?.error || 'Failed to save uploaded image');
+        } else if (updateResponse?.data) {
           setSettings(updateResponse.data);
           setSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
           setTimeout(() => setSuccess(null), 3000);
+        } else {
+          setError('Unexpected response while saving image settings');
         }
       } else if (uploadResponse?.error) {
         setError(uploadResponse.error);
+      } else {
+        setError(`Unexpected upload response for ${type}`);
       }
     } catch (error) {
       console.error(`Failed to upload ${type}:`, error);
@@ -93,12 +103,16 @@ export default function BrandingEditor() {
     try {
       const api = getTenantApiClient();
       const response = await api.put('/settings', updates);
-      if (response?.data) {
+      if (response?.success === false) {
+        setError(response?.message || response?.error || 'Failed to save changes');
+      } else if (response?.data) {
         setSettings(response.data);
         setSuccess('Changes saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       } else if (response?.error) {
         setError(response.error);
+      } else {
+        setError('Unexpected response while saving settings');
       }
     } catch (error) {
       console.error('Failed to update settings:', error);

@@ -36,8 +36,8 @@ function LoginContent() {
         return;
       }
 
-      const tenantIdFromServer = data?.user?.tenantId;
-      loginWithContext(data.token, tenant ?? tenantIdFromServer);
+      const tenantSlugFromServer = data?.user?.tenantSlug;
+      loginWithContext(data.token, tenant ?? tenantSlugFromServer);
       router.push('/dashboard');
     } finally {
       setLoading(false);

@@ -66,6 +66,12 @@ router.post('/login', async (req, res) => {
     }
 
     const resolvedRole = String(user.role || 'owner').toLowerCase();
+    let resolvedTenantSlug = tenantSlug;
+
+    if (!resolvedTenantSlug && resolvedTenantId) {
+      const tenant = await tenantRepository.findById(resolvedTenantId);
+      resolvedTenantSlug = tenant?.toJSON().slug || '';
+    }
 
     const token = jwtService.sign({
       userId: user.id,
@@ -80,6 +86,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         name: user.name,
         tenantId: resolvedTenantId,
+        tenantSlug: resolvedTenantSlug || undefined,
         role: resolvedRole,
       },
     });

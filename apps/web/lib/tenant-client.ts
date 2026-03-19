@@ -24,6 +24,31 @@ function handleUnauthorizedResponse(res: Response): void {
   }
 }
 
+async function parseApiResponse(res: Response): Promise<any> {
+  handleUnauthorizedResponse(res);
+
+  const text = await res.text();
+  let payload: any = null;
+
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    const startsWithHtml = text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html');
+    if (startsWithHtml) {
+      throw new Error('Server returned HTML instead of JSON. Please check API route/proxy configuration.');
+    }
+    throw new Error('Server returned an invalid JSON response.');
+  }
+
+  if (!res.ok) {
+    const message =
+      payload?.error || payload?.message || `Request failed with status ${res.status}`;
+    throw new Error(String(message));
+  }
+
+  return payload;
+}
+
 function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { ...extra };
   const token = globalThis.window === undefined ? null : localStorage.getItem('token');
@@ -46,8 +71,7 @@ export function getTenantApiClient() {
       const res = await fetch(buildApiUrl(path), {
         headers: getAuthHeaders(),
       });
-      handleUnauthorizedResponse(res);
-      return res.json();
+      return parseApiResponse(res);
     },
 
     async post(path: string, body: any, options?: { headers?: Record<string, string> }) {
@@ -65,8 +89,7 @@ export function getTenantApiClient() {
         headers,
         body: isFormData ? body : JSON.stringify(body),
       });
-      handleUnauthorizedResponse(res);
-      return res.json();
+      return parseApiResponse(res);
     },
 
     async put(path: string, body: any, options?: { headers?: Record<string, string> }) {
@@ -84,8 +107,7 @@ export function getTenantApiClient() {
         headers,
         body: isFormData ? body : JSON.stringify(body),
       });
-      handleUnauthorizedResponse(res);
-      return res.json();
+      return parseApiResponse(res);
     },
 
     async delete(path: string) {
@@ -93,8 +115,7 @@ export function getTenantApiClient() {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      handleUnauthorizedResponse(res);
-      return res.json();
+      return parseApiResponse(res);
     },
   };
 }

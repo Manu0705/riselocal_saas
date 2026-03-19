@@ -79,6 +79,8 @@ type LeadAnalyticsPayload = {
   recentActivities?: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
 };
 
+const PUBLIC_ACTIVITY_TYPES = new Set(['whatsapp_click', 'call_click', 'enquiry_click', 'booking']);
+
 const DashboardDataContext = createContext<DashboardDataContextType | undefined>(undefined);
 
 export function useDashboardData() {
@@ -207,6 +209,41 @@ function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
     timeline: [],
     recentActivities: [],
   };
+}
+
+function getLatestPublicActivityPerLead(
+  recentActivities: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>,
+) {
+  if (!Array.isArray(recentActivities) || recentActivities.length === 0) {
+    return [] as Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
+  }
+
+  const normalized = recentActivities
+    .map((entry) => ({
+      id: String(entry?.id ?? ''),
+      leadId: String(entry?.leadId ?? ''),
+      leadName: String(entry?.leadName ?? 'Lead'),
+      type: String(entry?.type ?? '').toLowerCase(),
+      timestamp: String(entry?.timestamp ?? ''),
+    }))
+    .filter((entry) => entry.leadId && PUBLIC_ACTIVITY_TYPES.has(entry.type));
+
+  normalized.sort((a, b) => {
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    return timeB - timeA;
+  });
+
+  const seenLeadIds = new Set<string>();
+  const latestByLead: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }> = [];
+
+  for (const activity of normalized) {
+    if (seenLeadIds.has(activity.leadId)) continue;
+    seenLeadIds.add(activity.leadId);
+    latestByLead.push(activity);
+  }
+
+  return latestByLead;
 }
 
 export function DashboardDataProvider({ children }: Readonly<{ children: ReactNode }>) {
@@ -369,13 +406,15 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
           }))
         : [],
       recentActivities: Array.isArray(analytics?.recentActivities)
-        ? analytics.recentActivities.map((entry: any) => ({
-            id: String(entry.id ?? ''),
-            leadId: String(entry.leadId ?? ''),
-            leadName: String(entry.leadName ?? 'Lead'),
-            type: String(entry.type ?? ''),
-            timestamp: String(entry.timestamp ?? ''),
-          }))
+        ? getLatestPublicActivityPerLead(
+            analytics.recentActivities.map((entry: any) => ({
+              id: String(entry.id ?? ''),
+              leadId: String(entry.leadId ?? ''),
+              leadName: String(entry.leadName ?? 'Lead'),
+              type: String(entry.type ?? ''),
+              timestamp: String(entry.timestamp ?? ''),
+            })),
+          )
         : [],
     };
   }, [leads, analytics]);

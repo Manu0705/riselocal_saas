@@ -31,6 +31,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
 
   const createdAtLabel = getRelativeTime(lead?.createdAt);
   const showReviewButton = status === 'Converted';
+  const showReminderButton = status === 'Follow-Up';
 
   const handleCall = () => {
     if (!isMockLead) {
@@ -195,19 +196,15 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gap: 3, marginBottom: 10 }}>
-        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
-          {lead?.phone || 'No phone'}
-          {' | '}
-          Source: {lead?.source || 'ORGANIC'}
-        </p>
-        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
-          Assigned To: {lead?.assignedToName || 'Unassigned'}
-          {lead?.location ? ` | ${lead.location}` : ''}
-        </p>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: showReminderButton
+            ? 'repeat(4, minmax(0, 1fr))'
+            : 'repeat(3, minmax(0, 1fr))',
+          gap: 8,
+        }}
+      >
         <button
           type="button"
           onClick={handleCall}
@@ -281,33 +278,35 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
           {status}
         </button>
 
-        <button
-          type="button"
-          onClick={() => cycleReminderDay(1)}
-          onWheel={(e) => {
-            e.preventDefault();
-            cycleReminderDay(e.deltaY > 0 ? 1 : -1);
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            padding: '10px 8px',
-            border: '1px solid var(--card-border)',
-            borderRadius: 999,
-            background: 'var(--background)',
-            color: 'var(--text)',
-            fontSize: 12,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            minHeight: 40,
-          }}
-          title="Scroll or tap to change reminder days"
-        >
-          <Clock size={16} />
-          {selectedReminderDay}d
-        </button>
+        {showReminderButton ? (
+          <button
+            type="button"
+            onClick={() => cycleReminderDay(1)}
+            onWheel={(e) => {
+              e.preventDefault();
+              cycleReminderDay(e.deltaY > 0 ? 1 : -1);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              padding: '10px 8px',
+              border: '1px solid var(--card-border)',
+              borderRadius: 999,
+              background: 'var(--background)',
+              color: 'var(--text)',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              minHeight: 40,
+            }}
+            title="Scroll or tap to change reminder days"
+          >
+            <Clock size={16} />
+            {selectedReminderDay}d
+          </button>
+        ) : null}
       </div>
 
       {/* Review Button - Show only for Converted leads */}
@@ -337,17 +336,6 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
           Send Review Request
         </button>
       )}
-
-      {Array.isArray(lead?.timeline) && lead.timeline.length > 0 ? (
-        <div style={{ marginTop: 10, borderTop: '1px dashed var(--card-border)', paddingTop: 8 }}>
-          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 11, marginBottom: 5 }}>Activity Timeline</p>
-          {lead.timeline.slice(0, 3).map((item) => (
-            <p key={item.id || `${item.type}-${item.timestamp}`} style={{ margin: '2px 0', color: 'var(--text)', fontSize: 12 }}>
-              {toReadableActivity(item.type)} ({item.timestamp ? getRelativeTime(item.timestamp) : 'just now'})
-            </p>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

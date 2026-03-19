@@ -32,6 +32,7 @@ export default function ActionButtonsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [buttons, setButtons] = useState<ActionButtonsConfig>(DEFAULT_ACTION_BUTTONS);
+  const [savedButtons, setSavedButtons] = useState<ActionButtonsConfig>(DEFAULT_ACTION_BUTTONS);
 
   useEffect(() => {
     void loadSettings();
@@ -41,8 +42,13 @@ export default function ActionButtonsManager() {
     try {
       const api = getTenantApiClient();
       const response = await api.get('/settings');
+      if (response?.success === false) {
+        throw new Error(response?.message || response?.error || 'Failed to load action button settings');
+      }
       const data = (response?.data || {}) as SettingsResponse;
-      setButtons(normalizeActionButtons(data.actionButtons));
+      const normalized = normalizeActionButtons(data.actionButtons);
+      setButtons(normalized);
+      setSavedButtons(normalized);
     } catch (error) {
       console.error('Failed to load action button settings:', error);
       setButtons(DEFAULT_ACTION_BUTTONS);
@@ -66,34 +72,56 @@ export default function ActionButtonsManager() {
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  const clearRecord = (key: ActionButtonKey) => {
-    updateButton(key, 'phone', '');
-    updateButton(key, 'message', '');
-  };
-
   const savedRecords = BUTTONS.filter((meta) => {
-    const config = buttons[meta.key];
+    const config = savedButtons[meta.key];
     return Boolean(config.phone || (meta.showMessage && config.message));
   });
 
-  const saveSettings = async () => {
+  const persistButtons = async (nextButtons: ActionButtonsConfig) => {
     setSaving(true);
     try {
       const api = getTenantApiClient();
       const response = await api.put('/settings', {
-        actionButtons: buttons,
+        actionButtons: nextButtons,
       });
+
+      if (response?.success === false) {
+        throw new Error(response?.message || response?.error || 'Failed to save settings');
+      }
 
       if (response?.data) {
         const data = response.data as SettingsResponse;
-        setButtons(normalizeActionButtons(data.actionButtons));
+        const normalized = normalizeActionButtons(data.actionButtons);
+        setButtons(normalized);
+        setSavedButtons(normalized);
+      } else {
+        throw new Error('Unexpected response while saving action buttons');
       }
     } catch (error) {
       console.error('Failed to save action button settings:', error);
-      alert('Failed to save Action Buttons settings. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to save Action Buttons settings. Please try again.');
+      throw error;
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveSettings = async () => {
+    await persistButtons(buttons);
+  };
+
+  const clearRecord = async (key: ActionButtonKey) => {
+    const nextButtons: ActionButtonsConfig = {
+      ...buttons,
+      [key]: {
+        ...buttons[key],
+        phone: undefined,
+        message: undefined,
+      },
+    };
+
+    setButtons(nextButtons);
+    await persistButtons(nextButtons);
   };
 
   if (loading) {
@@ -234,7 +262,7 @@ export default function ActionButtonsManager() {
           </p>
         ) : (
           savedRecords.map((meta) => {
-            const config = buttons[meta.key];
+            const config = savedButtons[meta.key];
             return (
               <div
                 key={`saved-${meta.key}`}
@@ -283,7 +311,9 @@ export default function ActionButtonsManager() {
                   <button
                     type="button"
                     title="Delete"
-                    onClick={() => clearRecord(meta.key)}
+                    onClick={() => {
+                      void clearRecord(meta.key);
+                    }}
                     style={{
                       border: '1px solid #ef4444',
                       borderRadius: 8,
