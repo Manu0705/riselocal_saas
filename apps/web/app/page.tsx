@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 const LAST_TENANT_KEY = 'riselocal:last-tenant';
 
@@ -15,12 +14,11 @@ function toTenantLabel(value: string): string {
 }
 
 export default function HomePage() {
-  const searchParams = useSearchParams();
   const [tenantHint, setTenantHint] = useState<string | null>(null);
 
-  const tenantFromQuery = searchParams.get('tenant');
-
   useEffect(() => {
+    const params = new URLSearchParams(globalThis.location.search);
+    const tenantFromQuery = params.get('tenant');
     const normalized = (tenantFromQuery ?? '').trim().toLowerCase();
     if (normalized) {
       setTenantHint(normalized);
@@ -30,7 +28,7 @@ export default function HomePage() {
 
     const fromStorage = localStorage.getItem(LAST_TENANT_KEY);
     setTenantHint(fromStorage && fromStorage.trim().length > 0 ? fromStorage.trim().toLowerCase() : null);
-  }, [tenantFromQuery]);
+  }, []);
 
   const loginHref = useMemo(() => {
     if (!tenantHint) return '/login';
