@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 const STATUS_OPTIONS = ['New', 'Contacted', 'Follow-Up', 'Converted', 'Lost'] as const;
 const REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type LeadLike = {
   id?: string;
@@ -29,9 +30,35 @@ function computeDaysFromFollowUp(followUpAt?: string): number {
   const now = Date.now();
   const followUp = new Date(followUpAt).getTime();
   const diffMs = followUp - now;
-  if (diffMs <= 0) return 1; // overdue or within today → show as 1d (Today label will override)
-  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  if (diffMs <= 0) return 1;
+  const diffDays = Math.ceil(diffMs / DAY_MS);
   return Math.max(1, Math.min(7, diffDays));
+}
+
+function getStartOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function isFollowUpDueToday(followUpAt?: string, nowMs: number = Date.now()): boolean {
+  if (!followUpAt) return false;
+  const followUpTs = new Date(followUpAt).getTime();
+  if (Number.isNaN(followUpTs)) return false;
+
+  const todayStart = getStartOfDay(new Date(nowMs));
+  const followUpStart = getStartOfDay(new Date(followUpTs));
+
+  return followUpStart <= todayStart;
+}
+
+function isFollowUpOverdue(followUpAt?: string, nowMs: number = Date.now()): boolean {
+  if (!followUpAt) return false;
+  const followUpTs = new Date(followUpAt).getTime();
+  if (Number.isNaN(followUpTs)) return false;
+
+  const todayStart = getStartOfDay(new Date(nowMs));
+  const followUpStart = getStartOfDay(new Date(followUpTs));
+
+  return followUpStart < todayStart;
 }
 
 export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
@@ -41,26 +68,40 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const [selectedReminderDay, setSelectedReminderDay] = useState(
     () => computeDaysFromFollowUp(lead?.followUpAt),
   );
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const isMockLead = Boolean((lead as { __isMock?: boolean })?.__isMock);
+
+  useEffect(() => {
+    const timerId = globalThis.setInterval(() => {
+      setNowMs(Date.now());
+    }, 60 * 1000);
+
+    return () => {
+      globalThis.clearInterval(timerId);
+    };
+  }, []);
 
   // Keep reminder day in sync with the actual followUpAt from server data
   useEffect(() => {
     setSelectedReminderDay(computeDaysFromFollowUp(lead?.followUpAt));
   }, [lead?.followUpAt]);
 
+  useEffect(() => {
+    if (!lead?.followUpAt) return;
+    setSelectedReminderDay(computeDaysFromFollowUp(lead?.followUpAt));
+  }, [nowMs, lead?.followUpAt]);
+
   const createdAtLabel = getRelativeTime(lead?.createdAt);
   const showReviewButton = status === 'Converted';
   const showReminderButton = status === 'Follow-Up';
 
   const followUpDate = lead?.followUpAt ? new Date(lead.followUpAt) : undefined;
-  const now = Date.now();
-  // "Today" = followUp is within the next 24 hours OR already past (overdue)
-  const isFollowUpToday =
-    followUpDate !== undefined && followUpDate.getTime() - now < 24 * 60 * 60 * 1000;
+  const isFollowUpPastDue = isFollowUpOverdue(lead?.followUpAt, nowMs);
+  const isFollowUpToday = isFollowUpDueToday(lead?.followUpAt, nowMs);
 
-  const reminderLabel = isFollowUpToday ? 'Today' : `${selectedReminderDay}d`;
-  const reminderBackground = isFollowUpToday ? '#ef4444' : 'var(--background)';
-  const reminderColor = isFollowUpToday ? 'white' : 'var(--text)';
+  const reminderLabel = isFollowUpPastDue ? 'Overdue' : isFollowUpToday ? 'Today' : `${selectedReminderDay}d`;
+  const reminderBackground = isFollowUpPastDue ? '#f59e0b' : isFollowUpToday ? '#ef4444' : 'var(--background)';
+  const reminderColor = isFollowUpPastDue || isFollowUpToday ? 'white' : 'var(--text)';
 
 
   const handleCall = () => {
@@ -143,7 +184,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   };
 
   const cycleReminderDay = (direction: 1 | -1) => {
-    if (isFollowUpToday) return; // Don't cycle if today
+    if (isFollowUpToday) return; // Don't cycle if due today or overdue
     const currentIndex = REMINDER_DAYS.indexOf(
       selectedReminderDay as (typeof REMINDER_DAYS)[number],
     );
@@ -328,7 +369,11 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
               justifyContent: 'center',
               gap: 4,
               padding: '10px 8px',
-              border: isFollowUpToday ? '1px solid #ef4444' : '1px solid var(--card-border)',
+              border: isFollowUpPastDue
+                ? '1px solid #d97706'
+                : isFollowUpToday
+                  ? '1px solid #ef4444'
+                  : '1px solid var(--card-border)',
               borderRadius: 999,
               background: reminderBackground,
               color: reminderColor,

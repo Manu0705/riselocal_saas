@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
 
 export const dynamic = 'force-dynamic';
+const LAST_TENANT_KEY = 'riselocal:last-tenant';
 
 function isLikelyColdStartIssue(message: string | null): boolean {
   if (!message) return false;
@@ -39,7 +40,7 @@ function Spinner() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenant = searchParams.get('tenant');
+  const tenant = searchParams.get('tenant')?.trim().toLowerCase() || null;
 
   const { login: loginWithContext } = useAuth();
   const [email, setEmail] = useState('');
@@ -47,6 +48,14 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (tenant) {
+      localStorage.setItem(LAST_TENANT_KEY, tenant);
+    }
+  }, [tenant]);
+
+  const backToHomeHref = tenant ? `/?tenant=${encodeURIComponent(tenant)}` : '/';
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -315,7 +324,7 @@ function LoginContent() {
 
         {/* Footer link back to home */}
         <p style={{ marginTop: 24, fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>
-          <a href="/" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+          <a href={backToHomeHref} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
             ← Back to home
           </a>
         </p>

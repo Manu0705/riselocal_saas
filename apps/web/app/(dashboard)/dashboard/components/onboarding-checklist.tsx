@@ -4,6 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Circle, Loader2, RefreshCw } from 'lucide-react';
 import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
+import {
+  getDashboardRefreshEventName,
+  getDashboardRefreshStorageKey,
+  parseDashboardRefreshPayload,
+} from '@/lib/dashboard-events';
 
 type ChecklistItem = {
   id: string;
@@ -30,8 +35,10 @@ export default function OnboardingChecklist() {
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ChecklistItem[]>([]);
 
-  const loadChecklist = useCallback(async () => {
-    setLoading(true);
+  const loadChecklist = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -95,12 +102,53 @@ export default function OnboardingChecklist() {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load onboarding checklist');
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     void loadChecklist();
+  }, [loadChecklist]);
+
+  useEffect(() => {
+    if (globalThis.window === undefined) return;
+
+    const eventName = getDashboardRefreshEventName();
+    const storageKey = getDashboardRefreshStorageKey();
+
+    const intervalId = globalThis.setInterval(() => {
+      void loadChecklist({ silent: true });
+    }, 60 * 1000);
+
+    const onDashboardRefresh = () => {
+      void loadChecklist({ silent: true });
+    };
+
+    const onStorageRefresh = (event: StorageEvent) => {
+      if (event.key !== storageKey) return;
+      const payload = parseDashboardRefreshPayload(event.newValue);
+      if (!payload) return;
+      void loadChecklist({ silent: true });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadChecklist({ silent: true });
+      }
+    };
+
+    globalThis.window.addEventListener(eventName, onDashboardRefresh as EventListener);
+    globalThis.window.addEventListener('storage', onStorageRefresh);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      globalThis.clearInterval(intervalId);
+      globalThis.window.removeEventListener(eventName, onDashboardRefresh as EventListener);
+      globalThis.window.removeEventListener('storage', onStorageRefresh);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [loadChecklist]);
 
   const completedCount = useMemo(() => items.filter((item) => item.done).length, [items]);
@@ -152,6 +200,10 @@ export default function OnboardingChecklist() {
         />
       </div>
     );
+  }
+
+  if (total > 0 && completedCount === total) {
+    return null;
   }
 
   return (

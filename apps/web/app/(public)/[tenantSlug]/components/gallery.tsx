@@ -34,7 +34,6 @@ export default function Gallery({
   actionButtons,
 }: Readonly<Props>) {
   const [active, setActive] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [showSkeletons, setShowSkeletons] = useState(true);
   const [pendingEnquiry, setPendingEnquiry] = useState<{ image: string; category: string } | null>(
     null,
@@ -42,7 +41,6 @@ export default function Gallery({
   const [selectedImage, setSelectedImage] = useState<{ url: string; category: string } | null>(null);
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
-  const itemsPerPage = 8;
 
   const toCategoryKey = (value: unknown) =>
     typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -102,26 +100,18 @@ export default function Gallery({
     }
 
     const activeExists = categories.some((category) => category.key === active);
-    if (!active || !activeExists || active === 'all') {
+    if (!active || !activeExists) {
       setActive(categories[0]?.key ?? 'all');
     }
   }, [categories, active]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [active]);
 
   const filtered = useMemo(() => {
     if (active === 'all') return images;
     return images.filter((img) => toCategoryKey(img.category) === active);
   }, [active, images]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * itemsPerPage;
-  const paginatedImages = filtered.slice(startIndex, startIndex + itemsPerPage);
-  const showingFrom = filtered.length === 0 ? 0 : startIndex + 1;
-  const showingTo = Math.min(startIndex + itemsPerPage, filtered.length);
+  const showingFrom = filtered.length === 0 ? 0 : 1;
+  const showingTo = filtered.length;
 
   const skeletonCards = Array.from({ length: 6 }, (_, index) => index);
 
@@ -129,11 +119,11 @@ export default function Gallery({
 
   if (showSkeletons) {
     content = (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
         {skeletonCards.map((card) => (
           <div
             key={card}
-            className="h-64 animate-pulse rounded-lg border border-gray-200 bg-gray-100 shadow-sm"
+            className="h-64 min-w-[calc(50%-0.5rem)] animate-pulse rounded-lg border border-gray-200 bg-gray-100 shadow-sm sm:min-w-0"
           />
         ))}
       </div>
@@ -147,13 +137,13 @@ export default function Gallery({
   } else {
     content = (
       <>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paginatedImages.map((img) => (
+        <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((img) => (
             <button
               key={`${img.url}-${img.category}`}
               type="button"
               onClick={() => setSelectedImage({ url: img.url, category: toCategoryLabel(img.category) })}
-              className="group relative h-64 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-left shadow-sm transition-all duration-300 hover:shadow-md"
+              className="group relative h-64 min-w-[calc(50%-0.5rem)] overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-left shadow-sm transition-all duration-300 hover:shadow-md sm:min-w-0"
             >
               <img
                 src={img.url}
@@ -189,43 +179,6 @@ export default function Gallery({
             </button>
           ))}
         </div>
-
-        {totalPages > 1 ? (
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              disabled={safePage === 1}
-              className="rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Previous
-            </button>
-
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button
-                key={page}
-                type="button"
-                onClick={() => setCurrentPage(page)}
-                className={`rounded-full px-3 py-2 text-sm font-medium transition ${
-                  safePage === page
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-              disabled={safePage === totalPages}
-              className="rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        ) : null}
       </>
     );
   }
@@ -239,7 +192,7 @@ export default function Gallery({
         </p>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-3">
+      <div className="mb-5 flex gap-3 overflow-x-auto pb-1">
         {categories.map((category) => {
           const isActive = active === category.key;
           return (
@@ -247,7 +200,7 @@ export default function Gallery({
               key={category.key}
               type="button"
               onClick={() => setActive(category.key)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

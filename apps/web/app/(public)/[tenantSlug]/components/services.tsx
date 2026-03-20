@@ -27,13 +27,7 @@ export default function Services({ services }: Readonly<Props>) {
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="m-0 text-xl font-semibold text-[var(--text)]">Services</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Browse what this tenant currently offers.
-          </p>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          {list.length} items
-        </span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -60,11 +54,6 @@ export default function Services({ services }: Readonly<Props>) {
               <h3 className={`m-0 text-base font-semibold ${isSelected ? 'text-blue-600' : 'text-[var(--text)]'}`}>
                 {label}
               </h3>
-              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-              }`}>
-                {isSelected ? 'Open' : 'View'}
-              </span>
             </div>
             {isSelected && (
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">

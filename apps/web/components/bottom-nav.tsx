@@ -1,17 +1,77 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Users, Bell, Star } from 'lucide-react';
+import { useDashboardData } from '@/context/DashboardDataContext';
 
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { metrics, missedFollowUps, tenant, tenantSlug } = useDashboardData();
+
+  const [lastSeenTs, setLastSeenTs] = useState(0);
+
+  const tenantKey =
+    tenantSlug ??
+    tenant?.slug ??
+    tenant?.domain ??
+    tenant?.id ??
+    searchParams.get('tenant') ??
+    'default';
+  const storageKey = `notifications:lastSeen:${tenantKey}`;
+
+  const latestNotificationTs = useMemo(() => {
+    const activityTs = (metrics?.recentActivities ?? [])
+      .map((item) => new Date(String(item?.timestamp ?? '')).getTime())
+      .filter((ts) => Number.isFinite(ts));
+
+    const missedTs = (missedFollowUps ?? [])
+      .map((item) => new Date(String(item?.followUpAt ?? '')).getTime())
+      .filter((ts) => Number.isFinite(ts));
+
+    const allTs = [...activityTs, ...missedTs];
+    if (allTs.length === 0) return 0;
+    return Math.max(...allTs);
+  }, [metrics?.recentActivities, missedFollowUps]);
+
+  const isOnNotificationsPage = pathname.startsWith('/dashboard/notifications');
+
+  useEffect(() => {
+    try {
+      const raw = globalThis.localStorage.getItem(storageKey);
+      const parsed = raw ? Number(raw) : 0;
+      setLastSeenTs(Number.isFinite(parsed) ? parsed : 0);
+    } catch {
+      setLastSeenTs(0);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!isOnNotificationsPage) return;
+    if (!latestNotificationTs) return;
+
+    try {
+      globalThis.localStorage.setItem(storageKey, String(latestNotificationTs));
+      setLastSeenTs(latestNotificationTs);
+    } catch {
+      // Ignore localStorage write failures.
+    }
+  }, [isOnNotificationsPage, latestNotificationTs, storageKey]);
+
+  const hasUnseenNotifications =
+    !isOnNotificationsPage && latestNotificationTs > 0 && latestNotificationTs > lastSeenTs;
 
   const items = [
     { label: 'Leads', icon: Users, path: '/dashboard/leads' },
     { label: 'Reviews', icon: Star, path: '/dashboard/reviews', primary: true },
-    { label: 'Notifications', icon: Bell, path: '/dashboard/notifications', badge: true },
+    {
+      label: 'Notifications',
+      icon: Bell,
+      path: '/dashboard/notifications',
+      badge: hasUnseenNotifications,
+    },
   ];
 
   const getTenantQuery = () => {
@@ -62,7 +122,7 @@ export default function BottomNav() {
               color: active ? 'var(--text)' : 'var(--muted)',
               position: 'relative',
               gap: 2,
-              transform: item.primary ? 'translateY(-14px)' : 'none',
+              transform: item.primary ? 'translate(10px, -14px)' : 'none',
             }}
             aria-label={item.label}
           >

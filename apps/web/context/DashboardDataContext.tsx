@@ -333,6 +333,7 @@ function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
   const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
   const todayStart = getStartOfDay(new Date());
+  const dayMs = 24 * 60 * 60 * 1000;
   const followUpItems = leads.filter((item) => mapStatus(item?.status) === 'QUALIFIED');
 
   let followUpsToday = 0;
@@ -344,9 +345,16 @@ function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
 
     if (!timestamp) {
       followUpsUnscheduled += 1;
-    } else if (timestamp < todayStart) {
+      return;
+    }
+
+    const followUpDayStart = new Date(timestamp);
+    followUpDayStart.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((followUpDayStart.getTime() - todayStart) / dayMs);
+
+    if (diffDays < 0) {
       followUpsOverdue += 1;
-    } else if (timestamp === todayStart) {
+    } else if (diffDays === 0) {
       followUpsToday += 1;
     }
   });
@@ -426,7 +434,18 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [timeTick, setTimeTick] = useState(() => Date.now());
   const hasLoadedOnceRef = useRef(false);
+
+  useEffect(() => {
+    const intervalId = globalThis.setInterval(() => {
+      setTimeTick(Date.now());
+    }, 60 * 1000);
+
+    return () => {
+      globalThis.clearInterval(intervalId);
+    };
+  }, []);
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
@@ -614,7 +633,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
           )
         : [],
     };
-  }, [leads, analytics]);
+  }, [leads, analytics, timeTick]);
 
   const refresh = triggerRefresh;
 
