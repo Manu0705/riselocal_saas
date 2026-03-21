@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { ChevronRight, Globe, MapPin } from 'lucide-react';
 
 type Props = {
@@ -54,14 +55,20 @@ export default function Hero({ tenant }: Props) {
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {/* Slide 1: Banner */}
         <section className="min-w-full snap-start overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-sm">
-          <img
-            src={
-              tenant?.bannerUrl ||
-              'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80&auto=format&fit=crop'
-            }
-            alt="Business banner"
-            className="block h-48 w-full object-cover sm:h-56"
-          />
+          <div className="relative h-48 w-full sm:h-56">
+            <Image
+              src={
+                tenant?.bannerUrl ||
+                'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80&auto=format&fit=crop'
+              }
+              alt="Business banner"
+              fill
+              sizes="100vw"
+              className="object-cover"
+              quality={85}
+              priority={true}
+            />
+          </div>
           <div className="space-y-2 p-4">
             <div className="text-base font-bold text-[var(--text)] sm:text-lg">
               {tenant?.name || 'Business Banner'}

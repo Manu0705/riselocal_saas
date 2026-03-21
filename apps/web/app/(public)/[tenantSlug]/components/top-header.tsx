@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -170,16 +171,17 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
             </div>
           </>
         ) : (
-          <img
+          <Image
             src={logoUrl || '/logo/JB_Logo.jpeg'}
             alt="logo"
+            width={40}
+            height={40}
             style={{
-              width: 40,
-              height: 40,
               borderRadius: logoShape === 'square' ? 4 : '50%',
-              objectFit: 'cover',
               border: '1px solid var(--card-border)',
+              objectFit: 'cover',
             }}
+            priority={true}
           />
         )}
       </div>

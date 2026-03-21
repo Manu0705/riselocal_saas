@@ -3,6 +3,7 @@ import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.reposito
 import { Tenant } from '../domain/tenant.entity';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
+import { optimizeCloudinaryUrl } from '../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
 
 const router = Router();
@@ -224,6 +225,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
         settings: true,
         galleryImages: {
           orderBy: [{ category: 'asc' }, { position: 'asc' }],
+          take: 20,
         },
         services: {
           orderBy: { position: 'asc' },
@@ -249,8 +251,8 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       createdAt: tenant.createdAt,
       settings: tenant.settings
         ? {
-            logoUrl: tenant.settings.logoUrl,
-            bannerUrl: tenant.settings.bannerUrl,
+            logoUrl: optimizeCloudinaryUrl(tenant.settings.logoUrl),
+            bannerUrl: optimizeCloudinaryUrl(tenant.settings.bannerUrl),
             logoShape: tenant.settings.logoShape,
             primaryColor: tenant.settings.primaryColor,
             secondaryColor: tenant.settings.secondaryColor,
@@ -263,7 +265,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
           }
         : null,
       galleryImages: tenant.galleryImages.map((image) => ({
-        url: image.url,
+        url: optimizeCloudinaryUrl(image.url),
         category: image.category,
         position: image.position,
         alt: image.alt,
@@ -281,10 +283,12 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       })),
     };
 
-    return res.json({
-      success: true,
-      data: publicTenant,
-    });
+    return res
+      .set('Cache-Control', 'public, max-age=300, s-maxage=600')
+      .json({
+        success: true,
+        data: publicTenant,
+      });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
 

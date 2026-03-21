@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { capturePublicCtaLead, getLeadCapturePrefill } from '@/lib/public-lead-capture';
 import {
@@ -145,10 +146,14 @@ export default function Gallery({
               onClick={() => setSelectedImage({ url: img.url, category: toCategoryLabel(img.category) })}
               className="group relative h-64 min-w-[calc(50%-0.5rem)] overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-left shadow-sm transition-all duration-300 hover:shadow-md sm:min-w-0"
             >
-              <img
+              <Image
                 src={img.url}
                 alt={img.alt || toCategoryLabel(img.category)}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                quality={80}
+                priority={false}
               />
 
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />

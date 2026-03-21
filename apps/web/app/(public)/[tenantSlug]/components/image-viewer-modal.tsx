@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -98,9 +99,11 @@ export default function ImageViewerModal({
           height: '100%',
         }}
       >
-        <img
+        <Image
           src={imageUrl}
           alt={imageCategory}
+          width={800}
+          height={600}
           style={{
             maxWidth: '100%',
             maxHeight: '85%',
@@ -113,6 +116,8 @@ export default function ImageViewerModal({
           }}
           onContextMenu={(e) => e.preventDefault()}
           draggable={false}
+          quality={90}
+          priority={true}
         />
 
         {/* Category label */}

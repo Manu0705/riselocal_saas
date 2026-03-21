@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Upload, Loader2, X, Plus, Edit2, Check, AlertCircle } from 'lucide-react';
 import CustomizePanelSkeleton from './customize-panel-skeleton';
@@ -540,14 +541,14 @@ export default function GalleryManager() {
                 aspectRatio: '1',
               }}
             >
-              <img
+              <Image
                 src={image.url}
                 alt={image.alt || 'Gallery image'}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover"
+                quality={75}
+                priority={false}
               />
 
               {/* Overlay with actions */}
