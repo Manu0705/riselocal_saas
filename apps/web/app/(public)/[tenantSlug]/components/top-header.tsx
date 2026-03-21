@@ -54,10 +54,21 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
   const showMenu = canToggleViews && !isPublicPreview;
 
   useEffect(() => {
-    if (!activeTenant) return;
-    router.prefetch(`/${activeTenant}`);
-    router.prefetch(`/${activeTenant}?view=public`);
-  }, [router, activeTenant]);
+    if (!activeTenant || !canToggleViews) return;
+
+    const targetRoute = isPublicPreview ? `/${activeTenant}` : `/${activeTenant}?view=public`;
+
+    // Prefetch only the opposite view to avoid duplicate heavy RSC downloads.
+    const prefetch = () => router.prefetch(targetRoute);
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(prefetch, { timeout: 1200 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(prefetch, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [router, activeTenant, canToggleViews, isPublicPreview]);
 
   const goToDashboard = () => {
     router.push(`/dashboard?tenant=${activeTenant}`);
