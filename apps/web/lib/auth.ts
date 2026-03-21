@@ -1,4 +1,5 @@
 import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
+import { fetchWithRetry } from '@/lib/retry';
 
 const TOKEN_KEY = 'token';
 const TENANT_SLUG_KEY = 'tenantSlug';
@@ -14,13 +15,29 @@ function buildUrl(path: string) {
 
 export async function login(email: string, password: string, tenantSlug?: string) {
   try {
-    const res = await fetch(buildUrl('/auth/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, tenantSlug }),
-    });
+    const res = await fetchWithRetry(
+      buildUrl('/auth/login'),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, tenantSlug }),
+      },
+      {
+        attempts: 7,
+        initialDelayMs: 1000,
+        maxDelayMs: 10000,
+        factor: 1.6,
+      },
+    );
 
-    const data = await res.json();
+    const text = await res.text();
+    let data: any = null;
+
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      throw new Error('Server returned invalid response during login. Please retry in a few seconds.');
+    }
 
     if (data?.token) {
       localStorage.setItem(TOKEN_KEY, data.token);

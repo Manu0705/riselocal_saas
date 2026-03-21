@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithRetry } from '@/lib/retry';
 
 export const dynamic = 'force-dynamic';
 const LAST_TENANT_KEY = 'riselocal:last-tenant';
@@ -54,6 +55,17 @@ function LoginContent() {
       localStorage.setItem(LAST_TENANT_KEY, tenant);
     }
   }, [tenant]);
+
+  useEffect(() => {
+    void fetchWithRetry('/api/health', { cache: 'no-store' }, {
+      attempts: 5,
+      initialDelayMs: 1200,
+      maxDelayMs: 8000,
+      factor: 1.5,
+    }).catch(() => {
+      // Silent warm-up; login submit has its own retry path.
+    });
+  }, []);
 
   const backToHomeHref = tenant ? `/?tenant=${encodeURIComponent(tenant)}` : '/';
 

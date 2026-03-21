@@ -6,10 +6,10 @@ export type RetryOptions = {
 };
 
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
-  attempts: 3,
-  initialDelayMs: 400,
-  maxDelayMs: 2500,
-  factor: 2,
+  attempts: 6,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  factor: 1.7,
 };
 
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
