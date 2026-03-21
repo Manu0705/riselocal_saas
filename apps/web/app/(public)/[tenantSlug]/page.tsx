@@ -1,14 +1,57 @@
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { getTenant, isReservedTenantSlug } from '@/lib/tenant-resolver';
 import TenantPageWrapper from './tenant-page-wrapper';
 
 import Hero from './components/hero';
 import QuickActions from './components/quick-actions';
-import Services from './components/services';
-import Gallery from './components/gallery';
 import HowItWorks from './components/how-it-works';
-import Booking from './components/booking';
-import Contact from './components/contact';
+
+const Services = dynamic(() => import('./components/services'), {
+  suspense: true,
+});
+
+const Gallery = dynamic(() => import('./components/gallery'), {
+  suspense: true,
+});
+
+const Booking = dynamic(() => import('./components/booking'), {
+  suspense: true,
+});
+
+const Contact = dynamic(() => import('./components/contact'), {
+  suspense: true,
+});
+
+function SectionSkeleton({ title }: Readonly<{ title: string }>) {
+  return (
+    <div className="px-4 py-4">
+      <div className="mb-4 h-6 w-36 animate-pulse rounded bg-gray-200/70" aria-label={`${title} loading`} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, idx) => (
+          <div
+            key={`${title}-skeleton-${idx}`}
+            className="h-28 animate-pulse rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/60"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FormSkeleton({ title }: Readonly<{ title: string }>) {
+  return (
+    <div className="p-4">
+      <h2 className="mb-3">{title}</h2>
+      <div className="grid gap-2.5">
+        <div className="h-10 animate-pulse rounded bg-gray-200/70" />
+        <div className="h-10 animate-pulse rounded bg-gray-200/70" />
+        <div className="h-10 animate-pulse rounded bg-gray-200/70" />
+      </div>
+    </div>
+  );
+}
 
 type Props = Readonly<{
   params: {
@@ -34,21 +77,6 @@ export default async function TenantPage({ params }: Props) {
     ? tenant.sectionOrder
     : ['hero', 'services', 'gallery'];
 
-  const sections: Record<string, JSX.Element> = {
-    hero: <Hero tenant={tenant} />,
-    services: <Services services={tenant.services || []} />,
-    gallery: (
-      <Gallery
-        images={tenant.gallery || []}
-        galleryCategories={tenant.galleryCategories || []}
-        tenantSlug={tenantSlug}
-        tenantId={tenant.id}
-        phone={tenant.whatsapp || tenant.phone}
-        actionButtons={tenant.actionButtons}
-      />
-    ),
-  };
-
   return (
     <TenantPageWrapper>
       <div
@@ -60,7 +88,26 @@ export default async function TenantPage({ params }: Props) {
       >
         {sectionOrder.map((sectionKey: string) => (
           <div key={sectionKey} id={sectionKey}>
-            {sections[sectionKey] ?? null}
+            {sectionKey === 'hero' ? <Hero tenant={tenant} /> : null}
+
+            {sectionKey === 'services' ? (
+              <Suspense fallback={<SectionSkeleton title="Services" />}>
+                <Services services={tenant.services || []} />
+              </Suspense>
+            ) : null}
+
+            {sectionKey === 'gallery' ? (
+              <Suspense fallback={<SectionSkeleton title="Gallery" />}>
+                <Gallery
+                  images={tenant.gallery || []}
+                  galleryCategories={tenant.galleryCategories || []}
+                  tenantSlug={tenantSlug}
+                  tenantId={tenant.id}
+                  phone={tenant.whatsapp || tenant.phone}
+                  actionButtons={tenant.actionButtons}
+                />
+              </Suspense>
+            ) : null}
 
             {sectionKey === 'hero' ? (
               <QuickActions
@@ -73,13 +120,17 @@ export default async function TenantPage({ params }: Props) {
           </div>
         ))}
         <HowItWorks />
-        <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
-        <Contact
-          tenant={tenant}
-          tenantId={tenant.id}
-          tenantSlug={tenantSlug}
-          actionButtons={tenant.actionButtons}
-        />
+        <Suspense fallback={<FormSkeleton title="Book Home Visit" />}>
+          <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
+        </Suspense>
+        <Suspense fallback={<FormSkeleton title="Contact" />}>
+          <Contact
+            tenant={tenant}
+            tenantId={tenant.id}
+            tenantSlug={tenantSlug}
+            actionButtons={tenant.actionButtons}
+          />
+        </Suspense>
       </div>
     </TenantPageWrapper>
   );

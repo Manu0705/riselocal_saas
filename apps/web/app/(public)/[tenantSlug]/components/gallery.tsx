@@ -150,10 +150,9 @@ export default function Gallery({
                 src={img.url}
                 alt={img.alt || toCategoryLabel(img.category)}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
+                sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 22vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
-                quality={80}
-                priority={false}
+                quality={65}
               />
 
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />

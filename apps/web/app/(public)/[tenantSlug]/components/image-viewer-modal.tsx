@@ -58,6 +58,8 @@ export default function ImageViewerModal({
       {/* Close button */}
       <button
         onClick={onClose}
+        title="Close image viewer"
+        aria-label="Close image viewer"
         style={{
           position: 'absolute',
           top: 16,
@@ -104,6 +106,7 @@ export default function ImageViewerModal({
           alt={imageCategory}
           width={800}
           height={600}
+          sizes="(max-width: 768px) 92vw, 80vw"
           style={{
             maxWidth: '100%',
             maxHeight: '85%',
@@ -116,8 +119,7 @@ export default function ImageViewerModal({
           }}
           onContextMenu={(e) => e.preventDefault()}
           draggable={false}
-          quality={90}
-          priority={true}
+          quality={70}
         />
 
         {/* Category label */}

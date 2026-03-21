@@ -63,10 +63,9 @@ export default function Hero({ tenant }: Props) {
               }
               alt="Business banner"
               fill
-              sizes="100vw"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 960px"
               className="object-cover"
-              quality={85}
-              priority={true}
+              quality={65}
             />
           </div>
           <div className="space-y-2 p-4">
