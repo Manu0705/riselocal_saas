@@ -9,6 +9,25 @@ import { prisma } from '@saas/database';
 const router = Router();
 const repository = new PrismaTenantRepository();
 
+// Simple in-memory cache for tenant responses (180s TTL)
+const tenantCache = new Map<string, { data: any; expiresAt: number }>();
+
+function getCachedTenant(slug: string) {
+  const cached = tenantCache.get(slug);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+  tenantCache.delete(slug);
+  return null;
+}
+
+function setCachedTenant(slug: string, data: any, ttlMs = 180000) {
+  tenantCache.set(slug, {
+    data,
+    expiresAt: Date.now() + ttlMs,
+  });
+}
+
 type ActionButtonConfig = {
   enabled: boolean;
   label?: string;
@@ -219,6 +238,19 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     const slug = String(req.params.slug || '')
       .trim()
       .toLowerCase();
+
+    // Check cache first
+    const cached = getCachedTenant(slug);
+    if (cached) {
+      return res
+        .set('Cache-Control', 'public, max-age=300, s-maxage=600')
+        .set('X-Cache', 'HIT')
+        .json({
+          success: true,
+          data: cached,
+        });
+    }
+
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
       include: {
@@ -283,8 +315,12 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       })),
     };
 
+    // Cache the response
+    setCachedTenant(slug, publicTenant);
+
     return res
       .set('Cache-Control', 'public, max-age=300, s-maxage=600')
+      .set('X-Cache', 'MISS')
       .json({
         success: true,
         data: publicTenant,
