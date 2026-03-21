@@ -3,7 +3,7 @@ import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.reposito
 import { Tenant } from '../domain/tenant.entity';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
-import { optimizeCloudinaryUrl } from '../../lib/cloudinary-transform';
+import { optimizeCloudinaryUrl } from '../../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
 
 const router = Router();
