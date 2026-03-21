@@ -171,18 +171,28 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
             </div>
           </>
         ) : (
-          <Image
-            src={logoUrl || '/logo/JB_Logo.jpeg'}
-            alt="logo"
-            width={40}
-            height={40}
+          <div
             style={{
-              borderRadius: logoShape === 'square' ? 4 : '50%',
+              width: 40,
+              height: 40,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: logoShape === 'square' ? 6 : '50%',
               border: '1px solid var(--card-border)',
-              objectFit: 'cover',
+              flexShrink: 0,
             }}
-            priority={true}
-          />
+          >
+            <Image
+              src={logoUrl || '/logo/JB_Logo.jpeg'}
+              alt="logo"
+              fill
+              sizes="40px"
+              style={{
+                objectFit: 'cover',
+              }}
+              priority={true}
+            />
+          </div>
         )}
       </div>
 
