@@ -6,7 +6,6 @@ import TenantPageWrapper from './tenant-page-wrapper';
 
 import Hero from './components/hero';
 import QuickActions from './components/quick-actions';
-import HowItWorks from './components/how-it-works';
 
 const Services = dynamic(() => import('./components/services'), {
   suspense: true,
@@ -21,6 +20,10 @@ const Booking = dynamic(() => import('./components/booking'), {
 });
 
 const Contact = dynamic(() => import('./components/contact'), {
+  suspense: true,
+});
+
+const HowItWorks = dynamic(() => import('./components/how-it-works'), {
   suspense: true,
 });
 
@@ -119,7 +122,9 @@ export default async function TenantPage({ params }: Props) {
             ) : null}
           </div>
         ))}
-        <HowItWorks />
+        <Suspense fallback={<SectionSkeleton title="How It Works" />}>
+          <HowItWorks />
+        </Suspense>
         <Suspense fallback={<FormSkeleton title="Book Home Visit" />}>
           <Booking tenantId={tenant.id} tenantSlug={tenantSlug} />
         </Suspense>
