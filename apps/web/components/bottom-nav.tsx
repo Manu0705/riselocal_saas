@@ -122,7 +122,7 @@ export default function BottomNav() {
               color: active ? 'var(--text)' : 'var(--muted)',
               position: 'relative',
               gap: 2,
-              transform: item.primary ? 'translate(10px, -14px)' : 'none',
+              transform: item.primary ? 'translate(16px, -14px)' : 'none',
             }}
             aria-label={item.label}
           >

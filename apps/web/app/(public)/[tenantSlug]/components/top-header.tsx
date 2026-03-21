@@ -52,6 +52,12 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
   const isPublicPreview = searchParams.get('view') === 'public';
   const showMenu = canToggleViews && !isPublicPreview;
 
+  useEffect(() => {
+    if (!activeTenant) return;
+    router.prefetch(`/${activeTenant}`);
+    router.prefetch(`/${activeTenant}?view=public`);
+  }, [router, activeTenant]);
+
   const goToDashboard = () => {
     router.push(`/dashboard?tenant=${activeTenant}`);
     setMenuOpen(false);
@@ -63,12 +69,12 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
   };
 
   const goToLeadView = () => {
-    router.push(`/${activeTenant}?view=public`);
+    router.replace(`/${activeTenant}?view=public`, { scroll: false });
     setMenuOpen(false);
   };
 
   const goToMyView = () => {
-    router.push(`/${activeTenant}`);
+    router.replace(`/${activeTenant}`, { scroll: false });
     setMenuOpen(false);
   };
 

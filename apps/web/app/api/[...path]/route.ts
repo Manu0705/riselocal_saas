@@ -51,19 +51,28 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
   let lastError: unknown = null;
 
   for (const base of getApiBaseCandidates()) {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
+      const controller = new AbortController();
+      timeoutId = globalThis.setTimeout(() => controller.abort(), 7000);
       const response = await fetch(buildUpstreamApiUrl(base, upstreamPath), {
         method,
         headers,
         body: body && body.byteLength > 0 ? body : undefined,
         cache: 'no-store',
         redirect: 'manual',
+        signal: controller.signal,
       });
+      globalThis.clearTimeout(timeoutId);
 
       const responseBody = await response.arrayBuffer();
       return createProxyResponse(response, responseBody);
     } catch (error) {
       lastError = error;
+    } finally {
+      if (timeoutId) {
+        globalThis.clearTimeout(timeoutId);
+      }
     }
   }
 

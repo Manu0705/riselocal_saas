@@ -6,9 +6,9 @@ export type RetryOptions = {
 };
 
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
-  attempts: 6,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
+  attempts: 4,
+  initialDelayMs: 600,
+  maxDelayMs: 4000,
   factor: 1.7,
 };
 

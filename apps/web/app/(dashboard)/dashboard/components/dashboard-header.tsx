@@ -72,7 +72,7 @@ export default function DashboardHeader() {
       storedTenantSlug ??
       'default';
 
-    router.push(`/${tenantRouteKey}?view=public`);
+    router.push(`/${tenantRouteKey}?view=public`, { scroll: false });
     setMenuOpen(false);
   };
 
@@ -119,6 +119,18 @@ export default function DashboardHeader() {
     { key: 'help', label: 'Help', onPress: goToHelp },
     { key: 'logout', label: 'Logout', onPress: handleLogout },
   ].filter((item) => item.key === 'logout' || item.key !== currentMenuKey);
+
+  useEffect(() => {
+    const tenantRouteKey =
+      searchParams.get('tenant') ??
+      tenant?.slug ??
+      tenant?.domain ??
+      tenant?.id ??
+      storedTenantSlug ??
+      'default';
+
+    router.prefetch(`/${tenantRouteKey}?view=public`);
+  }, [router, searchParams, tenant?.slug, tenant?.domain, tenant?.id, storedTenantSlug]);
 
   return (
     <div
