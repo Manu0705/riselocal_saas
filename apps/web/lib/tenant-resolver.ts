@@ -1,6 +1,7 @@
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
 import { fetchWithRetry } from '@/lib/retry';
+import { cache } from 'react';
 
 export const RESERVED_ROUTES = [
   'dashboard',
@@ -42,7 +43,7 @@ type ResolvedTenant = {
   products?: string[];
 };
 
-export const getTenant = async (slug: string): Promise<ResolvedTenant | null> => {
+export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | null> => {
   // prevent dashboard routes from being treated as tenants
   if (isReservedTenantSlug(slug)) {
     return null;
@@ -159,11 +160,21 @@ export const getTenant = async (slug: string): Promise<ResolvedTenant | null> =>
   let lastError: Error | null = null;
 
   for (const apiBase of getApiBaseCandidates()) {
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
     try {
+      const controller = new AbortController();
+      timeoutHandle = globalThis.setTimeout(() => controller.abort(), 1200);
+
       const res = await fetchWithRetry(
         buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
         {
-          cache: 'no-store',
+          cache: 'force-cache',
+          next: { revalidate: 60 },
+          signal: controller.signal,
+        },
+        {
+          attempts: 1,
         },
       );
 
@@ -210,6 +221,10 @@ export const getTenant = async (slug: string): Promise<ResolvedTenant | null> =>
     } catch (error) {
       console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);
       lastError = error instanceof Error ? error : new Error('Failed to fetch tenant');
+    } finally {
+      if (timeoutHandle) {
+        globalThis.clearTimeout(timeoutHandle);
+      }
     }
   }
 
@@ -218,4 +233,4 @@ export const getTenant = async (slug: string): Promise<ResolvedTenant | null> =>
   }
 
   return null;
-};
+});
