@@ -189,8 +189,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       const res = await fetchWithRetry(
         buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
         {
-          cache: 'force-cache',
-          next: { revalidate: 60 },
+          cache: 'no-store',
           signal: controller.signal,
         },
         {

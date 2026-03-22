@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
+import { invalidatePublicTenantCacheByTenantId } from '../infrastructure/public-tenant-cache';
 
 import type { Request, Response, NextFunction } from 'express';
 import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.repository';
@@ -322,6 +323,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
       });
     }
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, data: toSettingsResponse(settings) });
   } catch (error: any) {
     console.error('Settings update error:', error);
@@ -488,6 +490,7 @@ router.put(
         });
       }
 
+      await invalidatePublicTenantCacheByTenantId(tenantId);
       return res.json({ success: true, data: toSettingsResponse(settings) });
     } catch (error: any) {
       console.error('Settings update error:', error);

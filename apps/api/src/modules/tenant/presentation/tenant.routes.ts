@@ -5,28 +5,14 @@ import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
 import { optimizeCloudinaryUrl } from '../../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
+import {
+  getPublicTenantCache,
+  invalidatePublicTenantCacheBySlug,
+  setPublicTenantCache,
+} from '../infrastructure/public-tenant-cache';
 
 const router = Router();
 const repository = new PrismaTenantRepository();
-
-// Simple in-memory cache for tenant responses (180s TTL)
-const tenantCache = new Map<string, { data: any; expiresAt: number }>();
-
-function getCachedTenant(slug: string) {
-  const cached = tenantCache.get(slug);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.data;
-  }
-  tenantCache.delete(slug);
-  return null;
-}
-
-function setCachedTenant(slug: string, data: any, ttlMs = 180000) {
-  tenantCache.set(slug, {
-    data,
-    expiresAt: Date.now() + ttlMs,
-  });
-}
 
 type ActionButtonConfig = {
   enabled: boolean;
@@ -247,10 +233,10 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       .toLowerCase();
 
     // Check cache first
-    const cached = getCachedTenant(slug);
+    const cached = getPublicTenantCache(slug);
     if (cached) {
       return res
-        .set('Cache-Control', 'public, max-age=300, s-maxage=600')
+        .set('Cache-Control', 'no-store')
         .set('X-Cache', 'HIT')
         .json({
           success: true,
@@ -324,10 +310,10 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     };
 
     // Cache the response
-    setCachedTenant(slug, publicTenant);
+    setPublicTenantCache(slug, publicTenant);
 
     return res
-      .set('Cache-Control', 'public, max-age=300, s-maxage=600')
+      .set('Cache-Control', 'no-store')
       .set('X-Cache', 'MISS')
       .json({
         success: true,
@@ -388,9 +374,12 @@ router.put('/tenants/:id', async (req, res) => {
     }
 
     const resolvedSlug = toSlug(slug || name || '');
+    const previousSlug = tenant.toJSON().slug;
     tenant.update(name, resolvedSlug, domain);
 
     await repository.update(tenant);
+    invalidatePublicTenantCacheBySlug(previousSlug);
+    invalidatePublicTenantCacheBySlug(resolvedSlug);
 
     return res.json({
       success: true,
@@ -425,6 +414,7 @@ router.delete('/tenants/:id', async (req, res) => {
     }
 
     await repository.delete(id);
+    invalidatePublicTenantCacheBySlug(tenant.toJSON().slug);
 
     return res.json({
       success: true,

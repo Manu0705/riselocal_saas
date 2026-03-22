@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
+import { invalidatePublicTenantCacheByTenantId } from '../../tenant/infrastructure/public-tenant-cache';
 
 const router = Router();
 
@@ -79,6 +80,7 @@ router.post('/gallery', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.status(201).json({ success: true, data: image });
   } catch (error: any) {
     console.error('Gallery create error:', error);
@@ -112,6 +114,7 @@ router.put('/gallery/:id', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Gallery update error:', error);
@@ -149,6 +152,7 @@ router.put('/gallery/reorder', authMiddleware, async (req, res) => {
       ),
     );
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Gallery reorder error:', error);
@@ -173,6 +177,7 @@ router.delete('/gallery/:id', authMiddleware, async (req, res) => {
     }
 
     await prisma.galleryImage.delete({ where: { id: imageId } });
+    await invalidatePublicTenantCacheByTenantId(tenantId);
 
     return res.json({ success: true, message: 'Image deleted' });
   } catch (error: any) {

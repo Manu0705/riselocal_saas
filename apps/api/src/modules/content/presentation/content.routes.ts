@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
+import { invalidatePublicTenantCacheByTenantId } from '../../tenant/infrastructure/public-tenant-cache';
 
 const router = Router();
 
@@ -51,6 +52,7 @@ router.post('/services', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.status(201).json({ success: true, data: service });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -80,6 +82,7 @@ router.put('/services/:id', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, data: updated });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -98,6 +101,7 @@ router.delete('/services/:id', authMiddleware, async (req, res) => {
     }
 
     await prisma.service.delete({ where: { id: serviceId } });
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, message: 'Service deleted' });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -143,6 +147,7 @@ router.post('/social', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.status(201).json({ success: true, data: link });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -169,6 +174,7 @@ router.put('/social/:id', authMiddleware, async (req, res) => {
       },
     });
 
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, data: updated });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -187,6 +193,7 @@ router.delete('/social/:id', authMiddleware, async (req, res) => {
     }
 
     await prisma.socialLink.delete({ where: { id: linkId } });
+    await invalidatePublicTenantCacheByTenantId(tenantId);
     return res.json({ success: true, message: 'Social link deleted' });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
