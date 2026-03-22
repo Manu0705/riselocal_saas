@@ -5,6 +5,7 @@ import { Upload, Loader2 } from 'lucide-react';
 import CustomizePanelSkeleton from './customize-panel-skeleton';
 import PageErrorState from '@/components/page-error-state';
 import { getTenantApiClient } from '@/lib/tenant-client';
+import FontPicker from './font-picker';
 
 interface TenantSettings {
   id: string;
@@ -13,6 +14,7 @@ interface TenantSettings {
   logoShape: 'circle' | 'square';
   primaryColor: string;
   secondaryColor: string;
+  fontFamily?: string;
   tagline?: string;
   businessPhone?: string;
   businessWhatsApp?: string;
@@ -422,6 +424,22 @@ export default function BrandingEditor() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tagline */}
+      <div
+        style={{
+          border: '1px solid var(--card-border)',
+          background: 'var(--card)',
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        <FontPicker
+          value={displayed.fontFamily}
+          disabled={saving}
+          onChange={(fontName) => setPending((p) => ({ ...p, fontFamily: fontName }))}
+        />
       </div>
 
       {/* Tagline */}

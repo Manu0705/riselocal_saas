@@ -73,12 +73,14 @@ function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
   galleryCategories: string[];
+  fontFamily: string;
 } {
   if (Array.isArray(rawValue)) {
     return {
       sectionOrder: rawValue.filter((entry): entry is string => typeof entry === 'string'),
       actionButtons: getDefaultActionButtons(),
       galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
+      fontFamily: 'Inter',
     };
   }
 
@@ -97,6 +99,10 @@ function extractSectionOrderConfig(rawValue: unknown): {
     return {
       sectionOrder: sections,
       galleryCategories,
+      fontFamily:
+        typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0
+          ? raw.fontFamily.trim()
+          : 'Inter',
       actionButtons: {
         chatWhatsApp: normalizeActionButtonConfig(
           buttonRaw.chatWhatsApp,
@@ -119,6 +125,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
     sectionOrder: ['hero', 'services', 'gallery'],
     actionButtons: getDefaultActionButtons(),
     galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
+    fontFamily: 'Inter',
   };
 }
 
@@ -288,6 +295,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
             logoShape: tenant.settings.logoShape,
             primaryColor: tenant.settings.primaryColor,
             secondaryColor: tenant.settings.secondaryColor,
+            fontFamily: sectionConfig.fontFamily,
             sectionOrder: sectionConfig.sectionOrder,
             galleryCategories: sectionConfig.galleryCategories,
             actionButtons: sectionConfig.actionButtons,

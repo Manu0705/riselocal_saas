@@ -205,6 +205,7 @@ export default function SocialLinksManager() {
         </h3>
         <div style={{ display: 'grid', gap: 12 }}>
           <select
+            aria-label="Select social platform"
             value={formData.platform}
             onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
             disabled={!!editingId}
@@ -276,6 +277,8 @@ export default function SocialLinksManager() {
                 <button
                   type="button"
                   onClick={cancelEdit}
+                  aria-label="Cancel editing social link"
+                  title="Cancel"
                   style={{
                     border: '1px solid var(--card-border)',
                     background: 'transparent',
@@ -333,12 +336,13 @@ export default function SocialLinksManager() {
                 padding: 14,
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
                 gap: 12,
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                   <span
                     style={{
                       background: '#eff6ff',
@@ -365,18 +369,21 @@ export default function SocialLinksManager() {
                     color: '#3b82f6',
                     textDecoration: 'none',
                     display: 'block',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.35,
                   }}
                 >
                   {link.url}
                 </a>
               </div>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
                 <button
                   type="button"
                   onClick={() => startEdit(link)}
+                  aria-label={`Edit ${getPlatformLabel(link.platform)} link`}
+                  title="Edit"
                   style={{
                     border: 'none',
                     background: '#eff6ff',
@@ -394,6 +401,8 @@ export default function SocialLinksManager() {
                 <button
                   type="button"
                   onClick={() => handleDelete(link.id)}
+                  aria-label={`Delete ${getPlatformLabel(link.platform)} link`}
+                  title="Delete"
                   style={{
                     border: 'none',
                     background: '#fef2f2',

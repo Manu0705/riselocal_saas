@@ -1,5 +1,6 @@
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
 import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
+import { DEFAULT_TENANT_FONT, sanitizeTenantFontName } from '@/lib/tenant-font';
 import { fetchWithRetry } from '@/lib/retry';
 import { cache } from 'react';
 
@@ -34,6 +35,7 @@ type ResolvedTenant = {
   logoShape?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  fontFamily?: string;
   sectionOrder?: string[];
   galleryCategories?: string[];
   actionButtons?: ActionButtonsConfig;
@@ -63,6 +65,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     socialLinks: [],
     primaryColor: '#000000',
     secondaryColor: '#FFFFFF',
+    fontFamily: DEFAULT_TENANT_FONT,
     logoShape: 'circle',
     actionButtons: DEFAULT_ACTION_BUTTONS,
   };
@@ -128,6 +131,23 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     }
 
     return defaults.actionButtons;
+  };
+
+  const normalizeFontFamily = (settings: Record<string, unknown>): string => {
+    const direct = settings.fontFamily;
+    if (typeof direct === 'string' && direct.trim().length > 0) {
+      return sanitizeTenantFontName(direct);
+    }
+
+    const sectionOrder = settings.sectionOrder;
+    if (sectionOrder && typeof sectionOrder === 'object' && !Array.isArray(sectionOrder)) {
+      const raw = sectionOrder as Record<string, unknown>;
+      if (typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0) {
+        return sanitizeTenantFontName(raw.fontFamily);
+      }
+    }
+
+    return defaults.fontFamily;
   };
 
   const normalizeServices = (value: unknown): Array<{ name: string; description?: string }> => {
@@ -211,6 +231,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         logoShape: toStringOr(settings.logoShape, defaults.logoShape),
         primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
         secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
+        fontFamily: normalizeFontFamily(settings),
         sectionOrder: normalizeSectionOrder(settings.sectionOrder),
         galleryCategories: normalizeGalleryCategories(settings),
         actionButtons: normalizeSettingsActionButtons(settings),

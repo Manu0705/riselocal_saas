@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import TopHeader from './components/top-header';
 import MobileContainer from './components/mobile-container';
 import { getTenant, isReservedTenantSlug } from '@/lib/tenant-resolver';
+import TenantFontScope from './tenant-font-scope';
 
 export default async function TenantLayout({
   children,
@@ -26,24 +27,26 @@ export default async function TenantLayout({
   }
 
   return (
-    <MobileContainer>
-      <Suspense fallback={null}>
-        <TopHeader
-          title={tenant.name ?? 'Business'}
-          tenantSlug={tenantSlug}
-          logoUrl={tenant.logoUrl}
-          logoShape={tenant.logoShape}
-        />
+    <TenantFontScope fontName={tenant.fontFamily}>
+      <MobileContainer>
+        <Suspense fallback={null}>
+          <TopHeader
+            title={tenant.name ?? 'Business'}
+            tenantSlug={tenantSlug}
+            logoUrl={tenant.logoUrl}
+            logoShape={tenant.logoShape}
+          />
 
-        <div
-          style={{
-            padding: '16px',
-            flex: 1,
-          }}
-        >
-          {children}
-        </div>
-      </Suspense>
-    </MobileContainer>
+          <div
+            style={{
+              padding: '16px',
+              flex: 1,
+            }}
+          >
+            {children}
+          </div>
+        </Suspense>
+      </MobileContainer>
+    </TenantFontScope>
   );
 }
