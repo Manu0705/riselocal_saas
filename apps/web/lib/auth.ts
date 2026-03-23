@@ -70,6 +70,18 @@ function shouldRetryLoginWithUpstream(data: LoginResult | null): boolean {
   return message.includes('html instead of json') || message.includes('invalid response');
 }
 
+function shouldRetryLoginFromError(error: unknown): boolean {
+  let message = '';
+
+  if (error instanceof Error) {
+    message = error.message.toLowerCase();
+  } else if (typeof error === 'string') {
+    message = error.toLowerCase();
+  }
+
+  return message.includes('html instead of json') || message.includes('invalid response');
+}
+
 async function retryLoginViaUpstream(payload: {
   email: string;
   password: string;
@@ -93,7 +105,17 @@ async function retryLoginViaUpstream(payload: {
 export async function login(email: string, password: string, tenantSlug?: string) {
   try {
     const payload = { email, password, tenantSlug };
-    let data = await requestLogin(buildUrl('/auth/login'), payload);
+    let data: LoginResult;
+
+    try {
+      data = await requestLogin(buildUrl('/auth/login'), payload);
+    } catch (primaryError) {
+      if (hasBrowserWindow() && shouldRetryLoginFromError(primaryError)) {
+        data = await retryLoginViaUpstream(payload);
+      } else {
+        throw primaryError;
+      }
+    }
 
     if (hasBrowserWindow() && shouldRetryLoginWithUpstream(data)) {
       data = await retryLoginViaUpstream(payload);

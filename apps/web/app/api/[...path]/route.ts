@@ -9,6 +9,37 @@ type RouteContext = {
   };
 };
 
+function getRequestHost(request: NextRequest): string {
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
+  return host.split(',')[0].trim().toLowerCase().split(':')[0];
+}
+
+function getProxyCandidates(request: NextRequest): string[] {
+  const requestHost = getRequestHost(request);
+
+  return getApiBaseCandidates()
+    .map((base) => base.trim())
+    .filter((base) => /^https?:\/\//i.test(base))
+    .filter((base, index, items) => items.indexOf(base) === index)
+    .filter((base) => {
+      try {
+        return new URL(base).host.toLowerCase() !== requestHost;
+      } catch {
+        return false;
+      }
+    })
+    .sort((left, right) => {
+      const rank = (candidate: string) => {
+        const host = new URL(candidate).host.toLowerCase();
+        if (host.startsWith('api.')) return 0;
+        if (host.includes('onrender.com')) return 1;
+        return 10;
+      };
+
+      return rank(left) - rank(right);
+    });
+}
+
 function createUpstreamHeaders(request: NextRequest): Headers {
   const headers = new Headers(request.headers);
 
@@ -47,10 +78,23 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
   const method = request.method.toUpperCase();
   const headers = createUpstreamHeaders(request);
   const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer();
+  const proxyCandidates = getProxyCandidates(request);
+
+  if (proxyCandidates.length === 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'No valid upstream API candidates are configured.',
+      },
+      { status: 502 },
+    );
+  }
 
   let lastError: unknown = null;
 
-  for (const base of getApiBaseCandidates()) {
+  for (let index = 0; index < proxyCandidates.length; index += 1) {
+    const base = proxyCandidates[index];
+    const isLastCandidate = index === proxyCandidates.length - 1;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
       const controller = new AbortController();
@@ -64,6 +108,17 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
         signal: controller.signal,
       });
       globalThis.clearTimeout(timeoutId);
+
+      const vercelErrorHeader = response.headers.get('x-vercel-error')?.toUpperCase();
+      const shouldFailOver =
+        (!isLastCandidate && response.status >= 500) ||
+        response.status === 508 ||
+        vercelErrorHeader === 'INFINITE_LOOP_DETECTED';
+
+      if (shouldFailOver) {
+        lastError = new Error(`Upstream candidate ${base} returned ${response.status}`);
+        continue;
+      }
 
       const responseBody = await response.arrayBuffer();
       return createProxyResponse(response, responseBody);
