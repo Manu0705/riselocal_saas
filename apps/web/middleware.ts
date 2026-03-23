@@ -87,15 +87,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Subdomain login should resolve tenant automatically while keeping
-  // existing root login (?tenant=slug) available as fallback.
-  // Use redirect (not rewrite) so the browser URL also gains ?tenant=<slug>,
-  // keeping server-rendered HTML and client hydration in sync.
+  // On tenant subdomains, let /login render normally.
+  // The login page detects the tenant slug client-side from window.location.hostname,
+  // so SSR and client hydration both start with no ?tenant param and always match.
   if (subdomainSlug && pathname === '/login') {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set('tenant', subdomainSlug);
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.next();
   }
 
   // Keep reserved routes untouched on root domain.

@@ -41,7 +41,12 @@ function Spinner() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenant = searchParams.get('tenant')?.trim().toLowerCase() || null;
+  // Tenant can come from ?tenant=<slug> (root domain) OR be detected from
+  // the subdomain hostname client-side. Both paths produce the same rendered
+  // output on SSR (null) so hydration never mismatches.
+  const [tenant, setTenant] = useState<string | null>(
+    () => searchParams.get('tenant')?.trim().toLowerCase() || null
+  );
 
   const { login: loginWithContext } = useAuth();
   const [email, setEmail] = useState('');
@@ -49,6 +54,18 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Detect tenant from subdomain hostname when no ?tenant param is present.
+  useEffect(() => {
+    if (!tenant && typeof window !== 'undefined') {
+      const parts = window.location.hostname.split('.');
+      // hostname like "jai-bhavani-interiors.riselocal.in" → 3+ parts
+      if (parts.length >= 3 && parts[0] !== 'www') {
+        setTenant(parts[0].toLowerCase());
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (tenant) {
