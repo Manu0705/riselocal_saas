@@ -96,8 +96,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(rewriteUrl);
   }
 
-  // Ignore reserved routes (dashboard, admin, login, etc.)
-  if (isReservedPath(pathname)) {
+  // Keep reserved routes untouched on root domain.
+  // On tenant subdomains we still need rewrites for paths like /feedback.
+  if (!subdomainSlug && isReservedPath(pathname)) {
     return NextResponse.next();
   }
 
