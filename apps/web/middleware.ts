@@ -79,19 +79,27 @@ function isReservedPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
+  const subdomainSlug = extractSubdomainSlug(host);
+  const pathSlug = extractPathSlug(pathname);
 
   // Ignore assets and API routes
   if (shouldIgnore(pathname)) {
     return NextResponse.next();
   }
 
+  // Subdomain login should resolve tenant automatically while keeping
+  // existing root login (?tenant=slug) available as fallback.
+  if (subdomainSlug && pathname === '/login') {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = '/login';
+    rewriteUrl.searchParams.set('tenant', subdomainSlug);
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
   // Ignore reserved routes (dashboard, admin, login, etc.)
   if (isReservedPath(pathname)) {
     return NextResponse.next();
   }
-
-  const subdomainSlug = extractSubdomainSlug(host);
-  const pathSlug = extractPathSlug(pathname);
 
   // Case 1: Subdomain is present (e.g., bavani.riselocal.in)
   if (subdomainSlug) {
