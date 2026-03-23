@@ -89,11 +89,13 @@ export async function middleware(request: NextRequest) {
 
   // Subdomain login should resolve tenant automatically while keeping
   // existing root login (?tenant=slug) available as fallback.
+  // Use redirect (not rewrite) so the browser URL also gains ?tenant=<slug>,
+  // keeping server-rendered HTML and client hydration in sync.
   if (subdomainSlug && pathname === '/login') {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = '/login';
-    rewriteUrl.searchParams.set('tenant', subdomainSlug);
-    return NextResponse.rewrite(rewriteUrl);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/login';
+    redirectUrl.searchParams.set('tenant', subdomainSlug);
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Keep reserved routes untouched on root domain.
