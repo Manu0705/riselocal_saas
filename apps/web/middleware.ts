@@ -87,10 +87,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // On tenant subdomains, let /login render normally.
-  // The login page detects the tenant slug client-side from window.location.hostname,
-  // so SSR and client hydration both start with no ?tenant param and always match.
-  if (subdomainSlug && pathname === '/login') {
+  // On tenant subdomains, app-level routes must pass through unchanged.
+  // - /login  : tenant is detected client-side from hostname (no hydration mismatch)
+  // - /dashboard and all sub-routes: authenticated app, not tenant-scoped paths
+  // These must NOT get the /<slug>/... rewrite that public pages receive.
+  if (subdomainSlug && (pathname === '/login' || pathname.startsWith('/dashboard'))) {
     return NextResponse.next();
   }
 
