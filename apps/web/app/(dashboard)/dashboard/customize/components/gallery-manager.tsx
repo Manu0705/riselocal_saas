@@ -16,12 +16,14 @@ interface GalleryImage {
 }
 
 const DEFAULT_CATEGORIES = ['gallery', 'before-after', 'team', 'workspace'];
+const MAX_BATCH_UPLOAD = 20;
 
 export default function GalleryManager() {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('gallery');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -72,43 +74,88 @@ export default function GalleryManager() {
     }
   };
 
-  const handleUpload = async (file: File) => {
-    if (!file) return;
+  const handleUpload = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList).filter((file) => file.size > 0);
+    if (files.length === 0) return;
+
+    if (files.length > MAX_BATCH_UPLOAD) {
+      setError(`You can upload up to ${MAX_BATCH_UPLOAD} images at once.`);
+      setSuccess(null);
+      return;
+    }
 
     setUploading(true);
+    setUploadProgress({ current: 0, total: files.length });
     setError(null);
     setSuccess(null);
+
     try {
       const api = getTenantApiClient();
 
-      // Upload image first
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadResponse = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const createdImages: GalleryImage[] = [];
+      let uploadedCount = 0;
+      const failedUploads: string[] = [];
 
-      if (uploadResponse?.url) {
-        // Create gallery record
-        const createResponse = await api.post('/gallery', {
-          url: uploadResponse.url,
-          category: selectedCategory,
-          alt: file.name,
-        });
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        setUploadProgress({ current: index + 1, total: files.length });
 
-        if (createResponse?.data) {
-          setImages([...images, createResponse.data]);
-          setSuccess('Image uploaded successfully');
-          setTimeout(() => setSuccess(null), 3000);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const uploadResponse = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+
+          if (!uploadResponse?.url) {
+            const uploadError =
+              uploadResponse?.error || uploadResponse?.message || 'Upload service did not return a URL.';
+            throw new Error(String(uploadError));
+          }
+
+          const createResponse = await api.post('/gallery', {
+            url: uploadResponse.url,
+            category: selectedCategory,
+            alt: file.name,
+          });
+
+          if (!createResponse?.data) {
+            const createError =
+              createResponse?.error || createResponse?.message || 'Gallery record creation failed.';
+            throw new Error(String(createError));
+          }
+
+          createdImages.push(createResponse.data as GalleryImage);
+          uploadedCount += 1;
+        } catch (uploadError) {
+          const reason = uploadError instanceof Error ? uploadError.message : 'Unknown error';
+          failedUploads.push(`${file.name}: ${reason}`);
         }
-      } else if (uploadResponse?.error) {
-        setError(uploadResponse.error);
+      }
+
+      if (createdImages.length > 0) {
+        setImages((prev) => [...prev, ...createdImages]);
+      }
+
+      if (uploadedCount > 0 && failedUploads.length === 0) {
+        setSuccess(
+          `${uploadedCount} image${uploadedCount === 1 ? '' : 's'} uploaded successfully to "${selectedCategory}".`,
+        );
+      } else if (uploadedCount > 0 && failedUploads.length > 0) {
+        setSuccess(
+          `${uploadedCount} image${uploadedCount === 1 ? '' : 's'} uploaded. ${failedUploads.length} failed.`,
+        );
+        setError(failedUploads.slice(0, 3).join(' | '));
+      } else {
+        setError(failedUploads.slice(0, 3).join(' | ') || 'Failed to upload selected images.');
       }
     } catch (error) {
       console.error('Failed to upload image:', error);
-      setError(error instanceof Error ? error.message : 'Failed to upload image');
+      setError(error instanceof Error ? error.message : 'Failed to upload images');
     } finally {
       setUploading(false);
+      setUploadProgress(null);
+      setTimeout(() => setSuccess(null), 3000);
     }
   };
 
@@ -494,13 +541,16 @@ export default function GalleryManager() {
               strokeWidth={2}
               style={{ animation: 'spin 1s linear infinite', marginBottom: 8 }}
             />
-            <div style={{ fontSize: 14, color: 'var(--muted)' }}>Uploading...</div>
+            <div style={{ fontSize: 14, color: 'var(--muted)' }}>
+              Uploading...
+              {uploadProgress ? ` (${uploadProgress.current}/${uploadProgress.total})` : ''}
+            </div>
           </>
         ) : (
           <>
             <Upload size={24} style={{ marginBottom: 8, color: 'var(--muted)' }} />
             <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600, marginBottom: 4 }}>
-              Click to upload image
+              Click to upload up to 20 images
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
               Will be added to &quot;{selectedCategory}&quot; category
@@ -510,9 +560,15 @@ export default function GalleryManager() {
         <input
           type="file"
           accept="image/*"
+          multiple
           style={{ display: 'none' }}
           disabled={uploading}
-          onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              void handleUpload(e.target.files);
+            }
+            e.currentTarget.value = '';
+          }}
         />
       </label>
 

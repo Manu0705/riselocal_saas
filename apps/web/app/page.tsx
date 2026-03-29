@@ -22,11 +22,20 @@ export default function HomePage() {
     const normalized = (tenantFromQuery ?? '').trim().toLowerCase();
     if (normalized) {
       setTenantHint(normalized);
-      localStorage.setItem(LAST_TENANT_KEY, normalized);
+      try {
+        localStorage.setItem(LAST_TENANT_KEY, normalized);
+      } catch {
+        // Ignore transient storage failures on restored tabs/private browsing.
+      }
       return;
     }
 
-    const fromStorage = localStorage.getItem(LAST_TENANT_KEY);
+    let fromStorage: string | null = null;
+    try {
+      fromStorage = localStorage.getItem(LAST_TENANT_KEY);
+    } catch {
+      fromStorage = null;
+    }
     setTenantHint(fromStorage && fromStorage.trim().length > 0 ? fromStorage.trim().toLowerCase() : null);
   }, []);
 

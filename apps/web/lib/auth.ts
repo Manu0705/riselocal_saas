@@ -6,7 +6,37 @@ const TENANT_SLUG_KEY = 'tenantSlug';
 const USER_NAME_KEY = 'userName';
 
 function hasBrowserWindow(): boolean {
-  return globalThis.window !== undefined;
+  return typeof window !== 'undefined';
+}
+
+function readStorageItem(key: string): string | null {
+  if (!hasBrowserWindow()) return null;
+
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorageItem(key: string, value: string): void {
+  if (!hasBrowserWindow()) return;
+
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore transient storage write failures (mobile restore/private modes).
+  }
+}
+
+function removeStorageItem(key: string): void {
+  if (!hasBrowserWindow()) return;
+
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore transient storage removal failures (mobile restore/private modes).
+  }
 }
 
 function buildUrl(path: string) {
@@ -122,11 +152,11 @@ export async function login(email: string, password: string, tenantSlug?: string
     }
 
     if (data?.token) {
-      localStorage.setItem(TOKEN_KEY, data.token);
+      writeStorageItem(TOKEN_KEY, data.token);
     }
 
     if (typeof data?.user?.name === 'string' && data.user.name.trim().length > 0) {
-      localStorage.setItem(USER_NAME_KEY, data.user.name.trim());
+      writeStorageItem(USER_NAME_KEY, data.user.name.trim());
     }
 
     return data;
@@ -137,8 +167,7 @@ export async function login(email: string, password: string, tenantSlug?: string
 }
 
 export function getToken() {
-  if (!hasBrowserWindow()) return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return readStorageItem(TOKEN_KEY);
 }
 
 export function isAuthenticated() {
@@ -146,28 +175,23 @@ export function isAuthenticated() {
 }
 
 export function setTenantSlug(slug: string) {
-  if (!hasBrowserWindow()) return;
-  localStorage.setItem(TENANT_SLUG_KEY, slug);
+  writeStorageItem(TENANT_SLUG_KEY, slug);
 }
 
 export function getTenantSlug() {
-  if (!hasBrowserWindow()) return null;
-  return localStorage.getItem(TENANT_SLUG_KEY);
+  return readStorageItem(TENANT_SLUG_KEY);
 }
 
 export function setUserName(name: string) {
-  if (!hasBrowserWindow()) return;
-  localStorage.setItem(USER_NAME_KEY, name);
+  writeStorageItem(USER_NAME_KEY, name);
 }
 
 export function getUserName() {
-  if (!hasBrowserWindow()) return null;
-  return localStorage.getItem(USER_NAME_KEY);
+  return readStorageItem(USER_NAME_KEY);
 }
 
 export function clearAuth() {
-  if (!hasBrowserWindow()) return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(TENANT_SLUG_KEY);
-  localStorage.removeItem(USER_NAME_KEY);
+  removeStorageItem(TOKEN_KEY);
+  removeStorageItem(TENANT_SLUG_KEY);
+  removeStorageItem(USER_NAME_KEY);
 }

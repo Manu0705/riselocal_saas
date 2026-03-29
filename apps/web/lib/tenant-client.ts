@@ -3,7 +3,7 @@ import { api } from '@/lib/api-client';
 import { fetchWithRetry } from '@/lib/retry';
 
 function buildApiUrl(path: string): string {
-  if (globalThis.window !== undefined) {
+  if (typeof window !== 'undefined') {
     return buildBrowserApiUrl(path);
   }
 
@@ -11,10 +11,15 @@ function buildApiUrl(path: string): string {
 }
 
 function handleUnauthorizedResponse(res: Response): void {
-  if (res.status !== 401 || globalThis.window === undefined) return;
+  if (res.status !== 401 || typeof window === 'undefined') return;
 
-  const tenantSlug = localStorage.getItem('tenantSlug');
-  localStorage.removeItem('token');
+  let tenantSlug: string | null = null;
+  try {
+    tenantSlug = localStorage.getItem('tenantSlug');
+    localStorage.removeItem('token');
+  } catch {
+    tenantSlug = null;
+  }
 
   const loginPath = tenantSlug
     ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
@@ -52,8 +57,18 @@ async function parseApiResponse(res: Response): Promise<any> {
 
 function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { ...extra };
-  const token = globalThis.window === undefined ? null : localStorage.getItem('token');
-  const tenantSlug = globalThis.window === undefined ? null : localStorage.getItem('tenantSlug');
+  let token: string | null = null;
+  let tenantSlug: string | null = null;
+
+  if (typeof window !== 'undefined') {
+    try {
+      token = localStorage.getItem('token');
+      tenantSlug = localStorage.getItem('tenantSlug');
+    } catch {
+      token = null;
+      tenantSlug = null;
+    }
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;

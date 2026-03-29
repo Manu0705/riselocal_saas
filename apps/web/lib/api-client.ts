@@ -2,7 +2,7 @@ import { buildBrowserApiUrl, buildUpstreamApiUrl, getApiBaseCandidates } from '@
 import { fetchWithRetry } from '@/lib/retry';
 
 function buildUrl(path: string) {
-  if (globalThis.window !== undefined) {
+  if (typeof window !== 'undefined') {
     return buildBrowserApiUrl(path);
   }
 
@@ -10,10 +10,14 @@ function buildUrl(path: string) {
 }
 
 function handleUnauthorizedResponse(res: Response): void {
-  if (res.status !== 401 || globalThis.window === undefined) return;
+  if (res.status !== 401 || typeof window === 'undefined') return;
 
   const tenantSlug = getStoredTenantSlug();
-  localStorage.removeItem('token');
+  try {
+    localStorage.removeItem('token');
+  } catch {
+    // Ignore transient storage failures during recovery redirects.
+  }
 
   const loginPath = tenantSlug
     ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
@@ -47,8 +51,15 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
 }
 
 function getStoredTenantSlug(): string | null {
-  if (globalThis.window === undefined) return null;
-  const value = globalThis.localStorage.getItem('tenantSlug');
+  if (typeof window === 'undefined') return null;
+
+  let value: string | null = null;
+  try {
+    value = localStorage.getItem('tenantSlug');
+  } catch {
+    return null;
+  }
+
   return value && value.trim().length > 0 ? value.trim().toLowerCase() : null;
 }
 
@@ -64,7 +75,15 @@ function withTenantQuery(path: string): string {
 }
 
 function buildAuthHeaders(includeJson = false): Record<string, string> {
-  const token = (globalThis.window !== undefined && localStorage.getItem('token')) || null;
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    try {
+      token = localStorage.getItem('token');
+    } catch {
+      token = null;
+    }
+  }
+
   const tenantSlug = getStoredTenantSlug();
 
   const headers: Record<string, string> = {
