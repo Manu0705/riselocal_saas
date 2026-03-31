@@ -85,7 +85,7 @@ export default function HomePage() {
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <Link
-          href="/admin"
+          href="/about-us"
           style={{
             padding: '16px 34px',
             background: '#1d4ed8',
@@ -98,7 +98,7 @@ export default function HomePage() {
             boxShadow: '0 10px 24px rgba(29,78,216,0.28)',
           }}
         >
-          Admin Dashboard
+          About Us
         </Link>
         <Link
           href={loginHref}
