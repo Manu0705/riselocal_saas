@@ -1,0 +1,50 @@
+
+> @saas/web@ build C:\Users\Sapth\Downloads\saas_existing\apps\web
+> next build
+
+  ▲ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/15) ...
+   Generating static pages (3/15) 
+   Generating static pages (7/15) 
+   Generating static pages (11/15) 
+ ✓ Generating static pages (15/15)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    8.78 kB         109 kB
+├ ○ /_not-found                          150 B          87.3 kB
+├ ƒ /[tenantSlug]                        8.47 kB         102 kB
+├ ƒ /[tenantSlug]/contact                150 B          87.3 kB
+├ ƒ /[tenantSlug]/feedback               3.35 kB        90.5 kB
+├ ƒ /[tenantSlug]/review/[leadId]        5.06 kB        92.2 kB
+├ ○ /about-us                            6.91 kB         101 kB
+├ ƒ /api/[...path]                       0 B                0 B
+├ ƒ /dashboard                           6.42 kB         215 kB
+├ ƒ /dashboard/analytics                 3.18 kB         212 kB
+├ ƒ /dashboard/customize                 11.6 kB         112 kB
+├ ƒ /dashboard/followups                 2.2 kB         95.7 kB
+├ ƒ /dashboard/help                      999 B          88.2 kB
+├ ƒ /dashboard/leads                     5.13 kB         109 kB
+├ ƒ /dashboard/notifications             3.19 kB        96.6 kB
+├ ƒ /dashboard/reviews                   2.83 kB         106 kB
+├ ƒ /dashboard/settings                  3.88 kB        97.3 kB
+└ ƒ /login                               5.59 kB        92.8 kB
++ First Load JS shared by all            87.2 kB
+  ├ chunks/534-16a28c5e60def3ed.js       31.6 kB
+  ├ chunks/65dbfdbf-b8543f68f0bb4757.js  53.6 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+ƒ Middleware                             27.2 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
