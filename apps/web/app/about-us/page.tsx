@@ -4,51 +4,51 @@ import Link from 'next/link';
 
 const featureCards = [
   {
-    title: 'Multi-Tenant Website Engine',
-    body: 'Launch branded tenant sites with configurable sections, themes, and service catalogs from one secure platform.',
+    title: 'Branded Public Storefronts',
+    body: 'Give every business or branch a polished microsite with services, gallery, contact details, booking flows, and quick action buttons.',
   },
   {
-    title: 'Lead Capture and Routing',
-    body: 'Collect leads from forms, campaigns, and landing pages, then route them instantly to the right team members.',
+    title: 'WhatsApp and Call Lead Capture',
+    body: 'Capture customer details before redirecting to WhatsApp or phone so enquiries are logged even when the conversation moves off-platform.',
   },
   {
-    title: 'Ops Dashboard and Insights',
-    body: 'Track pipeline velocity, conversion trends, and daily performance through clean dashboards and actionable analytics.',
+    title: 'CRM and Lead Pipeline',
+    body: 'Track statuses like NEW, CONTACTED, QUALIFIED, CONVERTED, and CLOSED with cleaner ownership and less duplicate data entry.',
   },
   {
-    title: 'Automation and Follow-ups',
-    body: 'Reduce manual work using automated reminders, status updates, and task queues for faster customer response.',
+    title: 'Follow-up Workflows',
+    body: 'Schedule callbacks, flag missed follow-ups, and keep teams accountable so hot leads do not go cold.',
   },
   {
-    title: 'Custom Branding at Scale',
-    body: 'Apply logos, colors, messaging, and localized content per tenant while keeping operations centralized.',
+    title: 'Owner-Level Analytics',
+    body: 'See conversion rate, source performance, agent workload, and activity trends in one dashboard that shows what is actually working.',
   },
   {
-    title: 'Secure API-Driven Stack',
-    body: 'Power your growth with resilient APIs, role-based access controls, and a scalable architecture built for SaaS workloads.',
+    title: 'Multi-Tenant Admin and Customization',
+    body: 'Manage multiple clients, branches, or brands from one backend while preserving tenant isolation, branding, and secure access controls.',
   },
 ];
 
 const processSteps = [
   {
     step: '01',
-    title: 'Onboard',
-    body: 'Create tenant workspaces, configure brand identity, and publish customer-facing pages quickly.',
+    title: 'Launch',
+    body: 'Set up a branded business page with your logo, services, gallery, and contact or booking flows in minutes.',
   },
   {
     step: '02',
     title: 'Capture',
-    body: 'Bring leads in from digital channels and turn every inquiry into a trackable opportunity.',
+    body: 'Turn calls, WhatsApp clicks, and enquiry forms into tracked leads instead of losing them in personal chats or missed callbacks.',
   },
   {
     step: '03',
-    title: 'Engage',
-    body: 'Use guided workflows to follow up, qualify, and progress leads across teams without losing context.',
+    title: 'Manage',
+    body: 'Assign leads, schedule follow-ups, and move opportunities through a simple sales pipeline your whole team can use.',
   },
   {
     step: '04',
     title: 'Scale',
-    body: 'Analyze outcomes, optimize conversion paths, and expand to more tenants with consistent quality.',
+    body: 'Use analytics, reviews, and tenant-safe operations to grow from one local business to many branches or client accounts.',
   },
 ];
 
@@ -57,14 +57,14 @@ export default function AboutUsPage() {
     <main className="about-shell">
       <section className="about-hero">
         <p className="kicker">About RiseLocal</p>
-        <h1>We build the complete operating system for modern local-service SaaS.</h1>
+        <h1>Turn more local enquiries into paying customers.</h1>
         <p className="lead">
-          RiseLocal helps businesses and operators run everything end to end, from branded tenant websites and lead generation
-          to follow-ups, analytics, and scalable growth workflows.
+          RiseLocal helps local businesses turn every call, WhatsApp click, and booking enquiry into a tracked, assigned,
+          and measurable sales opportunity with one branded growth platform.
         </p>
         <div className="hero-actions">
           <Link href="/login" className="btn-primary">
-            Get Started
+            Book a Demo
           </Link>
           <Link href="/" className="btn-secondary">
             Back to Home
@@ -84,7 +84,7 @@ export default function AboutUsPage() {
       <section className="process" aria-label="How RiseLocal works">
         <div className="section-heading">
           <p className="kicker">How It Works</p>
-          <h2>From setup to scale in one connected flow</h2>
+          <h2>From first enquiry to conversion in one connected flow</h2>
         </div>
         <div className="process-grid">
           {processSteps.map((item) => (
@@ -98,13 +98,13 @@ export default function AboutUsPage() {
       </section>
 
       <section className="cta-panel">
-        <h2>Built for teams that want speed, clarity, and scale.</h2>
+        <h2>Capture every enquiry, follow up faster, and grow with clarity.</h2>
         <p>
-          Whether you are launching your first tenant or managing hundreds, RiseLocal gives you one platform to deliver
-          better customer experiences and measurable business growth.
+          Whether you run one local business, multiple branches, or an agency portfolio, RiseLocal combines acquisition,
+          CRM, customization, and analytics in one scalable platform.
         </p>
         <Link href="/login" className="btn-primary">
-          Start With RiseLocal
+          Launch with RiseLocal
         </Link>
       </section>
 

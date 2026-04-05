@@ -9,8 +9,16 @@ type Tenant = {
   name: string;
   slug: string;
   domain: string | null;
+  themeKey?: 'default' | 'modern' | 'minimal' | 'business';
   createdAt: string;
 };
+
+const THEME_OPTIONS = [
+  { value: 'default', label: 'Default Theme' },
+  { value: 'modern', label: 'Modern Tech' },
+  { value: 'business', label: 'Business Security' },
+  { value: 'minimal', label: 'Minimal Beauty' },
+] as const;
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -21,6 +29,7 @@ export default function TenantsPage() {
     name: '',
     slug: '',
     domain: '',
+    themeKey: 'default' as Tenant['themeKey'],
   });
 
   useEffect(() => {
@@ -41,7 +50,7 @@ export default function TenantsPage() {
 
   function openCreateModal() {
     setEditingTenant(null);
-    setFormData({ name: '', slug: '', domain: '' });
+    setFormData({ name: '', slug: '', domain: '', themeKey: 'default' });
     setShowModal(true);
   }
 
@@ -51,6 +60,7 @@ export default function TenantsPage() {
       name: tenant.name,
       slug: tenant.slug,
       domain: tenant.domain || '',
+      themeKey: tenant.themeKey || 'default',
     });
     setShowModal(true);
   }
@@ -129,6 +139,7 @@ export default function TenantsPage() {
                 <th>Business Name</th>
                 <th>Slug</th>
                 <th>Domain</th>
+                <th>Theme</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -141,6 +152,9 @@ export default function TenantsPage() {
                     <code>{tenant.slug}</code>
                   </td>
                   <td>{tenant.domain || '-'}</td>
+                  <td>
+                    {THEME_OPTIONS.find((option) => option.value === (tenant.themeKey || 'default'))?.label || 'Default Theme'}
+                  </td>
                   <td>{new Date(tenant.createdAt).toLocaleDateString()}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -230,6 +244,30 @@ export default function TenantsPage() {
                 />
                 <small style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                   Used in URLs: /{formData.slug || 'tenant-slug'}
+                </small>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label
+                  htmlFor="themeKey"
+                  style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}
+                >
+                  Public Theme
+                </label>
+                <select
+                  id="themeKey"
+                  className="input"
+                  value={formData.themeKey || 'default'}
+                  onChange={(e) => setFormData({ ...formData, themeKey: e.target.value as Tenant['themeKey'] })}
+                >
+                  {THEME_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                  `default` keeps the current storefront. Use `modern` for computer/mobile shops, `business` for CCTV, and `minimal` for salon/beauty tenants.
                 </small>
               </div>
 

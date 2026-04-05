@@ -7,9 +7,20 @@ import { capturePublicCtaLead } from '@/lib/public-lead-capture';
 type Props = {
   tenantId?: string;
   tenantSlug?: string;
+  title?: string;
+  subtitle?: string;
+  submitLabel?: string;
+  locationPlaceholder?: string;
 };
 
-export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
+export default function Booking({
+  tenantId,
+  tenantSlug,
+  title = 'Book Home Visit',
+  subtitle = 'Share your details and preferred time so the team can follow up quickly.',
+  submitLabel = 'Confirm Booking',
+  locationPlaceholder = 'Location',
+}: Readonly<Props>) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -55,7 +66,8 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
 
   return (
     <div style={{ padding: 16 }}>
-      <h2 style={{ marginBottom: 12 }}>Book Home Visit</h2>
+      <h2 style={{ marginBottom: 6 }}>{title}</h2>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 14 }}>{subtitle}</p>
 
       <form
         onSubmit={onSubmit}
@@ -82,7 +94,7 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
 
         <input
           aria-label="Location"
-          placeholder="Location"
+          placeholder={locationPlaceholder}
           value={formData.location}
           onChange={(event) => updateField('location', event.target.value)}
           style={inputStyle}
@@ -110,7 +122,7 @@ export default function Booking({ tenantId, tenantSlug }: Readonly<Props>) {
             opacity: !isValid || submitting ? 0.65 : 1,
           }}
         >
-          {submitting ? 'Submitting...' : 'Confirm Booking'}
+          {submitting ? 'Submitting...' : submitLabel}
         </button>
       </form>
     </div>

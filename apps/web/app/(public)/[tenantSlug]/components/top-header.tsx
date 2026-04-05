@@ -194,12 +194,12 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
             }}
           >
             <Image
-              src={logoUrl || '/logo/JB_Logo.jpeg'}
+              src={logoUrl || '/logo/riselocal-logo.svg'}
               alt="logo"
               fill
               sizes="40px"
               style={{
-                objectFit: 'cover',
+                objectFit: 'contain',
               }}
               priority={true}
             />

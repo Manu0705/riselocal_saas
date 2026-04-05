@@ -27,6 +27,8 @@ type LeadLifecycleConfig = {
 
 const DEFAULT_SECTION_ORDER = ['hero', 'services', 'gallery'];
 const DEFAULT_FONT_FAMILY = 'Inter';
+const DEFAULT_THEME_KEY = 'default';
+const ALLOWED_THEME_KEYS = new Set(['default', 'modern', 'minimal', 'business']);
 const ALLOWED_FONT_FAMILIES = new Set([
   'Inter',
   'Poppins',
@@ -121,12 +123,19 @@ function normalizeFontFamily(value: unknown, fallback = DEFAULT_FONT_FAMILY): st
   return ALLOWED_FONT_FAMILIES.has(trimmed) ? trimmed : fallback;
 }
 
+function normalizeThemeKey(value: unknown, fallback = DEFAULT_THEME_KEY): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().toLowerCase();
+  return ALLOWED_THEME_KEYS.has(normalized) ? normalized : fallback;
+}
+
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
   galleryCategories: string[];
   leadLifecycle: LeadLifecycleConfig;
   fontFamily: string;
+  themeKey: string;
 } {
   if (Array.isArray(rawValue)) {
     return {
@@ -135,6 +144,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       galleryCategories: DEFAULT_GALLERY_CATEGORIES,
       leadLifecycle: DEFAULT_LEAD_LIFECYCLE,
       fontFamily: DEFAULT_FONT_FAMILY,
+      themeKey: DEFAULT_THEME_KEY,
     };
   }
 
@@ -154,6 +164,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       galleryCategories,
       leadLifecycle: normalizeLeadLifecycle(raw.leadLifecycle),
       fontFamily: normalizeFontFamily(raw.fontFamily),
+      themeKey: normalizeThemeKey(raw.themeKey),
     };
   }
 
@@ -163,6 +174,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
     galleryCategories: DEFAULT_GALLERY_CATEGORIES,
     leadLifecycle: DEFAULT_LEAD_LIFECYCLE,
     fontFamily: DEFAULT_FONT_FAMILY,
+    themeKey: DEFAULT_THEME_KEY,
   };
 }
 
@@ -172,6 +184,7 @@ function buildSectionOrderPayload(
   galleryCategories: string[] = DEFAULT_GALLERY_CATEGORIES,
   leadLifecycle: LeadLifecycleConfig = DEFAULT_LEAD_LIFECYCLE,
   fontFamily: string = DEFAULT_FONT_FAMILY,
+  themeKey: string = DEFAULT_THEME_KEY,
 ) {
   return {
     sections: sectionOrder,
@@ -179,6 +192,7 @@ function buildSectionOrderPayload(
     galleryCategories,
     leadLifecycle,
     fontFamily: normalizeFontFamily(fontFamily),
+    themeKey: normalizeThemeKey(themeKey),
   };
 }
 
@@ -192,6 +206,7 @@ function toSettingsResponse(settings: any) {
     galleryCategories: parsed.galleryCategories,
     leadLifecycle: parsed.leadLifecycle,
     fontFamily: parsed.fontFamily,
+    themeKey: parsed.themeKey,
   };
 }
 
@@ -240,6 +255,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
       primaryColor,
       secondaryColor,
       fontFamily,
+      themeKey,
       sectionOrder,
       actionButtons,
       galleryCategories,
@@ -277,6 +293,10 @@ router.put('/settings', authMiddleware, async (req, res) => {
       fontFamily !== undefined
         ? normalizeFontFamily(fontFamily)
         : existingConfig.fontFamily;
+    const nextThemeKey =
+      themeKey !== undefined
+        ? normalizeThemeKey(themeKey)
+        : existingConfig.themeKey;
 
     if (!settings) {
       settings = await prisma.tenantSettings.create({
@@ -291,6 +311,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
             nextGalleryCategories,
             nextLeadLifecycle,
             nextFontFamily,
+            nextThemeKey,
           ),
         },
       });
@@ -305,13 +326,15 @@ router.put('/settings', authMiddleware, async (req, res) => {
             actionButtons !== undefined ||
             galleryCategories !== undefined ||
             leadLifecycle !== undefined ||
-            fontFamily !== undefined) && {
+            fontFamily !== undefined ||
+            themeKey !== undefined) && {
             sectionOrder: buildSectionOrderPayload(
               nextSectionOrder,
               nextActionButtons,
               nextGalleryCategories,
               nextLeadLifecycle,
               nextFontFamily,
+              nextThemeKey,
             ),
           }),
           ...(businessPhone !== undefined && { businessPhone }),
@@ -407,6 +430,7 @@ router.put(
         primaryColor,
         secondaryColor,
         fontFamily,
+        themeKey,
         sectionOrder,
         actionButtons,
         galleryCategories,
@@ -444,6 +468,10 @@ router.put(
         fontFamily !== undefined
           ? normalizeFontFamily(fontFamily)
           : existingConfig.fontFamily;
+      const nextThemeKey =
+        themeKey !== undefined
+          ? normalizeThemeKey(themeKey)
+          : existingConfig.themeKey;
 
       if (!settings) {
         settings = await prisma.tenantSettings.create({
@@ -458,6 +486,7 @@ router.put(
               nextGalleryCategories,
               nextLeadLifecycle,
               nextFontFamily,
+              nextThemeKey,
             ),
           },
         });
@@ -472,13 +501,15 @@ router.put(
               actionButtons !== undefined ||
               galleryCategories !== undefined ||
               leadLifecycle !== undefined ||
-              fontFamily !== undefined) && {
+              fontFamily !== undefined ||
+              themeKey !== undefined) && {
               sectionOrder: buildSectionOrderPayload(
                 nextSectionOrder,
                 nextActionButtons,
                 nextGalleryCategories,
                 nextLeadLifecycle,
                 nextFontFamily,
+                nextThemeKey,
               ),
             }),
             ...(businessPhone !== undefined && { businessPhone }),

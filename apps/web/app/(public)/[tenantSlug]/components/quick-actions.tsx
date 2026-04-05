@@ -17,6 +17,9 @@ type Props = {
   readonly tenantId?: string;
   readonly tenantSlug?: string;
   readonly actionButtons?: ActionButtonsConfig;
+  readonly whatsappLabel?: string;
+  readonly callLabel?: string;
+  readonly whatsappMessage?: string;
 };
 
 export default function QuickActions({
@@ -24,6 +27,9 @@ export default function QuickActions({
   tenantId,
   tenantSlug,
   actionButtons,
+  whatsappLabel = 'Chat on WhatsApp',
+  callLabel = 'Call',
+  whatsappMessage = "Hi, I'm interested in your services",
 }: Readonly<Props>) {
   const [pendingAction, setPendingAction] = useState<{
     actionType: LeadActionType;
@@ -38,8 +44,8 @@ export default function QuickActions({
 
   const whatsappHref = resolveActionHref(
     buttons.chatWhatsApp,
-    `https://wa.me/${phoneNumber}?text=Hi, I'm interested in your services`,
-    { whatsappMessage: "Hi, I'm interested in your services" },
+    `https://wa.me/${phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`,
+    { whatsappMessage },
   );
   const callHref = resolveActionHref(buttons.call, `tel:${phoneNumber}`);
 
@@ -77,7 +83,7 @@ export default function QuickActions({
               marginTop: 0,
             }}
           >
-            <span>Chat on WhatsApp</span>
+            <span>{whatsappLabel}</span>
             <span>&gt;</span>
           </a>
         )}
@@ -105,7 +111,7 @@ export default function QuickActions({
             }}
           >
             <Phone size={18} />
-            Call
+            {callLabel}
           </a>
         )}
       </div>

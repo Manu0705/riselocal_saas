@@ -29,16 +29,17 @@ type BrandMarkProps = {
   subtitle?: string;
 };
 
-function BrandMark({ compact = false, subtitle = 'Multi-Tenant Platform' }: BrandMarkProps) {
+function BrandMark({ compact = false, subtitle = 'Local Business Growth OS' }: BrandMarkProps) {
   return (
     <div className="flex items-center gap-3">
       <div className="rounded-[20px] border border-white/80 bg-white/80 p-1 shadow-[0_10px_30px_rgba(8,28,77,0.12)] backdrop-blur">
         <Image
-          src="/logo/JB_Logo.jpeg"
+          src="/logo/riselocal-logo.svg"
           alt="RiseLocal logo"
           width={compact ? 40 : 48}
           height={compact ? 40 : 48}
           className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} rounded-2xl object-contain`}
+          priority
         />
       </div>
       <div>
@@ -112,7 +113,7 @@ type HeroPreviewProps = {
 };
 
 function HeroPreview({ tenantLabel }: HeroPreviewProps) {
-  const workspaceLabel = tenantLabel ?? 'Default Workspace';
+  const workspaceLabel = tenantLabel ?? 'RiseLocal Demo';
 
   return (
     <div className="relative mx-auto w-full max-w-lg">
@@ -124,8 +125,8 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-100/75">Growth overview</p>
-              <h3 className="mt-2 text-lg font-bold">Tenant command center</h3>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-100/75">Live growth snapshot</p>
+              <h3 className="mt-2 text-lg font-bold">Every enquiry in one dashboard</h3>
             </div>
             <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-100">
               Live
@@ -134,9 +135,9 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[
-              { label: 'Leads', value: '128', tone: 'text-sky-100' },
-              { label: 'Conversion', value: '18%', tone: 'text-emerald-100' },
-              { label: 'Tenants', value: '24', tone: 'text-violet-100' },
+              { label: 'New leads', value: '128', tone: 'text-sky-100' },
+              { label: 'Follow-ups', value: '19', tone: 'text-amber-100' },
+              { label: 'Converted', value: '18%', tone: 'text-emerald-100' },
             ].map((item) => (
               <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur">
                 <p className="text-[11px] text-slate-300">{item.label}</p>
@@ -148,7 +149,7 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
           <div className="mt-4 rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-300">Saved workspace</p>
+                <p className="text-xs text-slate-300">Demo workspace</p>
                 <p className="text-sm font-semibold text-white">{workspaceLabel}</p>
               </div>
               <BarChart3 className="h-5 w-5 text-sky-200" />
@@ -176,7 +177,7 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-300">Response health</p>
-                <p className="text-sm font-semibold text-white">Fast, branded, and tenant-safe</p>
+                <p className="text-sm font-semibold text-white">WhatsApp, calls, and bookings tracked</p>
               </div>
               <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-sky-100">+24%</span>
             </div>
@@ -185,15 +186,15 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
       </div>
 
       <div className="absolute -bottom-5 left-3 rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-[0_16px_40px_rgba(8,28,77,0.18)] backdrop-blur">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">WhatsApp leads</p>
-        <p className="mt-1 text-sm font-bold text-slate-900">Up 24% this week</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">WhatsApp capture</p>
+        <p className="mt-1 text-sm font-bold text-slate-900">Every click becomes a lead</p>
       </div>
     </div>
   );
 }
 
 function HomeHero({ tenantLabel, loginHref }: HomeHeroProps) {
-  const primaryLabel = tenantLabel ? `Continue to ${tenantLabel}` : 'Login to Dashboard';
+  const primaryLabel = tenantLabel ? `Continue to ${tenantLabel}` : 'Launch Your Branded Lead Engine';
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
@@ -206,7 +207,7 @@ function HomeHero({ tenantLabel, loginHref }: HomeHeroProps) {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#1d72f3]/15 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-[#0f3c97] shadow-sm backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
-              Premium multi-tenant growth platform
+              Built for local businesses, agencies, and franchises
             </div>
 
             {tenantLabel ? (
@@ -217,11 +218,12 @@ function HomeHero({ tenantLabel, loginHref }: HomeHeroProps) {
             ) : null}
 
             <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Grow Your Business with RiseLocal
+              Turn Every WhatsApp Click, Call, and Booking Request into a Real Lead
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              All-in-one multi-tenant SaaS platform for modern businesses.
+              RiseLocal gives local businesses a branded website, lead dashboard, follow-up system, and conversion analytics
+              — so no enquiry slips through the cracks.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -237,15 +239,15 @@ function HomeHero({ tenantLabel, loginHref }: HomeHeroProps) {
                 href="/about-us"
                 className="rounded-2xl border border-slate-200 bg-white/85 px-5 py-3 text-sm font-bold text-slate-800 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
               >
-                About Us
+                See How RiseLocal Works
               </Link>
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
               {[
-                { label: 'Branded tenant flows', value: '24/7' },
+                { label: 'WhatsApp-first capture', value: '24/7' },
                 { label: 'Faster follow-ups', value: '+32%' },
-                { label: 'Unified operations', value: '1 hub' },
+                { label: 'Channels in one view', value: '1 hub' },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur">
                   <p className="text-lg font-black text-slate-950">{item.value}</p>
@@ -271,42 +273,42 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
   const features = [
     {
       icon: Building2,
-      title: 'Tenant-aware branding',
-      description: 'Deliver polished, branded experiences for every tenant while keeping one shared platform underneath.',
+      title: 'Branded business pages',
+      description: 'Create a polished public presence with your logo, services, gallery, social links, and booking or contact flows.',
     },
     {
       icon: LayoutDashboard,
-      title: 'Live pipeline visibility',
-      description: 'Track leads, follow-ups, and activity in one clean dashboard built for fast daily execution.',
+      title: 'WhatsApp-first lead capture',
+      description: 'Capture customer details before a visitor jumps to WhatsApp or a phone call, so off-platform conversations still become tracked leads.',
     },
     {
       icon: Users,
-      title: 'Aligned team workflows',
-      description: 'Help operators and teams stay coordinated across locations, tenants, and conversion stages.',
+      title: 'Lead pipeline for real teams',
+      description: 'Assign leads, update statuses, schedule follow-ups, and keep owners, managers, and staff aligned on the next action.',
     },
     {
       icon: ShieldCheck,
-      title: 'Secure by default',
-      description: 'Protect data and access with strong tenant boundaries and a production-ready SaaS foundation.',
+      title: 'Analytics that show what converts',
+      description: 'See lead totals, source performance, conversion rate, and agent workload from one secure dashboard.',
     },
   ];
 
   const benefits = [
-    'Onboard new tenants quickly with reusable flows',
-    'Keep operations consistent across every customer space',
-    'Give teams a cleaner, faster experience on desktop and mobile',
-    'Scale from local operators to multi-branch organizations with confidence',
+    'Stop losing leads in missed calls, personal chats, and enquiry forms',
+    'Respond faster with assigned ownership and scheduled follow-ups',
+    'Track performance across staff, sources, and campaigns',
+    'Scale from one business to multiple branches or agency clients',
   ];
 
-  const ctaLabel = tenantLabel ? `Continue to ${tenantLabel}` : 'Login Now';
+  const ctaLabel = tenantLabel ? `Continue to ${tenantLabel}` : 'Book a Demo';
 
   return (
     <>
       <section className="mx-auto mt-10 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Features"
-          title="Everything your team needs to look polished and move faster"
-          description="Inspired by modern SaaS products, RiseLocal now feels cleaner, sharper, and more production-ready without changing your underlying flow."
+          title="Everything local businesses need to capture, follow up, and convert"
+          description="RiseLocal combines branded storefronts, CRM workflows, and owner-level reporting in one India-ready platform."
         />
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -333,9 +335,9 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
         <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="rounded-[28px] border border-white/80 bg-white/85 p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
             <SectionHeading
-              eyebrow="Benefits"
-              title="Why teams choose RiseLocal"
-              description="Minimal friction, better clarity, and a stronger first impression for every tenant journey."
+              eyebrow="Business value"
+              title="Why local teams choose RiseLocal"
+              description="It is more than a website builder and more than a CRM — it is a growth operating system for local sales teams."
             />
 
             <div className="mt-5 grid gap-3">
@@ -351,17 +353,18 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
           </div>
 
           <div className="rounded-[28px] bg-[linear-gradient(135deg,#0a183d_0%,#123a84_58%,#1d72f3_100%)] p-6 text-white shadow-[0_20px_50px_rgba(15,37,95,0.26)] sm:p-7">
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-sky-100/80">Premium UX</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight">Built to feel like a real SaaS product from the first click</h3>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-sky-100/80">Why it stands out</p>
+            <h3 className="mt-3 text-2xl font-black tracking-tight">Capture every enquiry before it slips away</h3>
             <p className="mt-3 text-sm leading-6 text-sky-50/85 sm:text-base">
-              The refreshed interface uses your logo palette — electric blue, deep navy, and fresh green — for stronger brand consistency and a cleaner, more modern feel.
+              RiseLocal is designed for local service businesses, agencies, and multi-location operators that need one branded
+              lead engine with true tenant isolation.
             </p>
 
             <div className="mt-5 space-y-3">
               {[
-                'Logo-aligned buttons, gradients, and highlights',
-                'Modern glassmorphism surfaces with depth and spacing',
-                'Responsive layouts that stay clean on mobile and desktop',
+                'Capture lead details before WhatsApp or Call redirects',
+                'Run storefronts, CRM, follow-ups, and analytics in one platform',
+                'Scale cleanly across branches, clients, and teams with tenant-safe workflows',
               ].map((item) => (
                 <div key={item} className="rounded-2xl border border-white/10 bg-white/10 p-3 text-sm text-sky-50 backdrop-blur">
                   {item}
@@ -380,10 +383,10 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
             <div className="max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-sky-200">Ready to grow</p>
               <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-                Launch, scale, and run your SaaS with confidence
+                Turn a basic online presence into a measurable growth channel
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
-                A clean multi-tenant foundation with premium UI polish so users feel the quality immediately.
+                Capture every enquiry, assign it faster, and see what converts across WhatsApp, calls, bookings, and campaigns.
               </p>
               {tenantLabel ? (
                 <p className="mt-3 inline-flex rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
@@ -422,7 +425,7 @@ function HomeFooter({ loginHref }: HomeFooterProps) {
   return (
     <footer className="mt-auto border-t border-white/70 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-5 text-sm text-slate-600 sm:flex-row sm:px-6 lg:px-8">
-        <BrandMark compact subtitle="Premium multi-tenant SaaS" />
+        <BrandMark compact subtitle="Lead capture + CRM + analytics" />
 
         <div className="flex items-center gap-4">
           <Link href="/about-us" className="font-medium text-slate-700 transition hover:text-slate-950">

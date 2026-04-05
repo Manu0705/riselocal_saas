@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panel" x1="112" y1="118" x2="396" y2="404" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64A9FF" />
+      <stop offset="1" stop-color="#183A8F" />
+    </linearGradient>
+    <linearGradient id="phone" x1="112" y1="200" x2="366" y2="404" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#84D61D" />
+      <stop offset="1" stop-color="#169A2D" />
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="432" height="432" rx="88" fill="#F8FAFC" />
+  <path d="M128 164C128 137.49 149.49 116 176 116H350C376.51 116 398 137.49 398 164V348C398 374.51 376.51 396 350 396H162C143.222 396 128 380.778 128 362V164Z" fill="url(#panel)" />
+  <path d="M174 246L228 190L276 236L350 164" stroke="#F8FBFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M328 164H370V206" stroke="#F8FBFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M324 236V352" stroke="#E7EEF9" stroke-width="20" stroke-linecap="round" opacity="0.92" />
+  <path d="M282 270V352" stroke="#D9E5F7" stroke-width="20" stroke-linecap="round" opacity="0.72" />
+  <path d="M157 178C175 160 202 158 221 176L247 200C258 211 258 229 247 240L227 260C248 301 280 333 321 354L341 334C352 323 370 323 381 334L405 358C423 376 423 404 405 422L389 438C375 452 355 458 335 455C209 433 110 334 88 208C84 188 90 168 104 154L120 138C138 120 166 120 184 138L205 159" fill="url(#phone)" stroke="#F8FBFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -34,6 +34,8 @@ const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
   whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
   confirmBooking: { enabled: true, label: 'Confirm Booking' },
 };
+const DEFAULT_THEME_KEY = 'default';
+const ALLOWED_THEME_KEYS = new Set(['default', 'modern', 'minimal', 'business']);
 
 function getDefaultActionButtons(): ActionButtonsConfig {
   return {
@@ -55,11 +57,18 @@ function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfi
   };
 }
 
+function normalizeThemeKey(value: unknown, fallback = DEFAULT_THEME_KEY): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().toLowerCase();
+  return ALLOWED_THEME_KEYS.has(normalized) ? normalized : fallback;
+}
+
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
   galleryCategories: string[];
   fontFamily: string;
+  themeKey: string;
 } {
   if (Array.isArray(rawValue)) {
     return {
@@ -67,6 +76,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       actionButtons: getDefaultActionButtons(),
       galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
       fontFamily: 'Inter',
+      themeKey: DEFAULT_THEME_KEY,
     };
   }
 
@@ -89,6 +99,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
         typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0
           ? raw.fontFamily.trim()
           : 'Inter',
+      themeKey: normalizeThemeKey(raw.themeKey),
       actionButtons: {
         chatWhatsApp: normalizeActionButtonConfig(
           buttonRaw.chatWhatsApp,
@@ -112,6 +123,23 @@ function extractSectionOrderConfig(rawValue: unknown): {
     actionButtons: getDefaultActionButtons(),
     galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
     fontFamily: 'Inter',
+    themeKey: DEFAULT_THEME_KEY,
+  };
+}
+
+function buildSectionOrderPayload(
+  sectionOrder: string[],
+  actionButtons: ActionButtonsConfig,
+  galleryCategories: string[] = ['gallery', 'before-after', 'team', 'workspace'],
+  fontFamily = 'Inter',
+  themeKey: string = DEFAULT_THEME_KEY,
+) {
+  return {
+    sections: sectionOrder,
+    actionButtons,
+    galleryCategories,
+    fontFamily,
+    themeKey: normalizeThemeKey(themeKey),
   };
 }
 
@@ -192,7 +220,7 @@ function toSlug(value: string): string {
 
 router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
-    const { name, domain, slug } = req.body;
+    const { name, domain, slug, themeKey } = req.body;
 
     const resolvedSlug = toSlug(slug || name || '');
 
@@ -207,9 +235,49 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
 
     await repository.save(tenant);
 
+    const tenantId = tenant.toJSON().id;
+    const existingSettings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+    const existingConfig = extractSectionOrderConfig(existingSettings?.sectionOrder);
+
+    await prisma.tenantSettings.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        logoShape: existingSettings?.logoShape || 'circle',
+        primaryColor: existingSettings?.primaryColor || '#000000',
+        secondaryColor: existingSettings?.secondaryColor || '#FFFFFF',
+        businessPhone: existingSettings?.businessPhone,
+        businessWhatsApp: existingSettings?.businessWhatsApp,
+        tagline: existingSettings?.tagline,
+        logoUrl: existingSettings?.logoUrl,
+        bannerUrl: existingSettings?.bannerUrl,
+        sectionOrder: buildSectionOrderPayload(
+          existingConfig.sectionOrder,
+          existingConfig.actionButtons,
+          existingConfig.galleryCategories,
+          existingConfig.fontFamily,
+          normalizeThemeKey(themeKey),
+        ),
+      },
+      update: {
+        sectionOrder: buildSectionOrderPayload(
+          existingConfig.sectionOrder,
+          existingConfig.actionButtons,
+          existingConfig.galleryCategories,
+          existingConfig.fontFamily,
+          normalizeThemeKey(themeKey),
+        ),
+      },
+    });
+
     return res.status(201).json({
       success: true,
-      data: tenant.toJSON(),
+      data: {
+        ...tenant.toJSON(),
+        themeKey: normalizeThemeKey(themeKey),
+      },
     });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
@@ -282,6 +350,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
             primaryColor: tenant.settings.primaryColor,
             secondaryColor: tenant.settings.secondaryColor,
             fontFamily: sectionConfig.fontFamily,
+            themeKey: sectionConfig.themeKey,
             sectionOrder: sectionConfig.sectionOrder,
             galleryCategories: sectionConfig.galleryCategories,
             actionButtons: sectionConfig.actionButtons,
@@ -338,11 +407,22 @@ router.use('/tenants', authMiddleware, adminRoleMiddleware);
 
 router.get('/tenants', async (_req, res) => {
   try {
-    const tenants = await repository.findAllActive();
+    const tenants = await prisma.tenant.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { settings: true },
+    });
 
     return res.json({
       success: true,
-      data: tenants.map((t) => t.toJSON()),
+      data: tenants.map((tenant) => ({
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        domain: tenant.domain,
+        createdAt: tenant.createdAt,
+        updatedAt: tenant.updatedAt,
+        themeKey: extractSectionOrderConfig(tenant.settings?.sectionOrder).themeKey,
+      })),
     });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
@@ -362,7 +442,7 @@ router.get('/tenants', async (_req, res) => {
 router.put('/tenants/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, slug, domain } = req.body;
+    const { name, slug, domain, themeKey } = req.body;
 
     const tenant = await repository.findById(id);
 
@@ -378,12 +458,55 @@ router.put('/tenants/:id', async (req, res) => {
     tenant.update(name, resolvedSlug, domain);
 
     await repository.update(tenant);
+
+    if (themeKey !== undefined) {
+      const tenantId = tenant.toJSON().id;
+      const existingSettings = await prisma.tenantSettings.findUnique({
+        where: { tenantId },
+      });
+      const existingConfig = extractSectionOrderConfig(existingSettings?.sectionOrder);
+
+      await prisma.tenantSettings.upsert({
+        where: { tenantId },
+        create: {
+          tenantId,
+          logoShape: existingSettings?.logoShape || 'circle',
+          primaryColor: existingSettings?.primaryColor || '#000000',
+          secondaryColor: existingSettings?.secondaryColor || '#FFFFFF',
+          businessPhone: existingSettings?.businessPhone,
+          businessWhatsApp: existingSettings?.businessWhatsApp,
+          tagline: existingSettings?.tagline,
+          logoUrl: existingSettings?.logoUrl,
+          bannerUrl: existingSettings?.bannerUrl,
+          sectionOrder: buildSectionOrderPayload(
+            existingConfig.sectionOrder,
+            existingConfig.actionButtons,
+            existingConfig.galleryCategories,
+            existingConfig.fontFamily,
+            normalizeThemeKey(themeKey),
+          ),
+        },
+        update: {
+          sectionOrder: buildSectionOrderPayload(
+            existingConfig.sectionOrder,
+            existingConfig.actionButtons,
+            existingConfig.galleryCategories,
+            existingConfig.fontFamily,
+            normalizeThemeKey(themeKey),
+          ),
+        },
+      });
+    }
+
     invalidatePublicTenantCacheBySlug(previousSlug);
     invalidatePublicTenantCacheBySlug(resolvedSlug);
 
     return res.json({
       success: true,
-      data: tenant.toJSON(),
+      data: {
+        ...tenant.toJSON(),
+        ...(themeKey !== undefined ? { themeKey: normalizeThemeKey(themeKey) } : {}),
+      },
     });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);

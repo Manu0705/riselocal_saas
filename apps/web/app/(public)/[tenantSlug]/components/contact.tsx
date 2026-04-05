@@ -19,6 +19,11 @@ type Props = {
   readonly tenantId?: string;
   readonly tenantSlug?: string;
   readonly actionButtons?: ActionButtonsConfig;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly callLabel?: string;
+  readonly whatsappLabel?: string;
+  readonly whatsappMessage?: string;
 };
 
 export default function Contact({
@@ -26,6 +31,11 @@ export default function Contact({
   tenantId,
   tenantSlug,
   actionButtons,
+  title = 'Contact',
+  subtitle = 'Reach the team directly through call or WhatsApp.',
+  callLabel = 'Call Now',
+  whatsappLabel = 'WhatsApp',
+  whatsappMessage,
 }: Readonly<Props>) {
   const [pendingAction, setPendingAction] = useState<{
     actionType: LeadActionType;
@@ -38,11 +48,16 @@ export default function Contact({
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
   const callHref = resolveActionHref(buttons.call, `tel:${phone}`);
-  const whatsappHref = resolveActionHref(buttons.chatWhatsApp, `https://wa.me/${phone}`);
+  const whatsappHref = resolveActionHref(
+    buttons.chatWhatsApp,
+    `https://wa.me/${phone}`,
+    { whatsappMessage },
+  );
 
   return (
     <div style={{ padding: 16 }}>
-      <h2 style={{ marginBottom: 12 }}>Contact</h2>
+      <h2 style={{ marginBottom: 6 }}>{title}</h2>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 14 }}>{subtitle}</p>
 
       <div style={{ display: 'grid', gap: 10 }}>
         {buttons.call.enabled && (
@@ -63,7 +78,7 @@ export default function Contact({
               background: 'var(--tenant-primary, #3b82f6)',
             }}
           >
-            Call Now
+            {callLabel}
           </a>
         )}
 
@@ -86,7 +101,7 @@ export default function Contact({
               marginTop: 0,
             }}
           >
-            WhatsApp
+            {whatsappLabel}
           </a>
         )}
       </div>

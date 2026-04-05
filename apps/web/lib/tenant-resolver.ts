@@ -22,7 +22,7 @@ export const RESERVED_ROUTES = [
 
 export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug);
 
-type ResolvedTenant = {
+export type ResolvedTenant = {
   id?: string;
   name?: string;
   slug?: string;
@@ -36,6 +36,7 @@ type ResolvedTenant = {
   primaryColor?: string;
   secondaryColor?: string;
   fontFamily?: string;
+  themeKey?: string;
   sectionOrder?: string[];
   galleryCategories?: string[];
   actionButtons?: ActionButtonsConfig;
@@ -150,6 +151,23 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return defaults.fontFamily;
   };
 
+  const normalizeThemeKey = (settings: Record<string, unknown>): string => {
+    const direct = settings.themeKey;
+    if (typeof direct === 'string' && direct.trim().length > 0) {
+      return direct.trim().toLowerCase();
+    }
+
+    const sectionOrder = settings.sectionOrder;
+    if (sectionOrder && typeof sectionOrder === 'object' && !Array.isArray(sectionOrder)) {
+      const raw = sectionOrder as Record<string, unknown>;
+      if (typeof raw.themeKey === 'string' && raw.themeKey.trim().length > 0) {
+        return raw.themeKey.trim().toLowerCase();
+      }
+    }
+
+    return 'default';
+  };
+
   const normalizeServices = (value: unknown): Array<{ name: string; description?: string }> => {
     if (!Array.isArray(value)) {
       return defaults.services;
@@ -231,6 +249,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
         secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
         fontFamily: normalizeFontFamily(settings),
+        themeKey: normalizeThemeKey(settings),
         sectionOrder: normalizeSectionOrder(settings.sectionOrder),
         galleryCategories: normalizeGalleryCategories(settings),
         actionButtons: normalizeSettingsActionButtons(settings),

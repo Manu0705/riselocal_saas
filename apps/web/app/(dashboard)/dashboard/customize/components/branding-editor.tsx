@@ -15,10 +15,18 @@ interface TenantSettings {
   primaryColor: string;
   secondaryColor: string;
   fontFamily?: string;
+  themeKey?: 'default' | 'modern' | 'minimal' | 'business';
   tagline?: string;
   businessPhone?: string;
   businessWhatsApp?: string;
 }
+
+const THEME_OPTIONS = [
+  { value: 'default', label: 'Default Theme', description: 'Use the current storefront design.' },
+  { value: 'modern', label: 'Modern Tech', description: 'Best for computer, mobile, and hardware sellers.' },
+  { value: 'business', label: 'Business Security', description: 'Great for CCTV and security-focused tenants.' },
+  { value: 'minimal', label: 'Minimal Beauty', description: 'Best for salons and beauty parlours.' },
+] as const;
 
 export default function BrandingEditor() {
   const [settings, setSettings] = useState<TenantSettings | null>(null);
@@ -440,6 +448,38 @@ export default function BrandingEditor() {
           disabled={saving}
           onChange={(fontName) => setPending((p) => ({ ...p, fontFamily: fontName }))}
         />
+      </div>
+
+      <div
+        style={{
+          border: '1px solid var(--card-border)',
+          background: 'var(--card)',
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+          Storefront Theme
+        </label>
+        <select
+          value={displayed.themeKey || 'default'}
+          onChange={(e) => setPending((p) => ({ ...p, themeKey: e.target.value as TenantSettings['themeKey'] }))}
+          style={{
+            width: '100%',
+            border: '1px solid var(--card-border)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            fontSize: 14,
+            background: 'var(--card)',
+            color: 'var(--text)',
+          }}
+        >
+          {THEME_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} — {option.description}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Tagline */}
