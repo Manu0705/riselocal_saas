@@ -1,0 +1,38 @@
+
+> @saas/web@ build C:\Users\Sapth\Downloads\saas_existing\apps\web
+> next build
+
+  ▲ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/16) ...
+   Generating static pages (4/16) 
+   Generating static pages (8/16) 
+   Generating static pages (12/16) 
+ ✓ Generating static pages (16/16)
+   Finalizing page optimization ...
+   Collecting build traces ...
+Error: ENOENT: no such file or directory, open 'C:\Users\Sapth\Downloads\saas_existing\apps\web\.next\server\pages\_error.js.nft.json'
+    at async open (node:internal/fs/promises:642:25)
+    at async Object.readFile (node:internal/fs/promises:1279:14)
+    at async C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\build\collect-build-traces.js:429:50
+    at async Promise.all (index 1)
+    at async C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\build\collect-build-traces.js:410:13
+    at async Span.traceAsyncFn (C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\trace\trace.js:154:20)
+    at async collectBuildTraces (C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\build\collect-build-traces.js:164:5)
+    at async C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\build\index.js:2127:13
+    at async Span.traceAsyncFn (C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\trace\trace.js:154:20)
+    at async build (C:\Users\Sapth\Downloads\saas_existing\node_modules\.pnpm\next@14.2.3_@babel+core@7.2_199cf0276dc96f6a8a24abb0fd3b0139\node_modules\next\dist\build\index.js:366:9) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Sapth\\Downloads\\saas_existing\\apps\\web\\.next\\server\\pages\\_error.js.nft.json'
+}
+C:\Users\Sapth\Downloads\saas_existing\apps\web:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @saas/web@ build: `next build`
+Exit status 1

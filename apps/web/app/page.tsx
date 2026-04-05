@@ -6,6 +6,7 @@ import {
   BarChart3,
   Building2,
   LayoutDashboard,
+  MessageCircle,
   ShieldCheck,
   Sparkles,
   Users,
@@ -15,6 +16,10 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 const LAST_TENANT_KEY = 'riselocal:last-tenant';
+const DEMO_MAILTO =
+  'mailto:saptagiri.p@outlook.com?subject=RiseLocal%20Demo%20Request&body=Hi%2C%20I%20would%20like%20to%20book%20a%20demo%20for%20RiseLocal.';
+const MARKETING_WHATSAPP_HREF =
+  'https://wa.me/919505180071?text=Hello%2C%20I%20would%20like%20to%20know%20more%20about%20RiseLocal.';
 
 function toTenantLabel(value: string): string {
   return value
@@ -228,7 +233,7 @@ function HomeHero({ tenantLabel, loginHref }: HomeHeroProps) {
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                href={loginHref}
+                href={tenantLabel ? loginHref : DEMO_MAILTO}
                 className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#1d72f3_0%,#0f255f_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_16px_34px_rgba(15,37,95,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(15,37,95,0.32)]"
               >
                 {primaryLabel}
@@ -397,7 +402,7 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
 
             <div className="flex flex-wrap gap-3">
               <Link
-                href={loginHref}
+                href={tenantLabel ? loginHref : DEMO_MAILTO}
                 className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-lg transition duration-200 hover:-translate-y-0.5"
               >
                 {ctaLabel}
@@ -420,6 +425,21 @@ function HomeBody({ loginHref, tenantLabel }: HomeBodyProps) {
 type HomeFooterProps = {
   loginHref: string;
 };
+
+function FloatingWhatsApp() {
+  return (
+    <a
+      href={MARKETING_WHATSAPP_HREF}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with us on WhatsApp"
+      className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-sm font-bold text-white shadow-[0_16px_35px_rgba(37,211,102,0.35)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#1fb95a] sm:bottom-5 sm:right-5"
+    >
+      <MessageCircle className="h-5 w-5" />
+      <span>Chat With Us</span>
+    </a>
+  );
+}
 
 function HomeFooter({ loginHref }: HomeFooterProps) {
   return (
@@ -483,6 +503,7 @@ export default function HomePage() {
         <HomeBody loginHref={loginHref} tenantLabel={tenantLabel} />
       </main>
       <HomeFooter loginHref={loginHref} />
+      <FloatingWhatsApp />
 
       <style jsx>{`
         .hero-fade-in {

@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 
+const DEMO_MAILTO =
+  'mailto:saptagiri.p@outlook.com?subject=RiseLocal%20Demo%20Request&body=Hi%2C%20I%20would%20like%20to%20book%20a%20demo%20for%20RiseLocal.';
+
 const featureCards = [
   {
     title: 'Branded Public Storefronts',
@@ -63,7 +66,7 @@ export default function AboutUsPage() {
           and measurable sales opportunity with one branded growth platform.
         </p>
         <div className="hero-actions">
-          <Link href="/login" className="btn-primary">
+          <Link href={DEMO_MAILTO} className="btn-primary">
             Book a Demo
           </Link>
           <Link href="/" className="btn-secondary">
@@ -103,7 +106,7 @@ export default function AboutUsPage() {
           Whether you run one local business, multiple branches, or an agency portfolio, RiseLocal combines acquisition,
           CRM, customization, and analytics in one scalable platform.
         </p>
-        <Link href="/login" className="btn-primary">
+        <Link href={DEMO_MAILTO} className="btn-primary">
           Launch with RiseLocal
         </Link>
       </section>

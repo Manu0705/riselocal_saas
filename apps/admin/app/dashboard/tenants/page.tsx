@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Palette } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
+import { THEME_OPTIONS, getThemeLabel } from '@/lib/theme-options';
 
 type Tenant = {
   id: string;
@@ -12,13 +14,6 @@ type Tenant = {
   themeKey?: 'default' | 'modern' | 'minimal' | 'business';
   createdAt: string;
 };
-
-const THEME_OPTIONS = [
-  { value: 'default', label: 'Default Theme' },
-  { value: 'modern', label: 'Modern Tech' },
-  { value: 'business', label: 'Business Security' },
-  { value: 'minimal', label: 'Minimal Beauty' },
-] as const;
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -115,10 +110,27 @@ export default function TenantsPage() {
           <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Tenant Management</h1>
           <p style={{ color: 'var(--text-muted)' }}>Manage all tenants and their settings</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreateModal}>
-          <Plus size={18} style={{ marginRight: 8 }} />
-          Add Tenant
-        </button>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Link
+            href="/dashboard/themes"
+            className="btn"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#e0f2fe',
+              color: '#0f172a',
+            }}
+          >
+            <Palette size={18} />
+            Manage Themes
+          </Link>
+          <button className="btn btn-primary" onClick={openCreateModal}>
+            <Plus size={18} style={{ marginRight: 8 }} />
+            Add Tenant
+          </button>
+        </div>
       </div>
 
       {tenants.length === 0 ? (
@@ -153,7 +165,7 @@ export default function TenantsPage() {
                   </td>
                   <td>{tenant.domain || '-'}</td>
                   <td>
-                    {THEME_OPTIONS.find((option) => option.value === (tenant.themeKey || 'default'))?.label || 'Default Theme'}
+                    {getThemeLabel(tenant.themeKey || 'default')}
                   </td>
                   <td>{new Date(tenant.createdAt).toLocaleDateString()}</td>
                   <td>
