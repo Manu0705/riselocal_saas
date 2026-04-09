@@ -66,10 +66,10 @@ export default function AboutUsPage() {
           and measurable sales opportunity with one branded growth platform.
         </p>
         <div className="hero-actions">
-          <Link href={DEMO_MAILTO} className="btn-primary">
+          <Link href={DEMO_MAILTO} className="btn-primary rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
             Book a Demo
           </Link>
-          <Link href="/" className="btn-secondary">
+          <Link href="/" className="btn-secondary inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1d72f3_0%,#0f255f_100%)] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,37,95,0.22)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(15,37,95,0.28)]">
             Back to Home
           </Link>
         </div>

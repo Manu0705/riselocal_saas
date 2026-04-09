@@ -37,13 +37,13 @@ type BrandMarkProps = {
 function BrandMark({ compact = false, subtitle = 'Local Business Growth OS' }: BrandMarkProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className="rounded-[20px] border border-white/80 bg-white/80 p-1 shadow-[0_10px_30px_rgba(8,28,77,0.12)] backdrop-blur">
+      <div className="flex items-center justify-center rounded-[18px] bg-transparent shadow-[0_8px_22px_rgba(8,28,77,0.10)]">
         <Image
           src="/logo/riselocal-logo.svg"
           alt="RiseLocal logo"
           width={compact ? 40 : 48}
           height={compact ? 40 : 48}
-          className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} rounded-2xl object-contain`}
+          className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} object-contain`}
           priority
         />
       </div>
@@ -190,10 +190,10 @@ function HeroPreview({ tenantLabel }: HeroPreviewProps) {
         </div>
       </div>
 
-      <div className="absolute -bottom-5 left-3 rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-[0_16px_40px_rgba(8,28,77,0.18)] backdrop-blur">
+      {/* <div className="absolute -bottom-5 left-3 rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-[0_16px_40px_rgba(8,28,77,0.18)] backdrop-blur">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">WhatsApp capture</p>
         <p className="mt-1 text-sm font-bold text-slate-900">Every click becomes a lead</p>
-      </div>
+      </div> */}
     </div>
   );
 }

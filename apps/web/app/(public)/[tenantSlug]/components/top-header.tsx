@@ -184,12 +184,12 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
         ) : (
           <div
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               position: 'relative',
               overflow: 'hidden',
-              borderRadius: logoShape === 'square' ? 6 : '50%',
-              border: '1px solid var(--card-border)',
+              borderRadius: logoShape === 'square' ? 10 : '50%',
+              background: 'transparent',
               flexShrink: 0,
             }}
           >
@@ -197,7 +197,7 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
               src={logoUrl || '/logo/riselocal-logo.svg'}
               alt="logo"
               fill
-              sizes="40px"
+              sizes="44px"
               style={{
                 objectFit: 'contain',
               }}

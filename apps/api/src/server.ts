@@ -1,3 +1,6 @@
+// import dotenv from "dotenv"; // remove this for prod
+// dotenv.config(); // remove this for prod
+
 import type {} from './types/express';
 import { prisma } from '@saas/database';
 import express from 'express';
