@@ -1,12 +1,12 @@
-import Image from 'next/image';
-import { BadgeCheck, Scissors, Sparkles } from 'lucide-react';
-import type { ResolvedTenant } from '@/lib/tenant-resolver';
-import Services from '../../components/services';
-import Gallery from '../../components/gallery';
-import QuickActions from '../../components/quick-actions';
-import Booking from '../../components/booking';
-import Contact from '../../components/contact';
-import HowItWorks from '../../components/how-it-works';
+import Image from "next/image";
+import { BadgeCheck, Scissors, Sparkles } from "lucide-react";
+import type { ResolvedTenant } from "@/lib/tenant-resolver";
+import Services from "../../components/services";
+import Gallery from "../../components/gallery";
+import QuickActions from "../../components/quick-actions";
+import Booking from "../../components/booking";
+import Contact from "../../components/contact";
+import HowItWorks from "../../components/how-it-works";
 
 type Props = {
   tenant: ResolvedTenant;
@@ -14,191 +14,177 @@ type Props = {
 };
 
 export default function ThemeMinimal({ tenant, tenantSlug }: Readonly<Props>) {
-  const sectionOrder = Array.isArray(tenant.sectionOrder) && tenant.sectionOrder.length > 0
-    ? tenant.sectionOrder
-    : ['hero', 'gallery', 'services'];
-
-  const softHighlights = (tenant.services || []).slice(0, 3).map((service) => service.name);
-  const highlights = softHighlights.length > 0 ? softHighlights : ['Hair & Styling', 'Skin & Glow', 'Bridal & Beauty Care'];
-  const trustCards = [
-    {
-      icon: Scissors,
-      title: 'Style-led services',
-      desc: 'Show clients your most-loved hair, makeup, grooming, and parlour services first.',
-    },
-    {
-      icon: Sparkles,
-      title: 'Result-focused presentation',
-      desc: 'Let photos, premium visuals, and WhatsApp enquiries do the selling for you.',
-    },
-    {
-      icon: BadgeCheck,
-      title: 'Easy appointment capture',
-      desc: 'Convert discovery into booked slots with fast lead capture and follow-up.',
-    },
-  ];
-
   return (
-    <div
-      className="min-h-screen bg-[linear-gradient(180deg,#fff7fb_0%,#fdf2f8_32%,#fffdfd_100%)]"
-      style={{
-        ['--tenant-primary' as string]: tenant.primaryColor || '#db2777',
-        ['--tenant-secondary' as string]: tenant.secondaryColor || '#fdf2f8',
-      }}
-    >
-      <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-        {sectionOrder.map((sectionKey) => {
-          if (sectionKey === 'hero') {
-            return (
-              <section
-                key="hero"
-                id="hero"
-                className="overflow-hidden rounded-[30px] border border-rose-100 bg-white shadow-[0_24px_70px_rgba(190,24,93,0.12)]"
-              >
-                <div className="grid items-center gap-0 lg:grid-cols-[1fr_0.92fr]">
-                  <div className="p-5 sm:p-7 lg:p-8">
-                    <span className="inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-rose-600">
-                      Salon & beauty theme
-                    </span>
-                    <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                      {tenant.name || 'RiseLocal Beauty Studio'}
-                    </h1>
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                      {tenant.tagline ||
-                        'Create a calm, premium first impression for beauty, wellness, salon, and parlour customers while still capturing every booking and WhatsApp enquiry.'}
-                    </p>
+    <div className="min-h-screen bg-white py-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
 
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {highlights.map((item) => (
-                        <span key={item} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
+        {/* 🔥 HEADER */}
+        <div className="p-5 border-b">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gray-200 rounded-md" />
 
-                    <QuickActions
-                      phone={tenant.whatsapp || tenant.phone}
-                      tenantId={tenant.id}
-                      tenantSlug={tenantSlug}
-                      actionButtons={tenant.actionButtons}
-                      whatsappLabel="Chat for Appointment"
-                      callLabel="Call Salon"
-                      whatsappMessage={`Hi, I want to book an appointment with ${tenant.name || 'your salon'}. Please share available slots.`}
-                    />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {tenant.name} <span className="text-gray-500">- Location</span>
+                </h2>
+                <p className="text-sm text-gray-500">★★★★★ (1.2K Reviews)</p>
+              </div>
+            </div>
 
-                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                      {trustCards.map((card) => {
-                        const Icon = card.icon;
-                        return (
-                          <div key={card.title} className="rounded-2xl border border-rose-100 bg-rose-50/70 p-3">
-                            <Icon size={18} className="text-rose-500" />
-                            <p className="mt-2 text-sm font-semibold text-slate-900">{card.title}</p>
-                            <p className="mt-1 text-xs leading-5 text-slate-600">{card.desc}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+            <span className="text-xs bg-gray-200 px-3 py-1 rounded">
+              OPEN NOW
+            </span>
+          </div>
 
-                  <div className="relative min-h-[260px] lg:min-h-full">
-                    <Image
-                      src={
-                        tenant.bannerUrl ||
-                        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1400&q=80&auto=format&fit=crop'
-                      }
-                      alt={tenant.name || 'Beauty storefront'}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 40vw"
-                      className="object-cover"
-                      priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-rose-950/15 via-transparent to-transparent" />
-                  </div>
-                </div>
-              </section>
-            );
-          }
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-3 mt-4">
+            <button className="flex-1 bg-gray-700 text-white py-2 rounded">
+              Book Appointment
+            </button>
 
-          if (sectionKey === 'services') {
-            return (
-              <section key="services" id="services" className="mt-6 rounded-[24px] border border-rose-100 bg-white p-2 shadow-[0_18px_45px_rgba(244,114,182,0.08)]">
-                <div className="px-4 pt-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.28em] text-rose-500">Signature offerings</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Treatments and services your clients can explore</h2>
-                </div>
-                <Services services={tenant.services || []} />
-              </section>
-            );
-          }
-
-          if (sectionKey === 'gallery') {
-            return (
-              <section key="gallery" id="gallery" className="mt-6 rounded-[24px] border border-rose-100 bg-white p-2 shadow-[0_18px_45px_rgba(244,114,182,0.08)]">
-                <Gallery
-                  images={tenant.gallery || []}
-                  galleryCategories={tenant.galleryCategories || []}
-                  tenantSlug={tenantSlug}
-                  tenantId={tenant.id}
-                  phone={tenant.whatsapp || tenant.phone}
-                  actionButtons={tenant.actionButtons}
-                />
-              </section>
-            );
-          }
-
-          return null;
-        })}
-
-        <section className="mt-6 rounded-[24px] border border-rose-100 bg-white p-4 shadow-[0_18px_45px_rgba(244,114,182,0.08)] sm:p-5">
-          <HowItWorks
-            title="How clients usually book"
-            subtitle="Ideal for salons, parlours, beauty studios, and wellness businesses that rely on quick appointment follow-up."
-            steps={[
-              {
-                title: 'Browse services or looks',
-                desc: 'Clients explore treatments, packages, and real result photos before reaching out.',
-              },
-              {
-                title: 'Message for slot availability',
-                desc: 'They enquire on WhatsApp for pricing, bridal packages, or the next open appointment.',
-              },
-              {
-                title: 'Reserve appointment',
-                desc: 'Your team confirms the time, service type, and visit details in minutes.',
-              },
-              {
-                title: 'Follow up and retain',
-                desc: 'Keep rebooking and referral opportunities moving with a warm post-visit follow-up.',
-              },
-            ]}
-          />
-        </section>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <section className="rounded-[24px] border border-rose-100 bg-white shadow-[0_18px_45px_rgba(244,114,182,0.08)]">
-            <Booking
-              tenantId={tenant.id}
-              tenantSlug={tenantSlug}
-              title="Reserve your appointment"
-              subtitle="Share your preferred service, location, and date so the salon can confirm the best slot."
-              submitLabel="Reserve Slot"
-              locationPlaceholder="Area / branch"
-            />
-          </section>
-          <section className="rounded-[24px] border border-rose-100 bg-white shadow-[0_18px_45px_rgba(244,114,182,0.08)]">
-            <Contact
-              tenant={tenant}
+            <QuickActions
+              phone={tenant.whatsapp || tenant.phone}
               tenantId={tenant.id}
               tenantSlug={tenantSlug}
               actionButtons={tenant.actionButtons}
-              title="Reach the beauty desk"
-              subtitle="Great for appointment help, bridal packages, event bookings, and premium treatment enquiries."
-              callLabel="Call Salon"
-              whatsappLabel="Chat for Appointment"
-              whatsappMessage={`Hi, I want to book a service with ${tenant.name || 'your salon'}. Please share available slots.`}
             />
-          </section>
+
+            <button className="flex-1 bg-gray-700 text-white py-2 rounded">
+              Call
+            </button>
+          </div>
         </div>
+
+        {/* 🔥 AVAILABILITY */}
+        <div className="p-5 border-b">
+          <h3 className="font-semibold text-gray-700 mb-3">
+            Real-Time Availability
+          </h3>
+
+          <div className="flex text-sm border rounded overflow-hidden">
+            <div className="flex-1 text-center py-2 border-r">
+              2:00 PM <span className="text-gray-500">BUSY</span>
+            </div>
+
+            <div className="flex-1 text-center py-2 border-r">
+              3:00 PM <span className="text-gray-500">BUSY</span>
+            </div>
+
+            <div className="flex-1 text-center py-2 bg-green-100 border-r">
+              <span className="font-semibold">4:00 PM</span> AVAILABLE
+            </div>
+
+            <div className="flex-1 text-center py-2">
+              5:00 PM AVAILABLE
+            </div>
+          </div>
+        </div>
+
+        {/* 🔥 QUICK BOOKING */}
+        <div className="p-5 grid md:grid-cols-2 gap-4 border-b">
+
+          {/* LEFT */}
+          <div className="space-y-3">
+            <select className="w-full border p-2 rounded">
+              <option>Select Service</option>
+            </select>
+
+            <select className="w-full border p-2 rounded">
+              <option>Select Time Slot</option>
+            </select>
+
+            <input
+              placeholder="Your Name"
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              placeholder="Phone Number"
+              className="w-full border p-2 rounded"
+            />
+
+            <button className="w-full bg-gray-700 text-white py-2 rounded">
+              CONFIRM BOOKING
+            </button>
+          </div>
+
+          {/* RIGHT */}
+          <div className="border rounded p-3">
+            <p className="font-semibold mb-2">Chat to Book</p>
+
+            <textarea
+              defaultValue="Hi, I'd like to book for 5 PM. Is it available?"
+              className="w-full border p-2 rounded mb-3"
+            />
+
+            <button className="bg-gray-700 text-white px-4 py-2 rounded">
+              SEND
+            </button>
+          </div>
+        </div>
+
+        {/* 🔥 SERVICES + GALLERY */}
+        <div className="p-5 grid md:grid-cols-2 gap-4 border-b">
+
+          <div>
+            <h3 className="font-semibold mb-3">Our Services</h3>
+            <Services services={tenant.services || []} />
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-3">Before / After Photos</h3>
+            <Gallery
+              images={tenant.gallery || []}
+              galleryCategories={tenant.galleryCategories || []}
+              tenantSlug={tenantSlug}
+              tenantId={tenant.id}
+              phone={tenant.whatsapp || tenant.phone}
+              actionButtons={tenant.actionButtons}
+            />
+          </div>
+
+        </div>
+
+        {/* 🔥 BOOKING + CONTACT */}
+        <div className="p-5 grid md:grid-cols-2 gap-4 border-b">
+
+          <Booking
+            tenantId={tenant.id}
+            tenantSlug={tenantSlug}
+            title="Reserve your appointment"
+            subtitle="Share your preferred service and time."
+            submitLabel="Reserve Slot"
+          />
+
+          <Contact
+            tenant={tenant}
+            tenantId={tenant.id}
+            tenantSlug={tenantSlug}
+            actionButtons={tenant.actionButtons}
+          />
+
+        </div>
+
+        {/* 🔥 HOW IT WORKS */}
+        <div className="p-5 border-b">
+          <HowItWorks
+            title="How booking works"
+            steps={[
+              { title: "Browse services", desc: "Explore offerings" },
+              { title: "Check availability", desc: "Find open slots" },
+              { title: "Book instantly", desc: "Confirm your slot" },
+            ]}
+          />
+        </div>
+
+        {/* 🔥 FOOTER */}
+        <div className="grid grid-cols-3 text-center text-sm">
+          <div className="p-3 border-r">Customer Reviews</div>
+          <div className="p-3 border-r">Map / Location</div>
+          <div className="p-3">Opening Hours</div>
+        </div>
+
       </div>
     </div>
   );

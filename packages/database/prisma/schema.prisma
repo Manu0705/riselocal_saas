@@ -12,6 +12,7 @@ model Tenant {
   name      String
   slug      String     @unique
   domain    String?    @unique
+  theme     String     @default("default")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   users     TenantUser[]
