@@ -20,9 +20,17 @@ export function getApiBaseCandidates(): string[] {
       (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API)) ||
     DEFAULT_PRIMARY_API_BASE;
 
-  return [configuredBase, DEFAULT_FALLBACK_API_BASE]
-    .map((entry) => normalizeBase(entry))
-    .filter((entry, index, items) => Boolean(entry) && items.indexOf(entry) === index);
+  const candidates = [configuredBase].map((entry) => normalizeBase(entry));
+
+  if (
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
+    !process.env.NEXT_PUBLIC_API_URL
+  ) {
+    candidates.push(normalizeBase(DEFAULT_FALLBACK_API_BASE));
+  }
+
+  return candidates.filter((entry, index, items) => Boolean(entry) && items.indexOf(entry) === index);
 }
 
 export function buildUpstreamApiUrl(base: string, path: string): string {

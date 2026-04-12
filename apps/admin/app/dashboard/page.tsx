@@ -29,6 +29,7 @@ export default function DashboardPage() {
     conversionRate: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -71,6 +72,9 @@ export default function DashboardPage() {
       });
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError(
+        error instanceof Error ? error.message : 'Unexpected error loading dashboard',
+      );
     } finally {
       setLoading(false);
     }
@@ -80,6 +84,20 @@ export default function DashboardPage() {
     return (
       <div className="admin-container">
         <p>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-container">
+        <div className="card" style={{ padding: 24 }}>
+          <h1>Unable to load dashboard</h1>
+          <p style={{ color: 'var(--danger)' }}>{error}</p>
+          <p style={{ color: 'var(--text-muted)' }}>
+            Check your admin login and API server configuration.
+          </p>
+        </div>
       </div>
     );
   }
