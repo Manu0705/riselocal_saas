@@ -26,5 +26,12 @@ export function getApiBaseCandidates(): string[] {
 }
 
 export function buildUpstreamApiUrl(base: string, path: string): string {
-  return `${normalizeBase(base)}${normalizeApiPath(path)}`;
+  const normalizedBase = normalizeBase(base);
+  const normalizedPath = normalizeApiPath(path);
+
+  if (normalizedBase.toLowerCase().endsWith('/api') && normalizedPath.toLowerCase().startsWith('/api')) {
+    return `${normalizedBase}${normalizedPath.slice(4)}`;
+  }
+
+  return `${normalizedBase}${normalizedPath}`;
 }

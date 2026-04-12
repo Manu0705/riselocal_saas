@@ -1,6 +1,7 @@
 // API client for admin panel
+const DEFAULT_API_BASE = 'https://api.riselocal.in';
 const API_BASE =
-  process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE;
 
 function getAuthHeaders() {
   if (globalThis.window === undefined) return {};
