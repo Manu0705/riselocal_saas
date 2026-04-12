@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { prisma } from '@saas/database';
 import tenantRoutes from './modules/tenant/presentation/tenant.routes';
 import leadRoutes from './modules/lead/presentation/lead.routes';
 import leadPublicRoutes from './modules/lead/presentation/lead.public.routes';
@@ -16,8 +17,18 @@ import contentRoutes from './modules/content/presentation/content.routes';
 
 const router = Router();
 
-router.get('/health', (_req, res) => {
-   res.status(200).json({ status: 'ok' });
+router.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return res.status(200).json({ status: 'ok', database: 'ok' });
+  } catch (error: unknown) {
+    console.error('Database health check failed', error);
+    return res.status(500).json({
+      status: 'error',
+      database: 'failed',
+      message: 'Database connectivity check failed',
+    });
+  }
 });
 
 /* =========================================

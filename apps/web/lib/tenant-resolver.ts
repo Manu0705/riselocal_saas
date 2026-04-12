@@ -270,7 +270,11 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       }
 
       if (!res.ok) {
-        lastError = new Error(`Tenant request failed with status ${res.status}`);
+        const errorPayload = await res.json().catch(() => null);
+        lastError = new Error(
+          `Tenant request failed with status ${res.status}` +
+            (errorPayload?.message ? `: ${String(errorPayload.message)}` : ''),
+        );
         continue;
       }
 

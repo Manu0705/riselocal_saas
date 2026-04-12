@@ -26,13 +26,24 @@ export const adminApi = {
         ...getAuthHeaders(),
       },
     });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
     const text = await res.text();
+    let json: any = null;
     try {
-      return JSON.parse(text);
+      json = text.length ? JSON.parse(text) : null;
     } catch {
+      json = null;
+    }
+
+    if (!res.ok) {
+      const message = json?.message || `Request failed with status ${res.status}`;
+      throw new Error(message);
+    }
+
+    if (json === null) {
       throw new Error('API did not return JSON: ' + text.slice(0, 100));
     }
+
+    return json;
   },
 
   async post(path: string, data: any) {
