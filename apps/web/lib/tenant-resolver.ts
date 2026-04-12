@@ -251,7 +251,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
 
     try {
       const controller = new AbortController();
-      timeoutHandle = globalThis.setTimeout(() => controller.abort(), 1200);
+      timeoutHandle = globalThis.setTimeout(() => controller.abort(), 5000);
 
       const res = await fetchWithRetry(
         buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
@@ -260,7 +260,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
           signal: controller.signal,
         },
         {
-          attempts: 1,
+          attempts: 2,
         },
       );
 
