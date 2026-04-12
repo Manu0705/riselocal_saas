@@ -265,6 +265,9 @@ router.put('/settings', authMiddleware, async (req, res) => {
       tagline,
       logoUrl,
       bannerUrl,
+      openHour,
+      closeHour,
+      availableHours,
     } = req.body;
 
     // Get or create settings
@@ -313,6 +316,14 @@ router.put('/settings', authMiddleware, async (req, res) => {
             nextFontFamily,
             nextThemeKey,
           ),
+          ...(openHour !== undefined && { openHour }),
+          ...(closeHour !== undefined && { closeHour }),
+          ...(availableHours !== undefined && { availableHours }),
+          ...(businessPhone !== undefined && { businessPhone }),
+          ...(businessWhatsApp !== undefined && { businessWhatsApp }),
+          ...(tagline !== undefined && { tagline }),
+          ...(logoUrl !== undefined && { logoUrl }),
+          ...(bannerUrl !== undefined && { bannerUrl }),
         },
       });
     } else {
@@ -337,6 +348,9 @@ router.put('/settings', authMiddleware, async (req, res) => {
               nextThemeKey,
             ),
           }),
+          ...(openHour !== undefined && { openHour }),
+          ...(closeHour !== undefined && { closeHour }),
+          ...(availableHours !== undefined && { availableHours }),
           ...(businessPhone !== undefined && { businessPhone }),
           ...(businessWhatsApp !== undefined && { businessWhatsApp }),
           ...(tagline !== undefined && { tagline }),

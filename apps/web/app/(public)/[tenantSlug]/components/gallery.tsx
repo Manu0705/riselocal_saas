@@ -120,11 +120,11 @@ export default function Gallery({
 
   if (showSkeletons) {
     content = (
-      <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {skeletonCards.map((card) => (
           <div
             key={card}
-            className="h-64 min-w-[calc(50%-0.5rem)] animate-pulse rounded-lg border border-gray-200 bg-gray-100 shadow-sm sm:min-w-0"
+            className="h-72 animate-pulse rounded-[1.75rem] border border-white/70 bg-slate-100 shadow-[0_20px_60px_rgba(148,163,184,0.08)]"
           />
         ))}
       </div>
@@ -138,14 +138,15 @@ export default function Gallery({
   } else {
     content = (
       <>
-        <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((img) => (
-            <button
-              key={`${img.url}-${img.category}`}
-              type="button"
-              onClick={() => setSelectedImage({ url: img.url, category: toCategoryLabel(img.category) })}
-              className="group relative h-64 min-w-[calc(50%-0.5rem)] overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-left shadow-sm transition-all duration-300 hover:shadow-md sm:min-w-0"
-            >
+        <div className="-mx-2 overflow-x-auto pb-2">
+          <div className="flex gap-4 px-2">
+            {filtered.map((img) => (
+              <button
+                key={`${img.url}-${img.category}`}
+                type="button"
+                onClick={() => setSelectedImage({ url: img.url, category: toCategoryLabel(img.category) })}
+                className="group relative h-72 min-w-[45%] sm:min-w-[40%] lg:min-w-[36%] flex-shrink-0 overflow-hidden rounded-[1.75rem] border border-white/80 bg-slate-100 text-left shadow-[0_24px_68px_rgba(237,147,115,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_88px_rgba(237,147,115,0.18)]"
+              >
               <Image
                 src={img.url}
                 alt={img.alt || toCategoryLabel(img.category)}
@@ -155,7 +156,7 @@ export default function Gallery({
                 quality={65}
               />
 
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent" />
 
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
                 <div className="min-w-0">
@@ -163,7 +164,7 @@ export default function Gallery({
                     {toCategoryLabel(img.category)}
                   </p>
                   <p className="truncate text-xs text-white/80">
-                    Tap to preview image
+                    View premium image
                   </p>
                 </div>
 
@@ -174,46 +175,52 @@ export default function Gallery({
                       event.stopPropagation();
                       enquiry(img.url, toCategoryLabel(img.category));
                     }}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white opacity-0 transition-all duration-300 group-hover:opacity-100 hover:bg-green-600"
+                    className="rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white opacity-0 transition-all duration-300 group-hover:opacity-100 hover:bg-rose-600"
                   >
-                    WhatsApp Enquiry
+                    Enquire
                   </button>
                 ) : null}
               </div>
             </button>
           ))}
         </div>
+      </div>
       </>
     );
   }
 
   return (
-    <div className="px-4 py-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-[var(--text)]">Gallery</h2>
-        <p className="text-sm text-[var(--muted)]">
-          {showingFrom}-{showingTo} of {filtered.length}
+    <div className="rounded-[2rem] border border-white/70 bg-white/95 p-6 shadow-[0_24px_80px_rgba(244,174,160,0.12)] backdrop-blur-xl">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.32em] text-rose-600">Signature gallery</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Beauty portfolio</h2>
+        </div>
+        <p className="text-sm text-slate-500">
+          Showing {showingFrom}-{showingTo} of {filtered.length}
         </p>
       </div>
 
-      <div className="mb-5 flex gap-3 overflow-x-auto pb-1">
-        {categories.map((category) => {
-          const isActive = active === category.key;
-          return (
-            <button
-              key={category.key}
-              type="button"
-              onClick={() => setActive(category.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {category.label}
-            </button>
-          );
-        })}
+      <div className="mb-5 overflow-x-auto pb-2">
+        <div className="flex flex-nowrap gap-3 px-2">
+          {categories.map((category) => {
+            const isActive = active === category.key;
+            return (
+              <button
+                key={category.key}
+                type="button"
+                onClick={() => setActive(category.key)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                }`}
+              >
+                {category.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {content}

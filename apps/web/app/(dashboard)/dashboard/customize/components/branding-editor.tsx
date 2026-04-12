@@ -19,7 +19,18 @@ interface TenantSettings {
   tagline?: string;
   businessPhone?: string;
   businessWhatsApp?: string;
+  openHour?: number;
+  closeHour?: number;
+  availableHours?: number[];
 }
+
+const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+
+const formatHour = (hour: number) => {
+  const normalized = hour % 24;
+  const label = normalized % 12 === 0 ? 12 : normalized % 12;
+  return `${label}:00 ${normalized >= 12 ? 'PM' : 'AM'}`;
+};
 
 const THEME_OPTIONS = [
   { value: 'default', label: 'Default Theme', description: 'Use the current storefront design.' },
@@ -41,6 +52,37 @@ export default function BrandingEditor() {
   const displayed: TenantSettings | null = settings
     ? { ...settings, ...pending }
     : null;
+
+  const displayedOpenHour = typeof displayed?.openHour === 'number' ? displayed.openHour : 9;
+  const displayedCloseHour = typeof displayed?.closeHour === 'number' ? displayed.closeHour : 21;
+  const displayedAvailableHours = Array.isArray(displayed?.availableHours) ? displayed.availableHours : [];
+  const normalizedOpenHour = Math.max(0, Math.min(displayedOpenHour, 23));
+  const normalizedCloseHour = Math.max(normalizedOpenHour, Math.min(displayedCloseHour, 23));
+  const selectedHours = new Set(displayedAvailableHours);
+  const hoursInRange = Array.from({ length: normalizedCloseHour - normalizedOpenHour + 1 }, (_, index) => normalizedOpenHour + index);
+  const busyHours = hoursInRange.filter((hour) => !selectedHours.has(hour));
+
+  const updateHourRange = (openHour: number, closeHour: number) => {
+    const normalizedClose = Math.max(openHour, closeHour);
+    const filteredAvailable = displayedAvailableHours.filter(
+      (hour) => hour >= openHour && hour <= normalizedClose,
+    );
+
+    setPending((current) => ({
+      ...current,
+      openHour,
+      closeHour: normalizedClose,
+      availableHours: filteredAvailable,
+    }));
+  };
+
+  const toggleAvailableHour = (hour: number) => {
+    const nextHours = displayedAvailableHours.includes(hour)
+      ? displayedAvailableHours.filter((value) => value !== hour)
+      : [...displayedAvailableHours, hour].sort((a, b) => a - b);
+
+    setPending((current) => ({ ...current, availableHours: nextHours }));
+  };
 
   useEffect(() => {
     loadSettings();
@@ -561,6 +603,117 @@ export default function BrandingEditor() {
                 fontSize: 14,
               }}
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Appointment Availability */}
+      <div
+        style={{
+          border: '1px solid var(--card-border)',
+          background: 'var(--card)',
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+          Appointment Availability
+        </label>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                Open Hour
+              </label>
+              <select
+                value={normalizedOpenHour}
+                onChange={(e) => updateHourRange(Number(e.target.value), normalizedCloseHour)}
+                style={{
+                  width: '100%',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 14,
+                }}
+              >
+                {HOURS.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {formatHour(hour)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                Close Hour
+              </label>
+              <select
+                value={normalizedCloseHour}
+                onChange={(e) => updateHourRange(normalizedOpenHour, Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 14,
+                }}
+              >
+                {HOURS.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {formatHour(hour)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+              Select the specific hours when appointments are available. Hours not selected in the grid will be treated as busy/unavailable.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+              gap: 8,
+            }}
+          >
+            {HOURS.map((hour) => {
+              const disabled = hour < normalizedOpenHour || hour > normalizedCloseHour;
+              const isSelected = selectedHours.has(hour);
+
+              return (
+                <button
+                  key={hour}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => !disabled && toggleAvailableHour(hour)}
+                  style={{
+                    padding: '10px 8px',
+                    borderRadius: 10,
+                    border: `1px solid ${disabled ? '#e5e7eb' : isSelected ? '#2563eb' : '#d1d5db'}`,
+                    background: disabled ? '#f8fafc' : isSelected ? '#2563eb' : 'transparent',
+                    color: disabled ? '#9ca3af' : isSelected ? 'white' : '#111827',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                >
+                  {formatHour(hour)}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            <strong>Busy hours:</strong>{' '}
+            {busyHours.length > 0
+              ? busyHours.map(formatHour).join(', ')
+              : 'None selected'}
           </div>
         </div>
       </div>

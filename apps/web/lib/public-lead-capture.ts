@@ -13,6 +13,8 @@ type CaptureLeadInput = {
   email?: string;
   notes?: string;
   bookingDate?: string;
+  selectedServices?: unknown[];
+  selectedTime?: string;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
@@ -121,15 +123,13 @@ export async function capturePublicCtaLead(input: CaptureLeadInput): Promise<Cap
     email: safeTrim(input.email) || undefined,
     notes: safeTrim(input.notes) || undefined,
     bookingDate: safeTrim(input.bookingDate) || undefined,
-    utmSource: safeTrim(input.utmSource) || undefined,
-    utmMedium: safeTrim(input.utmMedium) || undefined,
-    utmCampaign: safeTrim(input.utmCampaign) || undefined,
-    pageUrl,
-    buttonId: safeTrim(input.buttonId) || undefined,
-    campaignSource: safeTrim(input.utmSource) || safeTrim(input.source),
+    selectedServices: Array.isArray(input.selectedServices)
+      ? input.selectedServices
+      : undefined,
+    selectedTime: safeTrim(input.selectedTime) || undefined,
   };
 
-  let response: { success?: boolean; data?: any; message?: string };
+  let response: { success?: boolean; data?: any; message?: string } | null = null;
 
   try {
     response = await api.post<{ success?: boolean; data?: any; message?: string }>(

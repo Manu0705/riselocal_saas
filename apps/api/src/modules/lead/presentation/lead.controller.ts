@@ -224,6 +224,10 @@ export class LeadController {
         email: typeof body.email === 'string' ? body.email : undefined,
         notes: typeof body.notes === 'string' ? body.notes : undefined,
         bookingDate: typeof body.bookingDate === 'string' ? body.bookingDate : undefined,
+        selectedServices: Array.isArray(body.selectedServices)
+          ? body.selectedServices.filter((item): item is unknown => item !== null && item !== undefined)
+          : undefined,
+        selectedTime: typeof body.selectedTime === 'string' ? body.selectedTime : undefined,
         source,
         campaignId: typeof body.campaignId === 'string' ? body.campaignId : undefined,
         utmSource: typeof body.utmSource === 'string' ? body.utmSource : undefined,
@@ -301,6 +305,10 @@ export class LeadController {
         email: typeof body.email === 'string' ? body.email : undefined,
         notes: typeof body.notes === 'string' ? body.notes : undefined,
         bookingDate: typeof body.bookingDate === 'string' ? body.bookingDate : undefined,
+        selectedServices: Array.isArray(body.selectedServices)
+          ? body.selectedServices.filter((item): item is unknown => item !== null && item !== undefined)
+          : undefined,
+        selectedTime: typeof body.selectedTime === 'string' ? body.selectedTime : undefined,
         source,
         campaignId: typeof body.campaignId === 'string' ? body.campaignId : undefined,
         utmSource: typeof body.utmSource === 'string' ? body.utmSource : undefined,

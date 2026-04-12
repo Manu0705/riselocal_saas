@@ -52,6 +52,7 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
   const canToggleViews = isAuthenticated && Boolean(activeTenant);
   const isPublicPreview = searchParams.get('view') === 'public';
   const showMenu = canToggleViews && !isPublicPreview;
+  const shouldShowHeader = canToggleViews || isPublicPreview;
 
   useEffect(() => {
     if (!activeTenant || !canToggleViews) return;
@@ -95,6 +96,10 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
     router.push(`/${activeTenant}`);
     setMenuOpen(false);
   };
+
+  if (!shouldShowHeader) {
+    return null;
+  }
 
   return (
     <div

@@ -13,6 +13,8 @@ type UpsertLeadInput = {
   email?: string;
   notes?: string;
   bookingDate?: string;
+  selectedServices?: unknown[];
+  selectedTime?: string;
   source?: string;
   campaignId?: string;
   utmSource?: string;
@@ -460,13 +462,15 @@ export class LeadLifecycleService {
         if (input.actionType === 'booking' || safeTrim(input.bookingDate)) {
           await tx.$executeRaw`
             INSERT INTO "Booking" (
-              "id", "tenantId", "leadId", "bookingDate", "status", "notes", "createdAt", "updatedAt", "deletedAt"
+              "id", "tenantId", "leadId", "bookingDate", "selectedServices", "selectedTime", "status", "notes", "createdAt", "updatedAt", "deletedAt"
             )
             VALUES (
               ${crypto.randomUUID()},
               ${input.tenantId},
               ${leadId},
               ${safeTrim(input.bookingDate) ? new Date(String(input.bookingDate)) : null},
+              ${input.selectedServices ? JSON.stringify(input.selectedServices) : null}::jsonb,
+              ${safeTrim(input.selectedTime) ? safeTrim(input.selectedTime) : null},
               ${'PENDING'},
               ${safeTrim(input.notes)},
               NOW(),
@@ -476,6 +480,8 @@ export class LeadLifecycleService {
             ON CONFLICT ("tenantId", "leadId")
             DO UPDATE SET
               "bookingDate" = COALESCE(EXCLUDED."bookingDate", "Booking"."bookingDate"),
+              "selectedServices" = COALESCE(EXCLUDED."selectedServices", "Booking"."selectedServices"),
+              "selectedTime" = COALESCE(EXCLUDED."selectedTime", "Booking"."selectedTime"),
               "notes" = COALESCE(EXCLUDED."notes", "Booking"."notes"),
               "updatedAt" = NOW(),
               "deletedAt" = NULL

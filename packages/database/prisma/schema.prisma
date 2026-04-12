@@ -12,6 +12,7 @@ model Tenant {
   name      String
   slug      String     @unique
   domain    String?    @unique
+  theme     String     @default("default")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   users     TenantUser[]
@@ -21,6 +22,7 @@ model Tenant {
   leadSessions LeadSession[]
   leadActivities LeadActivity[]
   bookings Booking[]
+  googleReviewSummary GoogleReviewSummary?
   settings  TenantSettings?
   galleryImages GalleryImage[]
   socialLinks SocialLink[]
@@ -127,15 +129,17 @@ model LeadActivity {
 }
 
 model Booking {
-  id          String   @id @default(uuid())
-  tenantId    String
-  leadId      String
-  bookingDate DateTime?
-  status      String   @default("PENDING")
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id               String   @id @default(uuid())
+  tenantId         String
+  leadId           String
+  bookingDate      DateTime?
+  selectedServices Json?
+  selectedTime     String?
+  status           String   @default("PENDING")
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
@@ -143,6 +147,19 @@ model Booking {
   @@index([tenantId, createdAt])
   @@index([tenantId, deletedAt])
   @@unique([tenantId, leadId])
+}
+
+model GoogleReviewSummary {
+  id                String   @id @default(uuid())
+  tenantId          String   @unique
+  rating            Float?
+  totalReviewsCount Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model Feedback {
@@ -191,6 +208,9 @@ model TenantSettings {
   businessPhone   String?
   businessWhatsApp String?
   tagline         String?
+  openHour        Int?
+  closeHour       Int?
+  availableHours  Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

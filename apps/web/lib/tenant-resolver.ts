@@ -22,6 +22,9 @@ export const RESERVED_ROUTES = [
 
 export const isReservedTenantSlug = (slug: string) => RESERVED_ROUTES.includes(slug);
 
+const DEFAULT_OPEN_HOUR = 9;
+const DEFAULT_CLOSE_HOUR = 21;
+
 export type ResolvedTenant = {
   id?: string;
   name?: string;
@@ -44,6 +47,9 @@ export type ResolvedTenant = {
   gallery?: Array<{ url: string; category: string }>;
   socialLinks?: Array<{ platform?: string; url?: string; label?: string }>;
   products?: string[];
+  openHour?: number;
+  closeHour?: number;
+  availableHours?: number[];
 };
 
 export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | null> => {
@@ -194,6 +200,49 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return normalized.length > 0 ? normalized : defaults.services;
   };
 
+  const normalizeHour = (value: unknown, fallback: number): number => {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    }
+
+    return fallback;
+  };
+
+  const normalizeAvailableHours = (value: unknown): number[] | undefined => {
+    if (Array.isArray(value)) {
+      const normalized = value
+        .map((item) => {
+          if (typeof item === 'number' && Number.isInteger(item)) {
+            return item;
+          }
+          if (typeof item === 'string') {
+            const parsed = parseInt(item.trim(), 10);
+            return Number.isNaN(parsed) ? undefined : parsed;
+          }
+          return undefined;
+        })
+        .filter((hour): hour is number => typeof hour === 'number');
+
+      return normalized.length > 0 ? normalized : undefined;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value
+        .split(',')
+        .map((item) => Number.parseInt(item.trim(), 10))
+        .filter((hour) => !Number.isNaN(hour));
+
+      return normalized.length > 0 ? normalized : undefined;
+    }
+
+    return undefined;
+  };
+
   let sawNotFound = false;
   let lastError: Error | null = null;
 
@@ -256,6 +305,9 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         services: normalizeServices(tenant.services),
         gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
         socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
+        openHour: normalizeHour(settings.openHour, DEFAULT_OPEN_HOUR),
+        closeHour: normalizeHour(settings.closeHour, DEFAULT_CLOSE_HOUR),
+        availableHours: normalizeAvailableHours(settings.availableHours),
       };
     } catch (error) {
       console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);

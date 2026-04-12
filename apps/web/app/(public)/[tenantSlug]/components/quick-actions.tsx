@@ -20,6 +20,7 @@ type Props = {
   readonly whatsappLabel?: string;
   readonly callLabel?: string;
   readonly whatsappMessage?: string;
+  readonly variant?: 'default' | 'premium';
 };
 
 export default function QuickActions({
@@ -30,6 +31,7 @@ export default function QuickActions({
   whatsappLabel = 'Chat on WhatsApp',
   callLabel = 'Call',
   whatsappMessage = "Hi, I'm interested in your services",
+  variant = 'default',
 }: Readonly<Props>) {
   const [pendingAction, setPendingAction] = useState<{
     actionType: LeadActionType;
@@ -41,6 +43,26 @@ export default function QuickActions({
   const phoneNumber = phone || '';
   const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
+
+  const premiumButtonStyles = {
+    whatsapp: {
+      ...buttonStyles.whatsapp,
+      background: 'linear-gradient(135deg, #ec4899, #f59e0b)',
+      borderRadius: 16,
+      padding: '14px 20px',
+      boxShadow: '0 18px 40px rgba(236,72,153,0.22)',
+    },
+    call: {
+      ...buttonStyles.call,
+      background: 'linear-gradient(135deg, #d97706, #f43f5e)',
+      borderRadius: 16,
+      color: '#fff',
+      padding: '14px 20px',
+      boxShadow: '0 18px 40px rgba(244,63,94,0.18)',
+    },
+  };
+
+  const styles = variant === 'premium' ? premiumButtonStyles : buttonStyles;
 
   const whatsappHref = resolveActionHref(
     buttons.chatWhatsApp,
@@ -76,7 +98,7 @@ export default function QuickActions({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              ...buttonStyles.whatsapp,
+              ...styles.whatsapp,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -101,13 +123,12 @@ export default function QuickActions({
             }}
             href={callHref}
             style={{
-              ...buttonStyles.call,
+              ...styles.call,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
               marginTop: 0,
-              background: 'var(--tenant-primary, #3b82f6)',
             }}
           >
             <Phone size={18} />

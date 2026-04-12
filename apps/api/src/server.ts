@@ -1,5 +1,8 @@
-// import dotenv from "dotenv"; // remove this for prod
-// dotenv.config(); // remove this for prod
+import dotenv from "dotenv";
+
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 import type {} from './types/express';
 import { prisma } from '@saas/database';

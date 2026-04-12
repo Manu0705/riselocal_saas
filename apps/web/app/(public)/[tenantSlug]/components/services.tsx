@@ -15,54 +15,42 @@ const serviceDescriptions: Record<string, string> = {
 };
 
 export default function Services({ services }: Readonly<Props>) {
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-
   const list =
-    services?.length
+    services?.length && services[0]
       ? services
       : ['Home Visit', 'Curtain Installation', 'Fabric Selection'];
 
   return (
-    <div className="px-4 py-4">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <h2 className="m-0 text-xl font-semibold text-[var(--text)]">Services</h2>
-        </div>
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_24px_80px_rgba(241,180,162,0.12)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,_rgba(251,207,193,0.35),_transparent_60%)]" />
+      <div className="relative mb-6 flex flex-col gap-2">
+        <p className="text-xs uppercase tracking-[0.32em] text-rose-600">Signature Services</p>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Premium salon offerings</h2>
+        <p className="max-w-xl text-sm leading-6 text-slate-600">
+          Discover the luxury treatments we bring to every guest — tailored, polished, and thoughtfully delivered.
+        </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {list.map((service) => {
-        const label = typeof service === 'string' ? service : String(service?.name || 'Service');
-        const description =
-          typeof service === 'string'
-            ? serviceDescriptions[label]
-            : service?.description || serviceDescriptions[label] || '';
-        const isSelected = selectedService === label;
+          const label = typeof service === 'string' ? service : String(service?.name || 'Service');
+          const description =
+            typeof service === 'string'
+              ? serviceDescriptions[label]
+              : service?.description || serviceDescriptions[label] || '';
 
-        return (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setSelectedService(isSelected ? null : label)}
-            className={`w-full rounded-2xl border p-4 text-left shadow-sm transition-all duration-200 ${
-              isSelected
-                ? 'border-blue-500 bg-blue-50 shadow-md'
-                : 'border-[var(--card-border)] bg-[var(--card)] hover:border-blue-200 hover:shadow-md'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h3 className={`m-0 text-base font-semibold ${isSelected ? 'text-blue-600' : 'text-[var(--text)]'}`}>
-                {label}
-              </h3>
-            </div>
-            {isSelected && (
-              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                {description}
+          return (
+            <div
+              key={label}
+              className="group rounded-[1.75rem] border border-slate-200 bg-white/95 p-6 shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_80px_rgba(238,149,123,0.14)]"
+            >
+              <h3 className="text-lg font-semibold text-slate-900">{label}</h3>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                {description || 'Enjoy a premium experience designed to leave you looking refreshed and radiant.'}
               </p>
-            )}
-          </button>
-        );
-      })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
