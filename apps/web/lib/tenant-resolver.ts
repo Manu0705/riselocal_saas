@@ -307,7 +307,18 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         galleryCategories: normalizeGalleryCategories(settings),
         actionButtons: normalizeSettingsActionButtons(settings),
         services: normalizeServices(tenant.services),
-        gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
+        // gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
+        gallery: Array.isArray(tenant.galleryImages)
+          ? tenant.galleryImages.map((img: any) => ({
+              url: img?.url,
+              category: img?.category || 'general',
+            }))
+          : Array.isArray(tenant.gallery)
+          ? tenant.gallery.map((img: any) => ({
+              url: img?.url,
+              category: img?.category || 'general',
+            }))
+          : defaults.gallery,
         socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
         openHour: normalizeHour(settings.openHour, DEFAULT_OPEN_HOUR),
         closeHour: normalizeHour(settings.closeHour, DEFAULT_CLOSE_HOUR),
