@@ -3,6 +3,11 @@ import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.reposito
 import { Tenant } from '../domain/tenant.entity';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
+import {
+  normalizeTenantThemeKey,
+  type TenantCustomization,
+  type TenantThemeKey,
+} from '@saas/domain-core/tenant.contract';
 import { optimizeCloudinaryUrl } from '../../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
 import {
@@ -34,8 +39,13 @@ const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
   whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
   confirmBooking: { enabled: true, label: 'Confirm Booking' },
 };
-const DEFAULT_THEME_KEY = 'default';
-const ALLOWED_THEME_KEYS = new Set(['default', 'modern', 'minimal', 'business']);
+function resolveThemeInput(value: unknown): TenantThemeKey {
+  return normalizeTenantThemeKey(
+    typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>).theme ?? (value as Record<string, unknown>).themeKey
+      : value,
+  );
+}
 
 function getDefaultActionButtons(): ActionButtonsConfig {
   return {
@@ -57,12 +67,6 @@ function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfi
   };
 }
 
-function normalizeThemeKey(value: unknown, fallback = DEFAULT_THEME_KEY): string {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  return ALLOWED_THEME_KEYS.has(normalized) ? normalized : fallback;
-}
-
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
@@ -76,7 +80,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       actionButtons: getDefaultActionButtons(),
       galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
       fontFamily: 'Inter',
-      themeKey: DEFAULT_THEME_KEY,
+      themeKey: 'default',
     };
   }
 
@@ -99,7 +103,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
         typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0
           ? raw.fontFamily.trim()
           : 'Inter',
-      themeKey: normalizeThemeKey(raw.themeKey),
+      themeKey: normalizeTenantThemeKey(raw.themeKey),
       actionButtons: {
         chatWhatsApp: normalizeActionButtonConfig(
           buttonRaw.chatWhatsApp,
@@ -123,7 +127,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
     actionButtons: getDefaultActionButtons(),
     galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
     fontFamily: 'Inter',
-    themeKey: DEFAULT_THEME_KEY,
+    themeKey: 'default',
   };
 }
 
@@ -132,14 +136,14 @@ function buildSectionOrderPayload(
   actionButtons: ActionButtonsConfig,
   galleryCategories: string[] = ['gallery', 'before-after', 'team', 'workspace'],
   fontFamily = 'Inter',
-  themeKey: string = DEFAULT_THEME_KEY,
+  themeKey: string = 'default',
 ) {
   return {
     sections: sectionOrder,
     actionButtons,
     galleryCategories,
     fontFamily,
-    themeKey: normalizeThemeKey(themeKey),
+    themeKey: normalizeTenantThemeKey(themeKey),
   };
 }
 
@@ -220,9 +224,9 @@ function toSlug(value: string): string {
 
 router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
-    const { name, domain, slug, themeKey } = req.body;
-
+    const { name, domain, slug, theme, themeKey } = req.body;
     const resolvedSlug = toSlug(slug || name || '');
+    const normalizedTheme = resolveThemeInput({ theme, themeKey });
 
     if (RESERVED_SLUGS.includes(resolvedSlug)) {
       return res.status(400).json({
@@ -258,7 +262,7 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
           existingConfig.actionButtons,
           existingConfig.galleryCategories,
           existingConfig.fontFamily,
-          normalizeThemeKey(themeKey),
+          normalizedTheme,
         ),
       },
       update: {
@@ -267,7 +271,7 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
           existingConfig.actionButtons,
           existingConfig.galleryCategories,
           existingConfig.fontFamily,
-          normalizeThemeKey(themeKey),
+          normalizedTheme,
         ),
       },
     });
@@ -276,7 +280,8 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
       success: true,
       data: {
         ...tenant.toJSON(),
-        themeKey: normalizeThemeKey(themeKey),
+        theme: normalizedTheme,
+        themeKey: normalizedTheme,
       },
     });
   } catch (error: any) {
@@ -335,6 +340,22 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     }
 
     const sectionConfig = extractSectionOrderConfig(tenant.settings?.sectionOrder);
+    const theme = normalizeTenantThemeKey(sectionConfig.themeKey);
+    const customization: TenantCustomization = {
+      logoUrl: tenant.settings?.logoUrl ? optimizeCloudinaryUrl(tenant.settings.logoUrl) : undefined,
+      bannerUrl: tenant.settings?.bannerUrl ? optimizeCloudinaryUrl(tenant.settings.bannerUrl) : undefined,
+      logoShape: tenant.settings?.logoShape ?? 'circle',
+      primaryColor: tenant.settings?.primaryColor ?? '#000000',
+      secondaryColor: tenant.settings?.secondaryColor ?? '#FFFFFF',
+      fontFamily: sectionConfig.fontFamily,
+      theme,
+      sectionOrder: sectionConfig.sectionOrder,
+      galleryCategories: sectionConfig.galleryCategories,
+      actionButtons: sectionConfig.actionButtons,
+      businessPhone: tenant.settings?.businessPhone ?? undefined,
+      businessWhatsApp: tenant.settings?.businessWhatsApp ?? undefined,
+      tagline: tenant.settings?.tagline ?? undefined,
+    };
 
     const publicTenant = {
       id: tenant.id,
@@ -342,21 +363,12 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       slug: tenant.slug,
       domain: tenant.domain,
       createdAt: tenant.createdAt,
+      theme,
+      customization,
       settings: tenant.settings
         ? {
-            logoUrl: optimizeCloudinaryUrl(tenant.settings.logoUrl),
-            bannerUrl: optimizeCloudinaryUrl(tenant.settings.bannerUrl),
-            logoShape: tenant.settings.logoShape,
-            primaryColor: tenant.settings.primaryColor,
-            secondaryColor: tenant.settings.secondaryColor,
-            fontFamily: sectionConfig.fontFamily,
+            ...customization,
             themeKey: sectionConfig.themeKey,
-            sectionOrder: sectionConfig.sectionOrder,
-            galleryCategories: sectionConfig.galleryCategories,
-            actionButtons: sectionConfig.actionButtons,
-            businessPhone: tenant.settings.businessPhone,
-            businessWhatsApp: tenant.settings.businessWhatsApp,
-            tagline: tenant.settings.tagline,
           }
         : null,
       galleryImages: tenant.galleryImages.map((image) => ({
@@ -414,15 +426,19 @@ router.get('/tenants', async (_req, res) => {
 
     return res.json({
       success: true,
-      data: tenants.map((tenant) => ({
-        id: tenant.id,
-        name: tenant.name,
-        slug: tenant.slug,
-        domain: tenant.domain,
-        createdAt: tenant.createdAt,
-        updatedAt: tenant.updatedAt,
-        themeKey: extractSectionOrderConfig(tenant.settings?.sectionOrder).themeKey,
-      })),
+      data: tenants.map((tenant) => {
+        const theme = normalizeTenantThemeKey(extractSectionOrderConfig(tenant.settings?.sectionOrder).themeKey);
+        return {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          domain: tenant.domain,
+          createdAt: tenant.createdAt,
+          updatedAt: tenant.updatedAt,
+          theme,
+          themeKey: theme,
+        };
+      }),
     });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
@@ -442,7 +458,8 @@ router.get('/tenants', async (_req, res) => {
 router.put('/tenants/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, slug, domain, themeKey } = req.body;
+    const { name, slug, domain, theme, themeKey } = req.body;
+    const normalizedTheme = resolveThemeInput({ theme, themeKey });
 
     const tenant = await repository.findById(id);
 
@@ -459,7 +476,7 @@ router.put('/tenants/:id', async (req, res) => {
 
     await repository.update(tenant);
 
-    if (themeKey !== undefined) {
+    if (theme !== undefined || themeKey !== undefined) {
       const tenantId = tenant.toJSON().id;
       const existingSettings = await prisma.tenantSettings.findUnique({
         where: { tenantId },
@@ -483,7 +500,7 @@ router.put('/tenants/:id', async (req, res) => {
             existingConfig.actionButtons,
             existingConfig.galleryCategories,
             existingConfig.fontFamily,
-            normalizeThemeKey(themeKey),
+            normalizedTheme,
           ),
         },
         update: {
@@ -492,7 +509,7 @@ router.put('/tenants/:id', async (req, res) => {
             existingConfig.actionButtons,
             existingConfig.galleryCategories,
             existingConfig.fontFamily,
-            normalizeThemeKey(themeKey),
+            normalizedTheme,
           ),
         },
       });
@@ -505,7 +522,8 @@ router.put('/tenants/:id', async (req, res) => {
       success: true,
       data: {
         ...tenant.toJSON(),
-        ...(themeKey !== undefined ? { themeKey: normalizeThemeKey(themeKey) } : {}),
+        theme: normalizedTheme,
+        themeKey: normalizedTheme,
       },
     });
   } catch (error: any) {

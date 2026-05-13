@@ -1,7 +1,5 @@
 import type { ResolvedTenant } from '@/lib/tenant-resolver';
-
-export const TENANT_THEME_KEYS = ['default', 'modern', 'minimal', 'business'] as const;
-export type TenantThemeKey = (typeof TENANT_THEME_KEYS)[number];
+import { normalizeTenantThemeKey, type TenantThemeKey } from '@saas/domain-core/tenant.contract';
 
 export const TENANT_THEME_OPTIONS: Array<{
   key: TenantThemeKey;
@@ -29,14 +27,6 @@ export const TENANT_THEME_OPTIONS: Array<{
     description: 'Professional storefront for CCTV and security-focused tenants.',
   },
 ];
-
-export function normalizeTenantThemeKey(value: unknown, fallback: TenantThemeKey = 'default'): TenantThemeKey {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  return (TENANT_THEME_KEYS as readonly string[]).includes(normalized)
-    ? (normalized as TenantThemeKey)
-    : fallback;
-}
 
 function toTenantSearchText(tenant: ResolvedTenant): string {
   const services = Array.isArray(tenant.services)
@@ -73,7 +63,14 @@ export function inferTenantThemeKey(tenant: ResolvedTenant): TenantThemeKey {
 }
 
 export function resolveTenantThemeKey(tenant: ResolvedTenant): TenantThemeKey {
-  const explicitTheme = typeof tenant.themeKey === 'string' ? tenant.themeKey.trim() : '';
+  let explicitTheme = '';
+
+  if (typeof tenant.theme === 'string') {
+    explicitTheme = tenant.theme.trim();
+  } else if (typeof tenant.themeKey === 'string') {
+    explicitTheme = tenant.themeKey.trim();
+  }
+
   if (explicitTheme) {
     return normalizeTenantThemeKey(explicitTheme);
   }

@@ -16,7 +16,9 @@
     "baseUrl": ".",
 
     "paths": {
-      "@/*": ["apps/web/*"]
+      "@/*": ["apps/web/*"],
+      "@saas/domain-core": ["packages/domain-core"],
+      "@saas/domain-core/*": ["packages/domain-core/*"]
     }
   }
 }

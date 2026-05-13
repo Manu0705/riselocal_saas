@@ -3,7 +3,7 @@ import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfi
 import { DEFAULT_TENANT_FONT, sanitizeTenantFontName } from '@/lib/tenant-font';
 import { fetchWithRetry } from '@/lib/retry';
 import { cache } from 'react';
-
+import { normalizeTenantThemeKey, type TenantThemeKey } from '@saas/domain-core/tenant.contract';
 export const RESERVED_ROUTES = [
   'dashboard',
   'admin',
@@ -39,6 +39,7 @@ export type ResolvedTenant = {
   primaryColor?: string;
   secondaryColor?: string;
   fontFamily?: string;
+  theme?: TenantThemeKey;
   themeKey?: string;
   sectionOrder?: string[];
   galleryCategories?: string[];
@@ -157,18 +158,16 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return defaults.fontFamily;
   };
 
-  const normalizeThemeKey = (settings: Record<string, unknown>): string => {
-    const direct = settings.themeKey;
+  const normalizeThemeKey = (settings: Record<string, unknown>): TenantThemeKey => {
+    const direct = settings.theme ?? settings.themeKey;
     if (typeof direct === 'string' && direct.trim().length > 0) {
-      return direct.trim().toLowerCase();
+      return normalizeTenantThemeKey(direct);
     }
 
     const sectionOrder = settings.sectionOrder;
     if (sectionOrder && typeof sectionOrder === 'object' && !Array.isArray(sectionOrder)) {
       const raw = sectionOrder as Record<string, unknown>;
-      if (typeof raw.themeKey === 'string' && raw.themeKey.trim().length > 0) {
-        return raw.themeKey.trim().toLowerCase();
-      }
+      return normalizeTenantThemeKey(raw.theme ?? raw.themeKey);
     }
 
     return 'default';
@@ -302,6 +301,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
         secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
         fontFamily: normalizeFontFamily(settings),
+        theme: normalizeThemeKey(settings),
         themeKey: normalizeThemeKey(settings),
         sectionOrder: normalizeSectionOrder(settings.sectionOrder),
         galleryCategories: normalizeGalleryCategories(settings),

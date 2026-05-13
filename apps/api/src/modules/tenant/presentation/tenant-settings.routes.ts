@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
 import { invalidatePublicTenantCacheByTenantId } from '../infrastructure/public-tenant-cache';
+import { normalizeTenantThemeKey } from '@saas/domain-core/tenant.contract';
 
 import type { Request, Response, NextFunction } from 'express';
 import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.repository';
@@ -27,8 +28,6 @@ type LeadLifecycleConfig = {
 
 const DEFAULT_SECTION_ORDER = ['hero', 'services', 'gallery'];
 const DEFAULT_FONT_FAMILY = 'Inter';
-const DEFAULT_THEME_KEY = 'default';
-const ALLOWED_THEME_KEYS = new Set(['default', 'modern', 'minimal', 'business']);
 const ALLOWED_FONT_FAMILIES = new Set([
   'Inter',
   'Poppins',
@@ -123,12 +122,6 @@ function normalizeFontFamily(value: unknown, fallback = DEFAULT_FONT_FAMILY): st
   return ALLOWED_FONT_FAMILIES.has(trimmed) ? trimmed : fallback;
 }
 
-function normalizeThemeKey(value: unknown, fallback = DEFAULT_THEME_KEY): string {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  return ALLOWED_THEME_KEYS.has(normalized) ? normalized : fallback;
-}
-
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
   actionButtons: ActionButtonsConfig;
@@ -144,7 +137,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       galleryCategories: DEFAULT_GALLERY_CATEGORIES,
       leadLifecycle: DEFAULT_LEAD_LIFECYCLE,
       fontFamily: DEFAULT_FONT_FAMILY,
-      themeKey: DEFAULT_THEME_KEY,
+      themeKey: 'default',
     };
   }
 
@@ -164,7 +157,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
       galleryCategories,
       leadLifecycle: normalizeLeadLifecycle(raw.leadLifecycle),
       fontFamily: normalizeFontFamily(raw.fontFamily),
-      themeKey: normalizeThemeKey(raw.themeKey),
+      themeKey: normalizeTenantThemeKey(raw.themeKey),
     };
   }
 
@@ -174,7 +167,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
     galleryCategories: DEFAULT_GALLERY_CATEGORIES,
     leadLifecycle: DEFAULT_LEAD_LIFECYCLE,
     fontFamily: DEFAULT_FONT_FAMILY,
-    themeKey: DEFAULT_THEME_KEY,
+    themeKey: 'default',
   };
 }
 
@@ -184,7 +177,7 @@ function buildSectionOrderPayload(
   galleryCategories: string[] = DEFAULT_GALLERY_CATEGORIES,
   leadLifecycle: LeadLifecycleConfig = DEFAULT_LEAD_LIFECYCLE,
   fontFamily: string = DEFAULT_FONT_FAMILY,
-  themeKey: string = DEFAULT_THEME_KEY,
+  themeKey: string = 'default',
 ) {
   return {
     sections: sectionOrder,
@@ -192,12 +185,13 @@ function buildSectionOrderPayload(
     galleryCategories,
     leadLifecycle,
     fontFamily: normalizeFontFamily(fontFamily),
-    themeKey: normalizeThemeKey(themeKey),
+    themeKey: normalizeTenantThemeKey(themeKey),
   };
 }
 
 function toSettingsResponse(settings: any) {
   const parsed = extractSectionOrderConfig(settings?.sectionOrder);
+  const theme = normalizeTenantThemeKey(parsed.themeKey);
 
   return {
     ...settings,
@@ -206,6 +200,7 @@ function toSettingsResponse(settings: any) {
     galleryCategories: parsed.galleryCategories,
     leadLifecycle: parsed.leadLifecycle,
     fontFamily: parsed.fontFamily,
+    theme,
     themeKey: parsed.themeKey,
   };
 }
@@ -298,7 +293,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
         : existingConfig.fontFamily;
     const nextThemeKey =
       themeKey !== undefined
-        ? normalizeThemeKey(themeKey)
+        ? normalizeTenantTenantThemeKey(themeKey)
         : existingConfig.themeKey;
 
     if (!settings) {
@@ -484,7 +479,7 @@ router.put(
           : existingConfig.fontFamily;
       const nextThemeKey =
         themeKey !== undefined
-          ? normalizeThemeKey(themeKey)
+          ? normalizeTenantThemeKey(themeKey)
           : existingConfig.themeKey;
 
       if (!settings) {
