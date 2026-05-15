@@ -4,7 +4,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
 
-    "rootDir": "./src",
+    "rootDir": "../..",
     "outDir": "./dist",
 
     "esModuleInterop": true,
@@ -13,8 +13,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@saas/database": ["packages/database/src"],
-      "@saas/domain-core/*": ["packages/domain-core/*"]
+      "@saas/database": ["../../packages/database/src"],
+      "@saas/domain-core": ["../../packages/domain-core"],
+      "@saas/domain-core/*": ["../../packages/domain-core/*"]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },

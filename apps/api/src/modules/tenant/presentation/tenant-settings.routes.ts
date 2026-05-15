@@ -293,7 +293,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
         : existingConfig.fontFamily;
     const nextThemeKey =
       themeKey !== undefined
-        ? normalizeTenantTenantThemeKey(themeKey)
+        ? normalizeTenantThemeKey(themeKey)
         : existingConfig.themeKey;
 
     if (!settings) {
