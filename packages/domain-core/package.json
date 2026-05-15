@@ -2,6 +2,13 @@
   "name": "@saas/domain-core",
   "version": "1.0.0",
   "private": true,
-  "main": "lead/lead.aggregate.ts",
-  "types": "lead/lead.aggregate.ts"
+  "main": "dist/lead/lead.aggregate.js",
+  "types": "dist/lead/lead.aggregate.d.ts",
+  "exports": {
+    ".": "./dist/lead/lead.aggregate.js",
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
 }

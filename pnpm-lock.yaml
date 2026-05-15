@@ -15,6 +15,9 @@ importers:
       '@saas/database':
         specifier: workspace:*
         version: link:packages/database
+      '@saas/domain-core':
+        specifier: workspace:*
+        version: link:packages/domain-core
       cloudinary:
         specifier: ^1.40.0
         version: 1.41.3

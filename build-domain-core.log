@@ -1,0 +1,4 @@
+
+> @saas/domain-core@1.0.0 build C:\Users\Sapth\Downloads\saas_existing\packages\domain-core
+> tsc -p tsconfig.json
+

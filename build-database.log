@@ -1,0 +1,4 @@
+
+> @saas/database@1.0.0 build C:\Users\Sapth\Downloads\saas_existing\packages\database
+> tsc -p tsconfig.json
+

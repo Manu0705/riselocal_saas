@@ -40,8 +40,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules' does not exist, skipping all lookups in it.
@@ -11776,88 +11783,12 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/domain-core/tenant.contract'.
 'paths' option is specified, looking for a pattern to match module name '@saas/domain-core/tenant.contract'.
 Module name '@saas/domain-core/tenant.contract', matched pattern '@saas/domain-core/*'.
-Trying substitution '../packages/domain-core/*', candidate module location: '../packages/domain-core/tenant.contract'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/domain-core/tenant.contract', target file types: TypeScript, Declaration.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Loading module '@saas/domain-core/tenant.contract' from 'node_modules' folder, target file types: TypeScript, Declaration.
-Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/saas_existing/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/Downloads/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/Sapth/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/Users/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-File name 'c:/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Scoped package detected, looking in 'saas__domain-core/tenant.contract'
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules/@types' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules/@types/saas__domain-core/tenant.contract' has a '.contract' extension - stripping it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/types/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/domain-core/tenant.contract'.
-'paths' option is specified, looking for a pattern to match module name '@saas/domain-core/tenant.contract'.
-Module name '@saas/domain-core/tenant.contract', matched pattern '@saas/domain-core/*'.
-Trying substitution '../packages/domain-core/*', candidate module location: '../packages/domain-core/tenant.contract'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/domain-core/tenant.contract', target file types: JavaScript.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Loading module '@saas/domain-core/tenant.contract' from 'node_modules' folder, target file types: JavaScript.
-Searching all ancestor node_modules directories for fallback extensions: JavaScript.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/api/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/apps/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-File name 'c:/Users/Sapth/Downloads/saas_existing/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/Downloads/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/Downloads/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/Sapth/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/Sapth/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/Users/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/Users/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-Directory 'c:/node_modules' does not exist, skipping all lookups in it.
-File name 'c:/node_modules/@saas/domain-core/tenant.contract' has a '.contract' extension - stripping it.
-======== Module name '@saas/domain-core/tenant.contract' was not resolved. ========
+Trying substitution '../../packages/domain-core/*', candidate module location: '../../packages/domain-core/tenant.contract'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.contract', target file types: TypeScript, Declaration.
+File name 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.contract' has a '.contract' extension - stripping it.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.d.contract.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.contract.ts' exists - use it as a name resolution result.
+======== Module name '@saas/domain-core/tenant.contract' was successfully resolved to 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.contract.ts'. ========
 ======== Resolving module '../../../lib/cloudinary-transform' from 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/tenant.routes.ts'. ========
 Explicitly specified module resolution kind: 'Node10'.
 Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/lib/cloudinary-transform', target file types: TypeScript, Declaration.
@@ -11868,8 +11799,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -11890,8 +11828,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/infrastructure/node_modules' does not exist, skipping all lookups in it.
@@ -12155,8 +12100,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/lead/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -12199,8 +12151,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/lead/infrastructure/node_modules' does not exist, skipping all lookups in it.
@@ -12267,8 +12226,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/feedback/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -12310,8 +12276,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/feedback/infrastructure/node_modules' does not exist, skipping all lookups in it.
@@ -12414,8 +12387,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/auth/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -12798,8 +12778,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/gallery/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -12827,7 +12814,7 @@ Resolution for module '../infrastructure/public-tenant-cache' was found in cache
 ======== Module name '../infrastructure/public-tenant-cache' was successfully resolved to 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/infrastructure/public-tenant-cache.ts'. ========
 ======== Resolving module '@saas/domain-core/tenant.contract' from 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/tenant-settings.routes.ts'. ========
 Resolution for module '@saas/domain-core/tenant.contract' was found in cache from location 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation'.
-======== Module name '@saas/domain-core/tenant.contract' was not resolved. ========
+======== Module name '@saas/domain-core/tenant.contract' was successfully resolved to 'c:/Users/Sapth/Downloads/saas_existing/packages/domain-core/tenant.contract.ts'. ========
 ======== Resolving module '../infrastructure/tenant.prisma.repository' from 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation/tenant-settings.routes.ts'. ========
 Resolution for module '../infrastructure/tenant.prisma.repository' was found in cache from location 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/presentation'.
 ======== Module name '../infrastructure/tenant.prisma.repository' was successfully resolved to 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/tenant/infrastructure/tenant.prisma.repository.ts'. ========
@@ -12860,8 +12847,15 @@ Explicitly specified module resolution kind: 'Node10'.
 'baseUrl' option is set to 'c:/Users/Sapth/Downloads/saas_existing/apps/api', using this value to resolve non-relative module name '@saas/database'.
 'paths' option is specified, looking for a pattern to match module name '@saas/database'.
 Module name '@saas/database', matched pattern '@saas/database'.
-Trying substitution '../packages/database/src', candidate module location: '../packages/database/src'.
-Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/apps/packages/database/src', target file types: TypeScript, Declaration.
+Trying substitution '../../packages/database/src', candidate module location: '../../packages/database/src'.
+Loading module as file / folder, candidate module location 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src', target file types: TypeScript, Declaration.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src.d.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/package.json' does not exist according to earlier cached lookups.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.ts' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.tsx' does not exist.
+File 'c:/Users/Sapth/Downloads/saas_existing/packages/database/src/index.d.ts' does not exist.
 Loading module '@saas/database' from 'node_modules' folder, target file types: TypeScript, Declaration.
 Searching all ancestor node_modules directories for preferred extensions: TypeScript, Declaration.
 Directory 'c:/Users/Sapth/Downloads/saas_existing/apps/api/src/modules/content/presentation/node_modules' does not exist, skipping all lookups in it.
@@ -13579,5 +13573,3 @@ Directory 'c:/node_modules' does not exist, skipping all lookups in it.
 ======== Module name '@typescript/lib-dom/asynciterable' was not resolved. ========
 File 'C:/Users/Sapth/Downloads/saas_existing/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/lib/package.json' does not exist according to earlier cached lookups.
 File 'C:/Users/Sapth/Downloads/saas_existing/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json' exists according to earlier cached lookups.
-apps/api/src/modules/tenant/presentation/tenant-settings.routes.ts(5,41): error TS2307: Cannot find module '@saas/domain-core/tenant.contract' or its corresponding type declarations.
-apps/api/src/modules/tenant/presentation/tenant.routes.ts(10,8): error TS2307: Cannot find module '@saas/domain-core/tenant.contract' or its corresponding type declarations.
