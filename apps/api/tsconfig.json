@@ -13,9 +13,18 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@saas/database": ["../../packages/database/dist/client.js"],
-      "@saas/domain-core": ["../../packages/domain-core/dist"],
-      "@saas/domain-core/*": ["../../packages/domain-core/dist/*"]
+      "@saas/database": [
+        "../../packages/database/dist/client.d.ts",
+        "../../packages/database/dist/client.js"
+      ],
+      "@saas/domain-core": [
+        "../../packages/domain-core/dist",
+        "../../packages/domain-core/dist/index.d.ts"
+      ],
+      "@saas/domain-core/*": [
+        "../../packages/domain-core/dist/*",
+        "../../packages/domain-core/dist/*.d.ts"
+      ]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
