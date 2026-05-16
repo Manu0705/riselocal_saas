@@ -47,7 +47,7 @@
     "qa:api": "node scripts/run-with-env.cjs qa ts-node-dev --respawn --transpile-only --project apps/api/tsconfig.json apps/api/src/server.ts",
     "build:packages": "pnpm --filter @saas/domain-core run build && pnpm --filter @saas/database run build",
     "build:api": "pnpm run build:packages && tsc -p apps/api/tsconfig.json",
-    "start:api": "node apps/api/dist/apps/api/src/server.js",
+    "start:api": "node apps/api/dist/server.js",
     "db:generate": "pnpm --filter @saas/database exec prisma generate",
     "db:deploy": "pnpm --filter @saas/database exec prisma migrate deploy",
     "db:status": "pnpm --filter @saas/database exec prisma migrate status",
