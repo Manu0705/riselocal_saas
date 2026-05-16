@@ -19,7 +19,13 @@ export default async function TenantLayout({
     notFound();
   }
 
-  const tenant = await getTenant(tenantSlug);
+  let tenant = null;
+
+  try {
+    tenant = await getTenant(tenantSlug);
+  } catch (error) {
+    console.error('Failed to resolve tenant during layout render:', tenantSlug, error);
+  }
 
   // Return 404 if tenant does not exist in database
   if (!tenant) {
