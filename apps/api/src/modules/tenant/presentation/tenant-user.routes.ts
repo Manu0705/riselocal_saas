@@ -3,9 +3,13 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
 import { hashPassword } from '../../auth/infrastructure/password.service';
+import {
+  normalizeTenantUserRole,
+  TENANT_USER_ROLES,
+} from '@saas/domain-core/auth.contract';
 
 const router = Router();
-const ALLOWED_TENANT_ROLES = new Set(['owner', 'manager', 'staff']);
+const ALLOWED_TENANT_ROLES = new Set<string>(TENANT_USER_ROLES);
 
 router.use('/tenant-users', authMiddleware, adminRoleMiddleware);
 
@@ -60,12 +64,13 @@ router.post('/tenant-users', async (req, res) => {
         .json({ success: false, message: 'Password must be at least 8 characters' });
     }
 
-    const normalizedRole = String(role || 'owner')
+    const candidate = String(role || 'owner')
       .trim()
       .toLowerCase();
-    if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
+    if (!ALLOWED_TENANT_ROLES.has(candidate)) {
       return res.status(400).json({ success: false, message: 'Invalid tenant role' });
     }
+    const normalizedRole = normalizeTenantUserRole(candidate);
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -130,11 +135,11 @@ router.put('/tenant-users/:id', async (req, res) => {
     }
 
     if (typeof role === 'string') {
-      const normalizedRole = role.trim().toLowerCase();
-      if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
+      const candidate = role.trim().toLowerCase();
+      if (!ALLOWED_TENANT_ROLES.has(candidate)) {
         return res.status(400).json({ success: false, message: 'Invalid tenant role' });
       }
-      data.role = normalizedRole;
+      data.role = normalizeTenantUserRole(candidate);
     }
 
     if (typeof isActive === 'boolean') {

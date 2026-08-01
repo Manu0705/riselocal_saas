@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
 import { invalidatePublicTenantCacheByTenantId } from '../../tenant/infrastructure/public-tenant-cache';
+import { sendError } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -10,7 +11,7 @@ router.get('/gallery', authMiddleware, async (req, res) => {
   try {
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const images = await prisma.galleryImage.findMany({
@@ -21,7 +22,10 @@ router.get('/gallery', authMiddleware, async (req, res) => {
     return res.json({ success: true, data: images });
   } catch (error: any) {
     console.error('Gallery fetch error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Failed to fetch gallery', {
+      code: 'GALLERY_FETCH_FAILED',
+      req,
+    });
   }
 });
 
@@ -32,7 +36,7 @@ router.get('/gallery/category/:category', authMiddleware, async (req, res) => {
     const category = req.params.category as string;
 
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const images = await prisma.galleryImage.findMany({
@@ -43,7 +47,10 @@ router.get('/gallery/category/:category', authMiddleware, async (req, res) => {
     return res.json({ success: true, data: images });
   } catch (error: any) {
     console.error('Gallery fetch error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Failed to fetch gallery', {
+      code: 'GALLERY_FETCH_FAILED',
+      req,
+    });
   }
 });
 
@@ -54,14 +61,16 @@ router.post('/gallery', authMiddleware, async (req, res) => {
     const { url, category, position, alt } = req.body;
 
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     if (!url || !category) {
-      return res.status(400).json({ error: 'URL and category are required' });
+      return sendError(res, 400, 'URL and category are required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
 
-    // Get max position for category
     const maxPosition = await prisma.galleryImage.findFirst({
       where: { tenantId, category },
       orderBy: { position: 'desc' },
@@ -84,7 +93,56 @@ router.post('/gallery', authMiddleware, async (req, res) => {
     return res.status(201).json({ success: true, data: image });
   } catch (error: any) {
     console.error('Gallery create error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Failed to create gallery image', {
+      code: 'GALLERY_CREATE_FAILED',
+      req,
+    });
+  }
+});
+
+// PUT reorder gallery images — must be registered BEFORE /gallery/:id
+router.put('/gallery/reorder', authMiddleware, async (req, res) => {
+  try {
+    const tenantId = (req.user as any)?.tenantId;
+    const items = req.body.items as Array<{ id: string; position: number; category: string }>;
+
+    if (!tenantId) {
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return sendError(res, 400, 'items array is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    const ids = items.map((item) => item.id);
+    const existingImages = await prisma.galleryImage.findMany({
+      where: { id: { in: ids }, tenantId },
+    });
+
+    if (existingImages.length !== items.length) {
+      return sendError(res, 403, 'Invalid items', { code: 'FORBIDDEN', req });
+    }
+
+    const updated = await Promise.all(
+      items.map((item) =>
+        prisma.galleryImage.update({
+          where: { id: item.id },
+          data: { position: item.position, category: item.category },
+        }),
+      ),
+    );
+
+    await invalidatePublicTenantCacheByTenantId(tenantId);
+    return res.json({ success: true, data: updated });
+  } catch (error: any) {
+    console.error('Gallery reorder error:', error);
+    return sendError(res, 500, error.message || 'Failed to reorder gallery', {
+      code: 'GALLERY_REORDER_FAILED',
+      req,
+    });
   }
 });
 
@@ -96,13 +154,12 @@ router.put('/gallery/:id', authMiddleware, async (req, res) => {
     const { category, position, alt } = req.body;
 
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
-    // Verify ownership
     const image = await prisma.galleryImage.findUnique({ where: { id: imageId } });
     if (!image || image.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     const updated = await prisma.galleryImage.update({
@@ -118,45 +175,10 @@ router.put('/gallery/:id', authMiddleware, async (req, res) => {
     return res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Gallery update error:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT reorder gallery images
-router.put('/gallery/reorder', authMiddleware, async (req, res) => {
-  try {
-    const tenantId = (req.user as any)?.tenantId;
-    const items = req.body.items as Array<{ id: string; position: number; category: string }>;
-
-    if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Verify all items belong to tenant
-    const ids = items.map((item) => item.id);
-    const existingImages = await prisma.galleryImage.findMany({
-      where: { id: { in: ids }, tenantId },
+    return sendError(res, 500, error.message || 'Failed to update gallery image', {
+      code: 'GALLERY_UPDATE_FAILED',
+      req,
     });
-
-    if (existingImages.length !== items.length) {
-      return res.status(403).json({ error: 'Invalid items' });
-    }
-
-    // Update all in transaction
-    const updated = await Promise.all(
-      items.map((item) =>
-        prisma.galleryImage.update({
-          where: { id: item.id },
-          data: { position: item.position, category: item.category },
-        }),
-      ),
-    );
-
-    await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: updated });
-  } catch (error: any) {
-    console.error('Gallery reorder error:', error);
-    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -167,13 +189,12 @@ router.delete('/gallery/:id', authMiddleware, async (req, res) => {
     const imageId = req.params.id as string;
 
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
-    // Verify ownership
     const image = await prisma.galleryImage.findUnique({ where: { id: imageId } });
     if (!image || image.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     await prisma.galleryImage.delete({ where: { id: imageId } });
@@ -182,7 +203,10 @@ router.delete('/gallery/:id', authMiddleware, async (req, res) => {
     return res.json({ success: true, message: 'Image deleted' });
   } catch (error: any) {
     console.error('Gallery delete error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Failed to delete gallery image', {
+      code: 'GALLERY_DELETE_FAILED',
+      req,
+    });
   }
 });
 

@@ -4,9 +4,14 @@ import { Tenant } from '../domain/tenant.entity';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
 import {
+  getDefaultActionButtons,
+  normalizeActionButtons,
+  normalizeAvailableHours,
+  normalizeHour,
   normalizeTenantThemeKey,
+  resolveThemeInput,
+  type ActionButtonsConfig,
   type TenantCustomization,
-  type TenantThemeKey,
 } from '@saas/domain-core/tenant.contract';
 import { optimizeCloudinaryUrl } from '../../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
@@ -19,53 +24,6 @@ import {
 const router = Router();
 const repository = new PrismaTenantRepository();
 
-type ActionButtonConfig = {
-  enabled: boolean;
-  label?: string;
-  phone?: string;
-  url?: string;
-};
-
-type ActionButtonsConfig = {
-  chatWhatsApp: ActionButtonConfig;
-  call: ActionButtonConfig;
-  whatsappEnquiry: ActionButtonConfig;
-  confirmBooking: ActionButtonConfig;
-};
-
-const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
-  chatWhatsApp: { enabled: true, label: 'Chat on WhatsApp' },
-  call: { enabled: true, label: 'Call' },
-  whatsappEnquiry: { enabled: true, label: 'WhatsApp Enquiry' },
-  confirmBooking: { enabled: true, label: 'Confirm Booking' },
-};
-function resolveThemeInput(value: unknown): TenantThemeKey {
-  return normalizeTenantThemeKey(
-    typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>).theme ?? (value as Record<string, unknown>).themeKey
-      : value,
-  );
-}
-
-function getDefaultActionButtons(): ActionButtonsConfig {
-  return {
-    chatWhatsApp: { ...DEFAULT_ACTION_BUTTONS.chatWhatsApp },
-    call: { ...DEFAULT_ACTION_BUTTONS.call },
-    whatsappEnquiry: { ...DEFAULT_ACTION_BUTTONS.whatsappEnquiry },
-    confirmBooking: { ...DEFAULT_ACTION_BUTTONS.confirmBooking },
-  };
-}
-
-function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfig): ActionButtonConfig {
-  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-
-  return {
-    enabled: raw.enabled === undefined ? fallback.enabled : Boolean(raw.enabled),
-    label: typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : fallback.label,
-    phone: typeof raw.phone === 'string' && raw.phone.trim().length > 0 ? raw.phone.trim() : undefined,
-    url: typeof raw.url === 'string' && raw.url.trim().length > 0 ? raw.url.trim() : undefined,
-  };
-}
 
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
@@ -92,9 +50,6 @@ function extractSectionOrderConfig(rawValue: unknown): {
     const galleryCategories = Array.isArray(raw.galleryCategories)
       ? raw.galleryCategories.filter((entry): entry is string => typeof entry === 'string')
       : ['gallery', 'before-after', 'team', 'workspace'];
-    const buttonRaw = raw.actionButtons && typeof raw.actionButtons === 'object'
-      ? (raw.actionButtons as Record<string, unknown>)
-      : {};
 
     return {
       sectionOrder: sections,
@@ -104,21 +59,7 @@ function extractSectionOrderConfig(rawValue: unknown): {
           ? raw.fontFamily.trim()
           : 'Inter',
       themeKey: normalizeTenantThemeKey(raw.themeKey),
-      actionButtons: {
-        chatWhatsApp: normalizeActionButtonConfig(
-          buttonRaw.chatWhatsApp,
-          DEFAULT_ACTION_BUTTONS.chatWhatsApp,
-        ),
-        call: normalizeActionButtonConfig(buttonRaw.call, DEFAULT_ACTION_BUTTONS.call),
-        whatsappEnquiry: normalizeActionButtonConfig(
-          buttonRaw.whatsappEnquiry,
-          DEFAULT_ACTION_BUTTONS.whatsappEnquiry,
-        ),
-        confirmBooking: normalizeActionButtonConfig(
-          buttonRaw.confirmBooking,
-          DEFAULT_ACTION_BUTTONS.confirmBooking,
-        ),
-      },
+      actionButtons: normalizeActionButtons(raw.actionButtons),
     };
   }
 
@@ -341,6 +282,9 @@ router.get('/tenants/slug/:slug', async (req, res) => {
 
     const sectionConfig = extractSectionOrderConfig(tenant.settings?.sectionOrder);
     const theme = normalizeTenantThemeKey(sectionConfig.themeKey);
+    const openHour = normalizeHour(tenant.settings?.openHour);
+    const closeHour = normalizeHour(tenant.settings?.closeHour);
+    const availableHours = normalizeAvailableHours(tenant.settings?.availableHours);
     const customization: TenantCustomization = {
       logoUrl: tenant.settings?.logoUrl ? optimizeCloudinaryUrl(tenant.settings.logoUrl) : undefined,
       bannerUrl: tenant.settings?.bannerUrl ? optimizeCloudinaryUrl(tenant.settings.bannerUrl) : undefined,
@@ -355,6 +299,9 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       businessPhone: tenant.settings?.businessPhone ?? undefined,
       businessWhatsApp: tenant.settings?.businessWhatsApp ?? undefined,
       tagline: tenant.settings?.tagline ?? undefined,
+      ...(openHour !== undefined ? { openHour } : {}),
+      ...(closeHour !== undefined ? { closeHour } : {}),
+      ...(availableHours !== undefined ? { availableHours } : {}),
     };
 
     const publicTenant = {
@@ -363,30 +310,35 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       slug: tenant.slug,
       domain: tenant.domain,
       createdAt: tenant.createdAt,
+      updatedAt: tenant.updatedAt,
       theme,
       customization,
+      // Compatibility projection for web resolver — same fields as customization.
       settings: tenant.settings
         ? {
             ...customization,
-            themeKey: sectionConfig.themeKey,
+            themeKey: theme,
+            openHour: tenant.settings.openHour,
+            closeHour: tenant.settings.closeHour,
+            availableHours: tenant.settings.availableHours,
           }
         : null,
       galleryImages: tenant.galleryImages.map((image) => ({
         url: optimizeCloudinaryUrl(image.url),
         category: image.category,
         position: image.position,
-        alt: image.alt,
+        alt: image.alt ?? undefined,
       })),
       services: tenant.services.map((service) => ({
         name: service.name,
-        description: service.description,
-        icon: service.icon,
+        description: service.description ?? undefined,
+        icon: service.icon ?? undefined,
         position: service.position,
       })),
       socialLinks: tenant.socialLinks.map((link) => ({
         platform: link.platform,
         url: link.url,
-        label: link.label,
+        label: link.label ?? undefined,
       })),
     };
 

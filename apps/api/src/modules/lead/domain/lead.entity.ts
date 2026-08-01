@@ -1,10 +1,11 @@
 import crypto from 'node:crypto';
+import {
+  type LeadStatus,
+  LEAD_STATUS_TRANSITIONS,
+  normalizeLeadStatus,
+} from '@saas/domain-core/lead.contract';
 
-/* =========================================
-   TYPES
-========================================= */
-
-export type LeadStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'CLOSED';
+export type { LeadStatus };
 
 interface LeadProps {
   id: string;
@@ -80,25 +81,18 @@ export class Lead {
   ========================================= */
 
   updateStatus(newStatus: LeadStatus) {
-    if (this.props.status === newStatus) {
+    const next = normalizeLeadStatus(newStatus);
+    if (this.props.status === next) {
       return;
     }
 
-    const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
-      NEW: ['CONTACTED', 'CLOSED'],
-      CONTACTED: ['QUALIFIED', 'CLOSED'],
-      QUALIFIED: ['CONVERTED', 'CLOSED'],
-      CONVERTED: [],
-      CLOSED: [],
-    };
-
-    const isAllowed = allowedTransitions[this.props.status].includes(newStatus);
+    const isAllowed = LEAD_STATUS_TRANSITIONS[this.props.status].includes(next);
 
     if (!isAllowed) {
-      throw new Error(`Invalid status transition from ${this.props.status} to ${newStatus}`);
+      throw new Error(`Invalid status transition from ${this.props.status} to ${next}`);
     }
 
-    this.props.status = newStatus;
+    this.props.status = next;
     this.props.updatedAt = new Date();
   }
 

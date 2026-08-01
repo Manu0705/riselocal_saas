@@ -1,6 +1,4 @@
-export type UserRole = 'ADMIN' | 'USER';
+import { AuthRole, AuthUser } from '@saas/domain-core/auth.contract';
 
-export interface AuthUser {
-  id: string;
-  role: UserRole;
-}
+export type { AuthRole, AuthUser };
+export type UserRole = AuthRole;

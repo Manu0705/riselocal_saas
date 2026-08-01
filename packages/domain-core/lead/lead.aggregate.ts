@@ -1,16 +1,25 @@
 // packages/domain-core/lead/lead.aggregate.ts
+// Legacy aggregate kept for compatibility. Canonical statuses live in lead.contract.ts.
 
-/* ============================= */
-/*           ENUMS               */
-/* ============================= */
+import {
+  type LeadStatus as CanonicalLeadStatus,
+  LEAD_STATUSES,
+  canTransitionLeadStatus,
+  normalizeLeadStatus,
+} from '../lead.contract';
 
-export enum LeadStatus {
-  NEW = 'NEW',
-  CONTACTED = 'CONTACTED',
-  QUALIFIED = 'QUALIFIED',
-  LOST = 'LOST',
-  WON = 'WON',
-}
+/** @deprecated Prefer string union / helpers from lead.contract.ts */
+export const LeadStatus = {
+  NEW: 'NEW',
+  CONTACTED: 'CONTACTED',
+  QUALIFIED: 'QUALIFIED',
+  CONVERTED: 'CONVERTED',
+  CLOSED: 'CLOSED',
+} as const;
+
+export type LeadStatus = CanonicalLeadStatus;
+
+export { LEAD_STATUSES, canTransitionLeadStatus, normalizeLeadStatus };
 
 export enum LeadSource {
   WEBSITE = 'WEBSITE',
@@ -18,42 +27,31 @@ export enum LeadSource {
   LINKEDIN = 'LINKEDIN',
   EMAIL = 'EMAIL',
   OTHER = 'OTHER',
+  ORGANIC = 'ORGANIC',
 }
-
-/* ============================= */
-/*        VALUE OBJECT TYPE      */
-/* ============================= */
 
 export type CreateLeadProps = {
   name: string;
-  email: string;
-  phone?: string;
-  source: LeadSource;
+  email?: string;
+  phone: string;
+  source?: LeadSource;
 };
-
-/* ============================= */
-/*         LEAD AGGREGATE        */
-/* ============================= */
 
 export class Lead {
   private _id?: string;
   private _name: string;
-  private _email: string;
-  private _phone?: string;
+  private _email?: string;
+  private _phone: string;
   private _status: LeadStatus;
   private _source: LeadSource;
   private _createdAt: Date;
   private _updatedAt: Date;
 
-  /* ============================= */
-  /*         CONSTRUCTOR           */
-  /* ============================= */
-
   constructor(props: {
     id?: string;
     name: string;
-    email: string;
-    phone?: string;
+    email?: string;
+    phone: string;
     status: LeadStatus;
     source: LeadSource;
     createdAt?: Date;
@@ -69,39 +67,39 @@ export class Lead {
     this._updatedAt = props.updatedAt ?? new Date();
   }
 
-  /* ============================= */
-  /*        FACTORY METHOD         */
-  /* ============================= */
-
   static create(props: CreateLeadProps): Lead {
     if (!props.name || props.name.trim().length < 2) {
       throw new Error('Lead name must be at least 2 characters');
     }
 
-    if (!props.email || !props.email.includes('@')) {
+    if (!props.phone || props.phone.trim().length < 8) {
+      throw new Error('Lead phone is required');
+    }
+
+    if (props.email && !props.email.includes('@')) {
       throw new Error('Invalid email address');
     }
 
     return new Lead({
       name: props.name.trim(),
-      email: props.email.trim().toLowerCase(),
-      phone: props.phone,
+      email: props.email?.trim().toLowerCase(),
+      phone: props.phone.trim(),
       status: LeadStatus.NEW,
-      source: props.source,
+      source: props.source ?? LeadSource.ORGANIC,
     });
   }
 
-  /* ============================= */
-  /*       BUSINESS METHODS        */
-  /* ============================= */
-
-  updateContactInfo(name: string, email: string, phone?: string) {
+  updateContactInfo(name: string, email: string | undefined, phone: string) {
     if (name.length < 2) {
       throw new Error('Name must be at least 2 characters');
     }
 
-    if (!email.includes('@')) {
+    if (email && !email.includes('@')) {
       throw new Error('Invalid email');
+    }
+
+    if (!phone || phone.trim().length < 8) {
+      throw new Error('Phone is required');
     }
 
     this._name = name;
@@ -111,22 +109,18 @@ export class Lead {
   }
 
   changeStatus(status: LeadStatus) {
-    // Example business rule:
-    if (this._status === LeadStatus.LOST && status === LeadStatus.WON) {
-      throw new Error('Lost lead cannot become Won directly');
+    const next = normalizeLeadStatus(status);
+    if (!canTransitionLeadStatus(this._status, next)) {
+      throw new Error(`Invalid lead status transition: ${this._status} -> ${next}`);
     }
 
-    this._status = status;
+    this._status = next;
     this.touch();
   }
 
   private touch() {
     this._updatedAt = new Date();
   }
-
-  /* ============================= */
-  /*           GETTERS             */
-  /* ============================= */
 
   get id() {
     return this._id;
@@ -159,10 +153,6 @@ export class Lead {
   get updatedAt() {
     return this._updatedAt;
   }
-
-  /* ============================= */
-  /*     TO PERSISTENCE OBJECT     */
-  /* ============================= */
 
   toJSON() {
     return {

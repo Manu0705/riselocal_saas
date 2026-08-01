@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, Users, Target, Activity } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 type TenantStats = {
   tenantId: string;
@@ -45,9 +46,16 @@ export default function AnalyticsPage() {
             const leadsResponse = await adminApi.get(`/tenants/${tenant.id}/leads`);
             const leads = Array.isArray(leadsResponse) ? leadsResponse : leadsResponse?.data || [];
 
-            const openLeads = leads.filter((l: any) => l.status === 'Open').length;
-            const followUpLeads = leads.filter((l: any) => l.status === 'Follow-Up').length;
-            const convertedLeads = leads.filter((l: any) => l.status === 'Converted').length;
+            const openLeads = leads.filter((l: any) => {
+              const status = normalizeLeadStatus(l.status);
+              return status === 'NEW' || status === 'CONTACTED';
+            }).length;
+            const followUpLeads = leads.filter(
+              (l: any) => normalizeLeadStatus(l.status) === 'QUALIFIED',
+            ).length;
+            const convertedLeads = leads.filter(
+              (l: any) => normalizeLeadStatus(l.status) === 'CONVERTED',
+            ).length;
             const conversionRate =
               leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '@saas/database';
 import { LeadLifecycleService } from '../infrastructure/lead-lifecycle.service';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -415,10 +416,20 @@ export class LeadController {
 
       await ensureLeadActionAccess(req, tenantId, leadId);
 
+      const rawStatus = getStringField(body, 'status');
+      if (!rawStatus) {
+        throw new Error('status is required');
+      }
+
+      // Accept legacy aliases via normalize, but reject completely unknown tokens
+      // that normalize would silently coerce only when they are empty — unknown
+      // free-text still maps to NEW to preserve prior lifecycle behavior.
+      const status = normalizeLeadStatus(rawStatus);
+
       const result = await lifecycleService.updateLeadStatus({
         tenantId,
         leadId,
-        status: getStringField(body, 'status'),
+        status,
         actorUserId: req.user?.id,
       });
 

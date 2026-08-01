@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { prisma, Prisma } from '@saas/database';
+import { normalizeLeadStatus, type LeadStatus } from '@saas/domain-core/lead.contract';
 
 type LeadVisibilityRole = 'admin' | 'super_admin' | 'owner' | 'manager' | 'staff';
 
@@ -108,22 +109,9 @@ type RecentActivity = {
 const ACTIVE_SESSION_WINDOW_HOURS = 24;
 const ARCHIVE_AFTER_DAYS = 180;
 const RETRYABLE_ERROR_CODES = new Set(['40001', '40P01', '53300']);
-const LEAD_STATUS = new Set(['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'CLOSED']);
 
-function normalizeStatus(input?: string): string {
-  const normalized = String(input ?? '')
-    .trim()
-    .toUpperCase();
-
-  if (normalized === 'FOLLOW-UP' || normalized === 'FOLLOW_UP' || normalized === 'FOLLOWUP') {
-    return 'QUALIFIED';
-  }
-
-  if (normalized === 'LOST') {
-    return 'CLOSED';
-  }
-
-  return LEAD_STATUS.has(normalized) ? normalized : 'NEW';
+function normalizeStatus(input?: string): LeadStatus {
+  return normalizeLeadStatus(input);
 }
 
 function isLikelyDummyPhone(digitsOnly: string): boolean {

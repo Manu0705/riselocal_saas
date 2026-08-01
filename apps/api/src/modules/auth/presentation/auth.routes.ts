@@ -3,6 +3,8 @@ import { JwtService } from '../infrastructure/jwt.service';
 import { PrismaTenantRepository } from '../../tenant/infrastructure/tenant.prisma.repository';
 import { prisma } from '@saas/database';
 import { verifyPassword } from '../infrastructure/password.service';
+import { normalizeAuthRole } from '@saas/domain-core/auth.contract';
+import { sendError } from '../../../shared/http/api-response';
 
 const router = Router();
 const jwtService = new JwtService();
@@ -21,7 +23,10 @@ router.post('/login', async (req, res) => {
       typeof req.body?.tenantSlug === 'string' ? req.body.tenantSlug.trim().toLowerCase() : '';
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return sendError(res, 400, 'Email and password are required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -46,7 +51,10 @@ router.post('/login', async (req, res) => {
       });
 
       if (matchingUsers.length !== 1) {
-        return res.status(400).json({ error: 'tenantId or tenantSlug is required' });
+        return sendError(res, 400, 'tenantId or tenantSlug is required', {
+          code: 'VALIDATION_ERROR',
+          req,
+        });
       }
 
       user = matchingUsers[0];
@@ -62,10 +70,10 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return sendError(res, 401, 'Invalid credentials', { code: 'UNAUTHORIZED', req });
     }
 
-    const resolvedRole = String(user.role || 'owner').toLowerCase();
+    const resolvedRole = normalizeAuthRole(user.role, 'owner');
     let resolvedTenantSlug = tenantSlug;
 
     if (!resolvedTenantSlug && resolvedTenantId) {
@@ -80,6 +88,7 @@ router.post('/login', async (req, res) => {
     });
 
     return res.json({
+      success: true,
       token,
       user: {
         userId: user.id,
@@ -92,9 +101,10 @@ router.post('/login', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Login route error:', err?.message || err);
-    return res
-      .status(500)
-      .json({ error: 'Login service temporarily unavailable. Please try again.' });
+    return sendError(res, 500, 'Login service temporarily unavailable. Please try again.', {
+      code: 'LOGIN_UNAVAILABLE',
+      req,
+    });
   }
 });
 
@@ -105,13 +115,16 @@ router.post('/admin-login', async (req, res) => {
   };
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    return sendError(res, 400, 'Email and password are required', {
+      code: 'VALIDATION_ERROR',
+      req,
+    });
   }
 
   const configuredAdminPassword = process.env.ADMIN_PASSWORD as string;
 
   if (password !== configuredAdminPassword) {
-    return res.status(401).json({ error: 'Invalid admin credentials' });
+    return sendError(res, 401, 'Invalid admin credentials', { code: 'UNAUTHORIZED', req });
   }
 
   const userId = email.trim().toLowerCase();
@@ -122,6 +135,7 @@ router.post('/admin-login', async (req, res) => {
   });
 
   return res.json({
+    success: true,
     token,
     user: {
       userId,
