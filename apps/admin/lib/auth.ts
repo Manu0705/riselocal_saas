@@ -43,9 +43,13 @@ export async function login(password: string): Promise<boolean> {
   }
 
   const payload = await res.json();
-  const token = payload?.token;
+  // Canonical envelope: { success: true, data: { token, user } }
+  const token =
+    (typeof payload?.data?.token === 'string' && payload.data.token) ||
+    (typeof payload?.token === 'string' && payload.token) ||
+    null;
 
-  if (!token || typeof token !== 'string') {
+  if (!token) {
     return false;
   }
 

@@ -110,7 +110,7 @@ export default function GalleryManager() {
           const uploadedUrl = uploadResponse?.data?.url ?? uploadResponse?.url;
           if (!uploadedUrl) {
             const uploadError =
-              uploadResponse?.error || uploadResponse?.message || 'Upload service did not return a URL.';
+              uploadResponse?.message || uploadResponse?.error || 'Upload service did not return a URL.';
             throw new Error(String(uploadError));
           }
 
@@ -122,7 +122,7 @@ export default function GalleryManager() {
 
           if (!createResponse?.data) {
             const createError =
-              createResponse?.error || createResponse?.message || 'Gallery record creation failed.';
+              createResponse?.message || createResponse?.error || 'Gallery record creation failed.';
             throw new Error(String(createError));
           }
 

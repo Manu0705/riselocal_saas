@@ -10,12 +10,7 @@ import Card from '@/components/Card';
 import PageErrorState from '@/components/page-error-state';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import { useAuth } from '@/context/AuthContext';
-
-function normalizeStatus(status?: string): string {
-  return String(status ?? '')
-    .trim()
-    .toLowerCase();
-}
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 export default function DashboardPage() {
   const { userName } = useAuth();
@@ -36,10 +31,10 @@ export default function DashboardPage() {
 
   const totalServices = tenantServices;
   const engagedLeads = leads.filter((lead) => {
-    const status = normalizeStatus(lead?.status);
-    return status === 'converted' || status === 'contacted' || status === 'qualified';
+    const status = normalizeLeadStatus(lead?.status);
+    return status === 'CONVERTED' || status === 'CONTACTED' || status === 'QUALIFIED';
   }).length;
-  const convertedLeads = leads.filter((lead) => normalizeStatus(lead?.status) === 'converted').length;
+  const convertedLeads = leads.filter((lead) => normalizeLeadStatus(lead?.status) === 'CONVERTED').length;
 
   if (loading) {
     return <DashboardHomeSkeleton />;

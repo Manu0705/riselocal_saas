@@ -1,5 +1,5 @@
 import type { ResolvedTenant } from '@/lib/tenant-resolver';
-import { normalizeTenantThemeKey, type TenantThemeKey } from '@saas/domain-core/tenant.contract';
+import { resolveThemeInput, type TenantThemeKey } from '@saas/domain-core/tenant.contract';
 
 export const TENANT_THEME_OPTIONS: Array<{
   key: TenantThemeKey;
@@ -63,16 +63,8 @@ export function inferTenantThemeKey(tenant: ResolvedTenant): TenantThemeKey {
 }
 
 export function resolveTenantThemeKey(tenant: ResolvedTenant): TenantThemeKey {
-  let explicitTheme = '';
-
-  if (typeof tenant.theme === 'string') {
-    explicitTheme = tenant.theme.trim();
-  } else if (typeof tenant.themeKey === 'string') {
-    explicitTheme = tenant.themeKey.trim();
-  }
-
-  if (explicitTheme) {
-    return normalizeTenantThemeKey(explicitTheme);
+  if (tenant.theme || tenant.themeKey) {
+    return resolveThemeInput({ theme: tenant.theme, themeKey: tenant.themeKey });
   }
 
   return inferTenantThemeKey(tenant);

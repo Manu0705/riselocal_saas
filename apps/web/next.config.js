@@ -3,10 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@saas/domain-core'],
   eslint: {
+    // Keep eslint non-blocking for now; TypeScript is the Phase 3 gate.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.riselocal.in',

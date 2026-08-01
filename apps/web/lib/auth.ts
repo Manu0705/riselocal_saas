@@ -47,14 +47,66 @@ function buildUrl(path: string) {
   return buildUpstreamApiUrl(getApiBaseCandidates()[0], path);
 }
 
-type LoginResult = {
+export type LoginUser = {
+  name?: string;
+  tenantSlug?: string;
+  tenantId?: string;
+  email?: string;
+  role?: string;
+};
+
+export type LoginResult = {
+  success?: boolean;
   token?: string;
-  user?: {
-    name?: string;
-  };
+  user?: LoginUser;
   error?: string;
   message?: string;
 };
+
+type LoginEnvelope = {
+  success?: boolean;
+  data?: {
+    token?: string;
+    user?: LoginUser;
+  };
+  token?: string;
+  user?: LoginUser;
+  error?: string;
+  message?: string;
+};
+
+function normalizeLoginPayload(payload: LoginEnvelope | null): LoginResult {
+  if (!payload) {
+    return {};
+  }
+
+  if (payload.success === false) {
+    return {
+      success: false,
+      message: payload.message || payload.error || 'Login failed',
+      error: payload.message || payload.error || 'Login failed',
+    };
+  }
+
+  const token = payload.data?.token ?? payload.token;
+  const user = payload.data?.user ?? payload.user;
+
+  if (token) {
+    return {
+      success: true,
+      token,
+      user,
+    };
+  }
+
+  return {
+    success: payload.success,
+    message: payload.message || payload.error,
+    error: payload.error || payload.message,
+    token,
+    user,
+  };
+}
 
 async function requestLogin(url: string, payload: { email: string; password: string; tenantSlug?: string }) {
   const res = await fetchWithRetry(
@@ -74,9 +126,9 @@ async function requestLogin(url: string, payload: { email: string; password: str
 
   const text = await res.text();
 
-  let data: LoginResult | null = null;
+  let raw: LoginEnvelope | null = null;
   try {
-    data = text ? (JSON.parse(text) as LoginResult) : null;
+    raw = text ? (JSON.parse(text) as LoginEnvelope) : null;
   } catch {
     const snippet = text.slice(0, 120).toLowerCase();
     const looksLikeHtml = snippet.includes('<!doctype') || snippet.includes('<html');
@@ -87,12 +139,14 @@ async function requestLogin(url: string, payload: { email: string; password: str
     throw new Error('Server returned invalid response during login. Please retry in a few seconds.');
   }
 
-  if (!res.ok) {
-    const message = data?.error || data?.message || `Login failed with status ${res.status}`;
-    return { error: message } as LoginResult;
+  const data = normalizeLoginPayload(raw);
+
+  if (!res.ok || data.success === false) {
+    const message = data.message || data.error || `Login failed with status ${res.status}`;
+    return { success: false, error: message, message } as LoginResult;
   }
 
-  return data || ({} as LoginResult);
+  return data;
 }
 
 function shouldRetryLoginWithUpstream(data: LoginResult | null): boolean {
@@ -121,7 +175,7 @@ async function retryLoginViaUpstream(payload: {
     const fallbackUrl = buildUpstreamApiUrl(base, '/auth/login');
     try {
       const result = await requestLogin(fallbackUrl, payload);
-      if (!result?.error) {
+      if (!result?.error && result?.token) {
         return result;
       }
     } catch {
