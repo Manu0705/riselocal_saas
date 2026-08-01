@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { isAdminRole } from '@saas/domain-core/auth.contract';
+import { sendError } from '../shared/http/api-response';
 
 type RequestWithTenantAccess = Request & {
   tenant?: { id: string };
@@ -14,10 +15,7 @@ export function tenantAccessMiddleware(req: Request, res: Response, next: NextFu
   const userTenantId = request.user?.tenantId;
 
   if (routeTenantId && resolvedTenantId && routeTenantId !== resolvedTenantId) {
-    return res.status(403).json({
-      success: false,
-      message: 'Tenant route mismatch',
-    });
+    return sendError(res, 403, 'Tenant route mismatch', { code: 'FORBIDDEN', req });
   }
 
   const effectiveTenantId = routeTenantId ?? resolvedTenantId;
@@ -28,10 +26,7 @@ export function tenantAccessMiddleware(req: Request, res: Response, next: NextFu
     effectiveTenantId &&
     userTenantId !== effectiveTenantId
   ) {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied for this tenant',
-    });
+    return sendError(res, 403, 'Access denied for this tenant', { code: 'FORBIDDEN', req });
   }
 
   if (!request.params.tenantId && resolvedTenantId) {

@@ -11,7 +11,7 @@ import {
 
 import type { Request, Response, NextFunction } from 'express';
 import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.repository';
-import { sendError } from '../../../shared/http/api-response';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 const tenantRepository = new PrismaTenantRepository();
@@ -190,7 +190,7 @@ router.get('/settings', authMiddleware, async (req, res) => {
       });
     }
 
-    return res.json({ success: true, data: toSettingsResponse(settings) });
+    return sendSuccess(res, 200, toSettingsResponse(settings), req);
   } catch (error: any) {
     console.error('Settings fetch error:', error);
     return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
@@ -316,7 +316,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
     }
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: toSettingsResponse(settings) });
+    return sendSuccess(res, 200, toSettingsResponse(settings), req);
   } catch (error: any) {
     console.error('Settings update error:', error);
     return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
@@ -374,7 +374,7 @@ router.get(
         });
       }
 
-      return res.json({ success: true, data: toSettingsResponse(settings) });
+      return sendSuccess(res, 200, toSettingsResponse(settings), req);
     } catch (error: any) {
       console.error('Settings fetch error:', error);
       return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
@@ -491,7 +491,7 @@ router.put(
       }
 
       await invalidatePublicTenantCacheByTenantId(tenantId);
-      return res.json({ success: true, data: toSettingsResponse(settings) });
+      return sendSuccess(res, 200, toSettingsResponse(settings), req);
     } catch (error: any) {
       console.error('Settings update error:', error);
       return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });

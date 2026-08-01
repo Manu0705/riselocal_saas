@@ -16,6 +16,7 @@ import { env } from './config/env';
 import { requestContextMiddleware } from './middleware/request-context.middleware';
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 import { inputSanitizeMiddleware } from './middleware/input-sanitize.middleware';
+import { sendSuccess } from './shared/http/api-response';
 
 const startupAdminPassword = process.env.ADMIN_PASSWORD?.trim();
 
@@ -72,8 +73,8 @@ if (env.APP_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-app.get('/health', (_, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get('/health', (req, res) => {
+  sendSuccess(res, 200, { status: 'ok' }, req);
 });
 
 app.use('/api', routes);

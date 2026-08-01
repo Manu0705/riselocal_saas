@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaTenantRepository } from '../modules/tenant/infrastructure/tenant.prisma.repository';
 import { GetTenantByDomainUseCase } from '../modules/tenant/application/get-tenant-by-domain.usecase';
+import { sendError } from '../shared/http/api-response';
 
 /* =========================================
    Middleware
@@ -18,9 +19,9 @@ export async function tenantResolver(req: Request, res: Response, next: NextFunc
       (!domainHeader || typeof domainHeader !== 'string') &&
       (!slugHeader || typeof slugHeader !== 'string')
     ) {
-      return res.status(400).json({
-        success: false,
-        message: 'x-tenant-domain or x-tenant-slug header is required',
+      return sendError(res, 400, 'x-tenant-domain or x-tenant-slug header is required', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
 
@@ -39,9 +40,9 @@ export async function tenantResolver(req: Request, res: Response, next: NextFunc
 
     next();
   } catch (error: any) {
-    return res.status(404).json({
-      success: false,
-      message: error.message || 'Tenant not found',
+    return sendError(res, 404, error.message || 'Tenant not found', {
+      code: 'NOT_FOUND',
+      req,
     });
   }
 }

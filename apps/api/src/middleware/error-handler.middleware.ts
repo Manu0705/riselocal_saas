@@ -1,5 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../shared/errors/app-error';
+import { sendError } from '../shared/http/api-response';
+
+function codeFromStatus(status: number): string {
+  if (status === 401) return 'UNAUTHORIZED';
+  if (status === 403) return 'FORBIDDEN';
+  if (status === 404) return 'NOT_FOUND';
+  if (status === 429) return 'RATE_LIMITED';
+  if (status >= 500) return 'INTERNAL_ERROR';
+  return 'VALIDATION_ERROR';
+}
 
 export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
   void next;
@@ -24,10 +34,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
       }),
     );
 
-    return res.status(err.statusCode).json({
-      success: false,
-      message: err.message,
-      requestId: request.requestId,
+    return sendError(res, err.statusCode, err.message, {
+      code: codeFromStatus(err.statusCode),
+      req: request,
     });
   }
 
@@ -43,9 +52,8 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
     }),
   );
 
-  return res.status(500).json({
-    success: false,
-    message: 'Internal Server Error',
-    requestId: request.requestId,
+  return sendError(res, 500, 'Internal Server Error', {
+    code: 'INTERNAL_ERROR',
+    req: request,
   });
 }

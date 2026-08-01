@@ -1,16 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
+import { sendError } from '../shared/http/api-response';
 
 export function roleGuard(...allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({
-        message: 'Unauthorized: User not authenticated',
+      return sendError(res, 401, 'Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        req,
       });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: 'Forbidden: Insufficient permissions',
+      return sendError(res, 403, 'Forbidden: Insufficient permissions', {
+        code: 'FORBIDDEN',
+        req,
       });
     }
 

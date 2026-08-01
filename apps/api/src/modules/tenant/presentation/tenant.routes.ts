@@ -21,7 +21,7 @@ import {
   invalidatePublicTenantCacheBySlug,
   setPublicTenantCache,
 } from '../infrastructure/public-tenant-cache';
-import { sendError } from '../../../shared/http/api-response';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 const repository = new PrismaTenantRepository();
@@ -172,9 +172,9 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
     const normalizedTheme = resolveThemeInput({ theme, themeKey });
 
     if (RESERVED_SLUGS.includes(resolvedSlug)) {
-      return res.status(400).json({
-        success: false,
-        message: `Slug "${resolvedSlug}" is reserved and cannot be used`,
+      return sendError(res, 400, `Slug "${resolvedSlug}" is reserved and cannot be used`, {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
 
@@ -219,21 +219,20 @@ router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) =>
       },
     });
 
-    return res.status(201).json({
-      success: true,
-      data: {
+    return sendSuccess(
+      res,
+      201,
+      {
         ...tenant.toJSON(),
         theme: normalizedTheme,
         themeKey: normalizedTheme,
       },
-    });
+      req,
+    );
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
 
-    return res.status(response.status).json({
-      success: false,
-      message: response.message,
-    });
+    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
   }
 });
 
@@ -251,13 +250,8 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     // Check cache first
     const cached = getPublicTenantCache(slug) as TenantPublicPayload | null;
     if (cached) {
-      return res
-        .set('Cache-Control', 'no-store')
-        .set('X-Cache', 'HIT')
-        .json({
-          success: true as const,
-          data: cached,
-        });
+      res.set('Cache-Control', 'no-store').set('X-Cache', 'HIT');
+      return sendSuccess(res, 200, cached, req);
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -335,14 +329,8 @@ router.get('/tenants/slug/:slug', async (req, res) => {
 
     setPublicTenantCache(slug, publicTenant);
 
-    return res
-      .set('Cache-Control', 'no-store')
-      .set('X-Cache', 'MISS')
-      .status(200)
-      .json({
-        success: true as const,
-        data: publicTenant,
-      });
+    res.set('Cache-Control', 'no-store').set('X-Cache', 'MISS');
+    return sendSuccess(res, 200, publicTenant, req);
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
     return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
@@ -356,16 +344,17 @@ router.use('/tenants', authMiddleware, adminRoleMiddleware);
    GET /tenants
 ========================================= */
 
-router.get('/tenants', async (_req, res) => {
+router.get('/tenants', async (req, res) => {
   try {
     const tenants = await prisma.tenant.findMany({
       orderBy: { createdAt: 'desc' },
       include: { settings: true },
     });
 
-    return res.json({
-      success: true,
-      data: tenants.map((tenant) => {
+    return sendSuccess(
+      res,
+      200,
+      tenants.map((tenant) => {
         const theme = normalizeTenantThemeKey(extractSectionOrderConfig(tenant.settings?.sectionOrder).themeKey);
         return {
           id: tenant.id,
@@ -378,14 +367,12 @@ router.get('/tenants', async (_req, res) => {
           themeKey: theme,
         };
       }),
-    });
+      req,
+    );
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
 
-    return res.status(response.status).json({
-      success: false,
-      message: response.message,
-    });
+    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
   }
 });
 
@@ -403,10 +390,7 @@ router.put('/tenants/:id', async (req, res) => {
     const tenant = await repository.findById(id);
 
     if (!tenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tenant not found',
-      });
+      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
     }
 
     const resolvedSlug = toSlug(slug || name || '');
@@ -457,21 +441,20 @@ router.put('/tenants/:id', async (req, res) => {
     invalidatePublicTenantCacheBySlug(previousSlug);
     invalidatePublicTenantCacheBySlug(resolvedSlug);
 
-    return res.json({
-      success: true,
-      data: {
+    return sendSuccess(
+      res,
+      200,
+      {
         ...tenant.toJSON(),
         theme: normalizedTheme,
         themeKey: normalizedTheme,
       },
-    });
+      req,
+    );
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
 
-    return res.status(response.status).json({
-      success: false,
-      message: response.message,
-    });
+    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
   }
 });
 
@@ -487,26 +470,17 @@ router.delete('/tenants/:id', async (req, res) => {
     const tenant = await repository.findById(id);
 
     if (!tenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tenant not found',
-      });
+      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
     }
 
     await repository.delete(id);
     invalidatePublicTenantCacheBySlug(tenant.toJSON().slug);
 
-    return res.json({
-      success: true,
-      message: 'Tenant deleted successfully',
-    });
+    return sendSuccess(res, 200, { message: 'Tenant deleted successfully' }, req);
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
 
-    return res.status(response.status).json({
-      success: false,
-      message: response.message,
-    });
+    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
   }
 });
 

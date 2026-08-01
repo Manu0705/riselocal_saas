@@ -4,7 +4,7 @@ import { PrismaTenantRepository } from '../../tenant/infrastructure/tenant.prism
 import { prisma } from '@saas/database';
 import { verifyPassword } from '../infrastructure/password.service';
 import { normalizeAuthRole } from '@saas/domain-core/auth.contract';
-import { sendError } from '../../../shared/http/api-response';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 const jwtService = new JwtService();
@@ -87,18 +87,22 @@ router.post('/login', async (req, res) => {
       role: resolvedRole,
     });
 
-    return res.json({
-      success: true,
-      token,
-      user: {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        tenantId: resolvedTenantId,
-        tenantSlug: resolvedTenantSlug || undefined,
-        role: resolvedRole,
+    return sendSuccess(
+      res,
+      200,
+      {
+        token,
+        user: {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          tenantId: resolvedTenantId,
+          tenantSlug: resolvedTenantSlug || undefined,
+          role: resolvedRole,
+        },
       },
-    });
+      req,
+    );
   } catch (err: any) {
     console.error('Login route error:', err?.message || err);
     return sendError(res, 500, 'Login service temporarily unavailable. Please try again.', {
@@ -135,15 +139,19 @@ router.post('/admin-login', async (req, res) => {
     role: adminRole,
   });
 
-  return res.json({
-    success: true,
-    token,
-    user: {
-      userId,
-      tenantId: 'admin',
-      role: adminRole,
+  return sendSuccess(
+    res,
+    200,
+    {
+      token,
+      user: {
+        userId,
+        tenantId: 'admin',
+        role: adminRole,
+      },
     },
-  });
+    req,
+  );
 });
 
 export default router;

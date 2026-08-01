@@ -14,19 +14,19 @@ import uploadRoutes from './modules/upload/presentation/upload.routes';
 import galleryRoutes from './modules/gallery/presentation/gallery.routes';
 import tenantSettingsRoutes from './modules/tenant/presentation/tenant-settings.routes';
 import contentRoutes from './modules/content/presentation/content.routes';
+import { sendError, sendSuccess } from './shared/http/api-response';
 
 const router = Router();
 
-router.get('/health', async (_req, res) => {
+router.get('/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return res.status(200).json({ status: 'ok', database: 'ok' });
+    return sendSuccess(res, 200, { status: 'ok', database: 'ok' }, req);
   } catch (error: unknown) {
     console.error('Database health check failed', error);
-    return res.status(500).json({
-      status: 'error',
-      database: 'failed',
-      message: 'Database connectivity check failed',
+    return sendError(res, 500, 'Database connectivity check failed', {
+      code: 'INTERNAL_ERROR',
+      req,
     });
   }
 });

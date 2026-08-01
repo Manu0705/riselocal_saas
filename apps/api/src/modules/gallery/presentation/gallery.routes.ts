@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
 import { invalidatePublicTenantCacheByTenantId } from '../../tenant/infrastructure/public-tenant-cache';
-import { sendError } from '../../../shared/http/api-response';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -19,7 +19,7 @@ router.get('/gallery', authMiddleware, async (req, res) => {
       orderBy: [{ category: 'asc' }, { position: 'asc' }],
     });
 
-    return res.json({ success: true, data: images });
+    return sendSuccess(res, 200, images, req);
   } catch (error: any) {
     console.error('Gallery fetch error:', error);
     return sendError(res, 500, error.message || 'Failed to fetch gallery', {
@@ -44,7 +44,7 @@ router.get('/gallery/category/:category', authMiddleware, async (req, res) => {
       orderBy: { position: 'asc' },
     });
 
-    return res.json({ success: true, data: images });
+    return sendSuccess(res, 200, images, req);
   } catch (error: any) {
     console.error('Gallery fetch error:', error);
     return sendError(res, 500, error.message || 'Failed to fetch gallery', {
@@ -90,7 +90,7 @@ router.post('/gallery', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.status(201).json({ success: true, data: image });
+    return sendSuccess(res, 201, image, req);
   } catch (error: any) {
     console.error('Gallery create error:', error);
     return sendError(res, 500, error.message || 'Failed to create gallery image', {
@@ -136,7 +136,7 @@ router.put('/gallery/reorder', authMiddleware, async (req, res) => {
     );
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: updated });
+    return sendSuccess(res, 200, updated, req);
   } catch (error: any) {
     console.error('Gallery reorder error:', error);
     return sendError(res, 500, error.message || 'Failed to reorder gallery', {
@@ -172,7 +172,7 @@ router.put('/gallery/:id', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: updated });
+    return sendSuccess(res, 200, updated, req);
   } catch (error: any) {
     console.error('Gallery update error:', error);
     return sendError(res, 500, error.message || 'Failed to update gallery image', {
@@ -200,7 +200,7 @@ router.delete('/gallery/:id', authMiddleware, async (req, res) => {
     await prisma.galleryImage.delete({ where: { id: imageId } });
     await invalidatePublicTenantCacheByTenantId(tenantId);
 
-    return res.json({ success: true, message: 'Image deleted' });
+    return sendSuccess(res, 200, { message: 'Image deleted' }, req);
   } catch (error: any) {
     console.error('Gallery delete error:', error);
     return sendError(res, 500, error.message || 'Failed to delete gallery image', {
