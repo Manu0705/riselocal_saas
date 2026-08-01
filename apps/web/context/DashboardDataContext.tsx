@@ -40,7 +40,12 @@ export type DashboardMetrics = {
   recentLeadDate: string;
 
   // Derived analytics metrics
-  conversionRateBySource: Array<{ source: string; total: number; converted: number; conversion_rate: number }>;
+  conversionRateBySource: Array<{
+    source: string;
+    total: number;
+    converted: number;
+    conversion_rate: number;
+  }>;
   avgTimeToConvert: number;
   leadsPerAgent: Array<{ assignedTo: string | null; agentName: string; leadCount: number }>;
   sessionToConversionRatio: number;
@@ -48,7 +53,13 @@ export type DashboardMetrics = {
   // Analytics partitions + activities
   partitionKey: 'week' | 'month' | 'quarter' | 'year';
   timeline: Array<{ bucket: string; leads: number; converted: number }>;
-  recentActivities: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
+  recentActivities: Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    type: string;
+    timestamp: string;
+  }>;
 };
 
 type DashboardDataContextType = {
@@ -77,7 +88,12 @@ type LeadAnalyticsPayload = {
     conversionRate?: number;
   };
   derived?: {
-    conversion_rate_by_source?: Array<{ source: string; total: number; converted: number; conversion_rate: number }>;
+    conversion_rate_by_source?: Array<{
+      source: string;
+      total: number;
+      converted: number;
+      conversion_rate: number;
+    }>;
     avg_time_to_convert?: number;
     leads_per_agent?: Array<{ assignedTo: string | null; agentName: string; leadCount: number }>;
     session_to_conversion_ratio?: number;
@@ -86,7 +102,13 @@ type LeadAnalyticsPayload = {
     key?: 'week' | 'month' | 'quarter' | 'year';
     timeline?: Array<{ bucket: string; leads: number; converted: number }>;
   };
-  recentActivities?: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
+  recentActivities?: Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    type: string;
+    timestamp: string;
+  }>;
 };
 
 type FeedbackEntry = {
@@ -102,6 +124,10 @@ type LeadLifecyclePolicy = {
 };
 
 const PUBLIC_ACTIVITY_TYPES = new Set(['whatsapp_click', 'call_click', 'enquiry_click', 'booking']);
+const STATUS_NEW = normalizeLeadStatus('NEW');
+const STATUS_CONVERTED = normalizeLeadStatus('CONVERTED');
+const STATUS_CLOSED = normalizeLeadStatus('CLOSED');
+const STATUS_QUALIFIED = normalizeLeadStatus('QUALIFIED');
 const DEFAULT_LEAD_LIFECYCLE_POLICY: LeadLifecyclePolicy = {
   convertedKeepDays: 14,
   lostKeepDays: 21,
@@ -127,7 +153,12 @@ function getConfiguredLifecyclePolicy(raw: unknown): LeadLifecyclePolicy {
       1,
       60,
     ),
-    lostKeepDays: toBoundedInt(source.lostKeepDays, DEFAULT_LEAD_LIFECYCLE_POLICY.lostKeepDays, 1, 90),
+    lostKeepDays: toBoundedInt(
+      source.lostKeepDays,
+      DEFAULT_LEAD_LIFECYCLE_POLICY.lostKeepDays,
+      1,
+      90,
+    ),
     missedFollowupNotifyDays: toBoundedInt(
       source.missedFollowupNotifyDays,
       DEFAULT_LEAD_LIFECYCLE_POLICY.missedFollowupNotifyDays,
@@ -203,9 +234,9 @@ function isLegacyDemoLead(lead: any): boolean {
 
   return Boolean(
     (lead as { __isMock?: boolean })?.__isMock ||
-      knownDemoNames.has(name) ||
-      phone.includes('(555)') ||
-      phone.includes('+1 (555)'),
+    knownDemoNames.has(name) ||
+    phone.includes('(555)') ||
+    phone.includes('+1 (555)'),
   );
 }
 
@@ -215,13 +246,13 @@ function normalizeTenantLeads(input: any[]): any[] {
 
   const liveLeads = leads.filter((lead) => !isLegacyDemoLead(lead));
   // As soon as at least one real lead exists, hide legacy/demo rows for that tenant.
-  return liveLeads.length > 0 ? liveLeads : leads.filter((lead) => !((lead as { __isMock?: boolean })?.__isMock));
+  return liveLeads.length > 0
+    ? liveLeads
+    : leads.filter((lead) => !(lead as { __isMock?: boolean })?.__isMock);
 }
 
 function buildReviewedLeadSet(feedback: FeedbackEntry[]): Set<string> {
-  const leadIds = feedback
-    .map((entry) => String(entry?.leadId ?? '').trim())
-    .filter(Boolean);
+  const leadIds = feedback.map((entry) => String(entry?.leadId ?? '').trim()).filter(Boolean);
 
   return new Set(leadIds);
 }
@@ -235,7 +266,7 @@ function shouldDisplayLeadInActiveBoard(
   const leadId = String(lead?.id ?? '').trim();
   const status = mapStatus(lead?.status);
 
-  if (status === 'CONVERTED') {
+  if (status === STATUS_CONVERTED) {
     if (leadId && reviewedLeadSet.has(leadId)) {
       return false;
     }
@@ -249,7 +280,7 @@ function shouldDisplayLeadInActiveBoard(
     return ageDays <= policy.convertedKeepDays;
   }
 
-  if (status === 'CLOSED') {
+  if (status === STATUS_CLOSED) {
     const closedAtMs =
       parseDateTimestamp(lead?.updatedAt) ?? parseDateTimestamp(lead?.createdAt) ?? nowMs;
     const ageDays = Math.floor((nowMs - closedAtMs) / (24 * 60 * 60 * 1000));
@@ -263,8 +294,8 @@ function orderLeadsForBoard(leads: any[]): any[] {
   return [...leads].sort((a, b) => {
     const statusA = mapStatus(a?.status);
     const statusB = mapStatus(b?.status);
-    const isClosedA = statusA === 'CLOSED';
-    const isClosedB = statusB === 'CLOSED';
+    const isClosedA = statusA === STATUS_CLOSED;
+    const isClosedB = statusB === STATUS_CLOSED;
 
     if (isClosedA !== isClosedB) {
       return isClosedA ? 1 : -1;
@@ -283,7 +314,7 @@ function deriveMissedFollowUpNotifications(leads: any[], policy: LeadLifecyclePo
   const notifications = leads
     .map((lead) => {
       const status = mapStatus(lead?.status);
-      if (status !== 'QUALIFIED') return null;
+      if (status !== STATUS_QUALIFIED) return null;
 
       const followUpAt = parseFollowUpDate(lead);
       if (!followUpAt) return null;
@@ -319,14 +350,16 @@ function deriveMissedFollowUpNotifications(leads: any[], policy: LeadLifecyclePo
 
 function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
   const totalLeads = leads.length;
-  const convertedLeads = leads.filter((lead) => mapStatus(lead?.status) === 'CONVERTED').length;
-  const followUpLeads = leads.filter((lead) => mapStatus(lead?.status) === 'QUALIFIED').length;
-  const openLeads = leads.filter((lead) => mapStatus(lead?.status) === 'NEW').length;
+  const convertedLeads = leads.filter(
+    (lead) => mapStatus(lead?.status) === STATUS_CONVERTED,
+  ).length;
+  const followUpLeads = leads.filter((lead) => mapStatus(lead?.status) === STATUS_QUALIFIED).length;
+  const openLeads = leads.filter((lead) => mapStatus(lead?.status) === STATUS_NEW).length;
   const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
   const todayStart = getStartOfDay(new Date());
   const dayMs = 24 * 60 * 60 * 1000;
-  const followUpItems = leads.filter((item) => mapStatus(item?.status) === 'QUALIFIED');
+  const followUpItems = leads.filter((item) => mapStatus(item?.status) === STATUS_QUALIFIED);
 
   let followUpsToday = 0;
   let followUpsOverdue = 0;
@@ -369,7 +402,9 @@ function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
     followUpsOverdue,
     followUpsUnscheduled,
     recentLeadName: recentLead?.name ?? 'N/A',
-    recentLeadDate: recentLead?.createdAt ? new Date(recentLead.createdAt).toLocaleDateString() : 'N/A',
+    recentLeadDate: recentLead?.createdAt
+      ? new Date(recentLead.createdAt).toLocaleDateString()
+      : 'N/A',
     conversionRateBySource: [],
     avgTimeToConvert: 0,
     leadsPerAgent: [],
@@ -381,10 +416,22 @@ function defaultMetricsFromLeads(leads: any[]): DashboardMetrics {
 }
 
 function getLatestPublicActivityPerLead(
-  recentActivities: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>,
+  recentActivities: Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    type: string;
+    timestamp: string;
+  }>,
 ) {
   if (!Array.isArray(recentActivities) || recentActivities.length === 0) {
-    return [] as Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }>;
+    return [] as Array<{
+      id: string;
+      leadId: string;
+      leadName: string;
+      type: string;
+      timestamp: string;
+    }>;
   }
 
   const normalized = recentActivities
@@ -404,7 +451,13 @@ function getLatestPublicActivityPerLead(
   });
 
   const seenLeadIds = new Set<string>();
-  const latestByLead: Array<{ id: string; leadId: string; leadName: string; type: string; timestamp: string }> = [];
+  const latestByLead: Array<{
+    id: string;
+    leadId: string;
+    leadName: string;
+    type: string;
+    timestamp: string;
+  }> = [];
 
   for (const activity of normalized) {
     if (seenLeadIds.has(activity.leadId)) continue;
@@ -522,6 +575,8 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       fetchTenantSettingsForTenant(tenantSlug),
     ])
       .then(([tenantResult, leadsResult, analyticsResult, feedbackResult, settingsResult]) => {
+        const getErrorMessage = (reason: unknown): string =>
+          reason instanceof Error ? reason.message : 'Failed to load dashboard data';
         if (tenantResult.status === 'fulfilled') {
           setTenant(tenantResult.value);
         } else {
@@ -529,7 +584,9 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
         }
 
         const analyticsPayload =
-          analyticsResult.status === 'fulfilled' && analyticsResult.value ? analyticsResult.value : null;
+          analyticsResult.status === 'fulfilled' && analyticsResult.value
+            ? analyticsResult.value
+            : null;
         setAnalytics(analyticsPayload);
 
         const leadLifecycleConfigRaw =
@@ -553,6 +610,16 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
           const visibleLeads = normalizedLeads.filter((lead) =>
             shouldDisplayLeadInActiveBoard(lead, reviewedLeadSet, nowMs, policy),
           );
+
+          const secondaryError = [analyticsResult, feedbackResult, settingsResult].find(
+            (result) => result.status === 'rejected',
+          );
+
+          if (secondaryError) {
+            setError(getErrorMessage(secondaryError.reason));
+          } else {
+            setError(null);
+          }
 
           setLeads(orderLeadsForBoard(visibleLeads));
           setMissedFollowUps(deriveMissedFollowUpNotifications(normalizedLeads, policy));

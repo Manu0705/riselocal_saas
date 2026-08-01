@@ -131,7 +131,9 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     return fallback;
   };
 
-  const normalizeSettingsActionButtons = (settings: Record<string, unknown>): ActionButtonsConfig => {
+  const normalizeSettingsActionButtons = (
+    settings: Record<string, unknown>,
+  ): ActionButtonsConfig => {
     const direct = settings.actionButtons;
 
     if (direct && typeof direct === 'object') {
@@ -184,23 +186,26 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       return defaults.services;
     }
 
-    const normalized = value.reduce<Array<{ name: string; description?: string }>>((items, entry) => {
-      if (!entry || typeof entry !== 'object') {
+    const normalized = value.reduce<Array<{ name: string; description?: string }>>(
+      (items, entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return items;
+        }
+
+        const item = entry as { name?: unknown; description?: unknown };
+        if (typeof item.name !== 'string' || item.name.trim().length === 0) {
+          return items;
+        }
+
+        items.push({
+          name: item.name.trim(),
+          description: typeof item.description === 'string' ? item.description : undefined,
+        });
+
         return items;
-      }
-
-      const item = entry as { name?: unknown; description?: unknown };
-      if (typeof item.name !== 'string' || item.name.trim().length === 0) {
-        return items;
-      }
-
-      items.push({
-        name: item.name.trim(),
-        description: typeof item.description === 'string' ? item.description : undefined,
-      });
-
-      return items;
-    }, []);
+      },
+      [],
+    );
 
     return normalized.length > 0 ? normalized : defaults.services;
   };
@@ -290,12 +295,17 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
         continue;
       }
 
-      // Prefer canonical TenantPublicPayload.customization; fall back only if absent.
+      // Prefer the canonical customization payload, but preserve legacy top-level theme values.
       const customization = (tenant.customization ?? {}) as Record<string, unknown>;
-
-      const theme = tenant.theme
-        ? normalizeTenantThemeKey(tenant.theme)
-        : normalizeThemeKey(customization);
+      const customizationTheme = normalizeThemeKey(customization);
+      const legacyTheme =
+        typeof tenant.theme === 'string' && tenant.theme.trim().length > 0
+          ? normalizeTenantThemeKey(tenant.theme)
+          : undefined;
+      const theme =
+        customizationTheme === 'default' && legacyTheme && legacyTheme !== 'default'
+          ? legacyTheme
+          : customizationTheme;
 
       return {
         ...defaults,

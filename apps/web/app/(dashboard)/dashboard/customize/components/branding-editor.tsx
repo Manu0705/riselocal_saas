@@ -34,9 +34,21 @@ const formatHour = (hour: number) => {
 
 const THEME_OPTIONS = [
   { value: 'default', label: 'Default Theme', description: 'Use the current storefront design.' },
-  { value: 'modern', label: 'Modern Tech', description: 'Best for computer, mobile, and hardware sellers.' },
-  { value: 'business', label: 'Business Security', description: 'Great for CCTV and security-focused tenants.' },
-  { value: 'minimal', label: 'Minimal Beauty', description: 'Best for salons and beauty parlours.' },
+  {
+    value: 'modern',
+    label: 'Modern Tech',
+    description: 'Best for computer, mobile, and hardware sellers.',
+  },
+  {
+    value: 'business',
+    label: 'Business Security',
+    description: 'Great for CCTV and security-focused tenants.',
+  },
+  {
+    value: 'minimal',
+    label: 'Minimal Beauty',
+    description: 'Best for salons and beauty parlours.',
+  },
 ] as const;
 
 export default function BrandingEditor() {
@@ -49,17 +61,20 @@ export default function BrandingEditor() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Merge pending into settings for display
-  const displayed: TenantSettings | null = settings
-    ? { ...settings, ...pending }
-    : null;
+  const displayed: TenantSettings | null = settings ? { ...settings, ...pending } : null;
 
   const displayedOpenHour = typeof displayed?.openHour === 'number' ? displayed.openHour : 9;
   const displayedCloseHour = typeof displayed?.closeHour === 'number' ? displayed.closeHour : 21;
-  const displayedAvailableHours = Array.isArray(displayed?.availableHours) ? displayed.availableHours : [];
+  const displayedAvailableHours = Array.isArray(displayed?.availableHours)
+    ? displayed.availableHours
+    : [];
   const normalizedOpenHour = Math.max(0, Math.min(displayedOpenHour, 23));
   const normalizedCloseHour = Math.max(normalizedOpenHour, Math.min(displayedCloseHour, 23));
   const selectedHours = new Set(displayedAvailableHours);
-  const hoursInRange = Array.from({ length: normalizedCloseHour - normalizedOpenHour + 1 }, (_, index) => normalizedOpenHour + index);
+  const hoursInRange = Array.from(
+    { length: normalizedCloseHour - normalizedOpenHour + 1 },
+    (_, index) => normalizedOpenHour + index,
+  );
   const busyHours = hoursInRange.filter((hour) => !selectedHours.has(hour));
 
   const updateHourRange = (openHour: number, closeHour: number) => {
@@ -137,23 +152,24 @@ export default function BrandingEditor() {
       if (uploadResponse?.success === false) {
         setError(uploadResponse?.message || uploadResponse?.error || `Failed to upload ${type}`);
       } else {
-        const uploadedUrl =
-          uploadResponse?.data?.url ?? uploadResponse?.url;
+        const uploadedUrl = uploadResponse?.data?.url ?? uploadResponse?.url;
         if (uploadedUrl) {
-        const fieldName = type === 'logo' ? 'logoUrl' : 'bannerUrl';
-        const updateResponse = await api.put('/settings', {
-          [fieldName]: uploadedUrl,
-        });
+          const fieldName = type === 'logo' ? 'logoUrl' : 'bannerUrl';
+          const updateResponse = await api.put('/settings', {
+            [fieldName]: uploadedUrl,
+          });
 
-        if (updateResponse?.success === false) {
-          setError(updateResponse?.message || updateResponse?.error || 'Failed to save uploaded image');
-        } else if (updateResponse?.data) {
-          setSettings(updateResponse.data);
-          setSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
-          setTimeout(() => setSuccess(null), 3000);
-        } else {
-          setError('Unexpected response while saving image settings');
-        }
+          if (updateResponse?.success === false) {
+            setError(
+              updateResponse?.message || updateResponse?.error || 'Failed to save uploaded image',
+            );
+          } else if (updateResponse?.data) {
+            setSettings(updateResponse.data);
+            setSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
+            setTimeout(() => setSuccess(null), 3000);
+          } else {
+            setError('Unexpected response while saving image settings');
+          }
         } else if (uploadResponse?.error) {
           setError(uploadResponse.error);
         } else {
@@ -265,7 +281,7 @@ export default function BrandingEditor() {
           Logo
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {settings.logoUrl && (
+          {settings.logoUrl ? (
             <img
               src={settings.logoUrl}
               alt="Logo"
@@ -277,6 +293,23 @@ export default function BrandingEditor() {
                 border: '2px solid var(--card-border)',
               }}
             />
+          ) : (
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: displayed.logoShape === 'circle' ? '50%' : 8,
+                border: '2px dashed var(--card-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--muted)',
+                fontSize: 12,
+                textAlign: 'center',
+              }}
+            >
+              No logo
+            </div>
           )}
           <label
             style={{
@@ -356,7 +389,7 @@ export default function BrandingEditor() {
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--muted)' }}>
           Recommended: 1200 &times; 400 px (3:1 ratio) &mdash; JPEG, PNG, or WebP
         </p>
-        {settings.bannerUrl && (
+        {settings.bannerUrl ? (
           <img
             src={settings.bannerUrl}
             alt="Banner"
@@ -369,6 +402,23 @@ export default function BrandingEditor() {
               border: '1px solid var(--card-border)',
             }}
           />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: 120,
+              borderRadius: 8,
+              marginBottom: 12,
+              border: '1px dashed var(--card-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--muted)',
+              fontSize: 13,
+            }}
+          >
+            No banner image yet
+          </div>
         )}
         <label
           style={{
@@ -509,7 +559,9 @@ export default function BrandingEditor() {
         </label>
         <select
           value={displayed.themeKey || 'default'}
-          onChange={(e) => setPending((p) => ({ ...p, themeKey: e.target.value as TenantSettings['themeKey'] }))}
+          onChange={(e) =>
+            setPending((p) => ({ ...p, themeKey: e.target.value as TenantSettings['themeKey'] }))
+          }
           style={{
             width: '100%',
             border: '1px solid var(--card-border)',
@@ -674,7 +726,8 @@ export default function BrandingEditor() {
 
           <div>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
-              Select the specific hours when appointments are available. Hours not selected in the grid will be treated as busy/unavailable.
+              Select the specific hours when appointments are available. Hours not selected in the
+              grid will be treated as busy/unavailable.
             </p>
           </div>
 
@@ -715,9 +768,7 @@ export default function BrandingEditor() {
 
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>
             <strong>Busy hours:</strong>{' '}
-            {busyHours.length > 0
-              ? busyHours.map(formatHour).join(', ')
-              : 'None selected'}
+            {busyHours.length > 0 ? busyHours.map(formatHour).join(', ') : 'None selected'}
           </div>
         </div>
       </div>
@@ -730,7 +781,8 @@ export default function BrandingEditor() {
         style={{
           width: '100%',
           padding: '14px 20px',
-          background: saving || Object.keys(pending).length === 0 ? 'var(--card-border)' : '#3b82f6',
+          background:
+            saving || Object.keys(pending).length === 0 ? 'var(--card-border)' : '#3b82f6',
           color: saving || Object.keys(pending).length === 0 ? 'var(--muted)' : 'white',
           border: 'none',
           borderRadius: 12,

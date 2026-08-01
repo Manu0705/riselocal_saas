@@ -17,33 +17,7 @@ export default async function TenantPage({ params }: Props) {
     notFound();
   }
 
-  let tenant = null;
-
-  try {
-    tenant = await getTenant(tenantSlug);
-  } catch (error) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 600 }}>
-          <h1>Unable to load this page</h1>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 16 }}>
-            The tenant page could not be loaded at the moment.
-          </p>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Please try again later or contact support if the issue persists.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const tenant = await getTenant(tenantSlug);
 
   if (!tenant) {
     notFound();

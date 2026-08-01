@@ -16,6 +16,9 @@ export default function DashboardPage() {
   const { userName } = useAuth();
   const { leads, metrics, tenant, loading, error, refresh } = useDashboardData();
   const [showGreeting, setShowGreeting] = useState(true);
+  const convertedStatus = normalizeLeadStatus('CONVERTED');
+  const contactedStatus = normalizeLeadStatus('CONTACTED');
+  const qualifiedStatus = normalizeLeadStatus('QUALIFIED');
 
   useEffect(() => {
     const timeout = globalThis.setTimeout(() => {
@@ -32,9 +35,11 @@ export default function DashboardPage() {
   const totalServices = tenantServices;
   const engagedLeads = leads.filter((lead) => {
     const status = normalizeLeadStatus(lead?.status);
-    return status === 'CONVERTED' || status === 'CONTACTED' || status === 'QUALIFIED';
+    return status === convertedStatus || status === contactedStatus || status === qualifiedStatus;
   }).length;
-  const convertedLeads = leads.filter((lead) => normalizeLeadStatus(lead?.status) === 'CONVERTED').length;
+  const convertedLeads = leads.filter(
+    (lead) => normalizeLeadStatus(lead?.status) === convertedStatus,
+  ).length;
 
   if (loading) {
     return <DashboardHomeSkeleton />;
@@ -82,7 +87,8 @@ export default function DashboardPage() {
         </h2>
         {showGreeting ? (
           <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--muted)', fontWeight: 400 }}>
-            {userName ? `Welcome back, ${userName}!` : 'Welcome back!'} Here’s a quick snapshot of your business.
+            {userName ? `Welcome back, ${userName}!` : 'Welcome back!'} Here’s a quick snapshot of
+            your business.
           </p>
         ) : null}
       </header>

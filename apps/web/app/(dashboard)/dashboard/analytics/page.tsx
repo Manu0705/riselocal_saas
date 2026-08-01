@@ -5,32 +5,51 @@ import { useDashboardData } from '@/context/DashboardDataContext';
 import AnalyticsChart from '../components/analytics-chart';
 import MobilePageTitle from '../components/mobile-page-title';
 import { api } from '@/lib/api-client';
+import { getAnalyticsErrorMessage } from '@/lib/analytics-error';
 import { LEAD_STATUS_UI_LABELS } from '@saas/domain-core/lead.contract';
 
 export default function AnalyticsPage() {
   const { metrics, loading, error, tenant, tenantSlug } = useDashboardData();
   const [partition, setPartition] = useState<'week' | 'month' | 'quarter' | 'year'>('week');
   const [partitionData, setPartitionData] = useState<any>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
-  const tenantRouteKey = useMemo(() => tenantSlug || tenant?.slug || tenant?.id || '', [tenantSlug, tenant]);
+  const tenantRouteKey = useMemo(
+    () => tenantSlug || tenant?.slug || tenant?.id || '',
+    [tenantSlug, tenant],
+  );
 
   useEffect(() => {
     if (!tenantRouteKey) return;
+
+    setAnalyticsError(null);
 
     api
       .get(`/tenant/${tenantRouteKey}/leads/analytics?partition=${partition}`)
       .then((response: any) => {
         if (response?.success && response?.data) {
           setPartitionData(response.data);
+          setAnalyticsError(null);
+          return;
         }
-      })
-      .catch(() => {
+
         setPartitionData(null);
+        setAnalyticsError(
+          getAnalyticsErrorMessage(response?.message ?? 'Analytics data is unavailable.'),
+        );
+      })
+      .catch((reason) => {
+        setPartitionData(null);
+        setAnalyticsError(getAnalyticsErrorMessage(reason));
       });
   }, [partition, tenantRouteKey]);
 
   if (loading) return <p style={{ color: 'var(--muted)', padding: 16 }}>Loading analytics...</p>;
   if (error) return <p style={{ color: '#b91c1c', padding: 16 }}>Error: {error}</p>;
+
+  const hasPartitionData = Boolean(
+    partitionData?.derived || partitionData?.summary || partitionData?.partition,
+  );
 
   return (
     <div style={{ padding: 16, color: 'var(--text)' }}>
@@ -126,6 +145,22 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {analyticsError ? (
+        <div
+          style={{
+            marginBottom: 12,
+            border: '1px solid #f59e0b',
+            borderRadius: 10,
+            padding: 10,
+            background: '#fff7ed',
+            color: '#9a2c00',
+            fontSize: 13,
+          }}
+        >
+          {analyticsError}
+        </div>
+      ) : null}
+
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         {(['week', 'month', 'quarter', 'year'] as const).map((item) => (
           <button
@@ -162,7 +197,10 @@ export default function AnalyticsPage() {
         <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12, marginBottom: 6 }}>
           Conversion Rate By Source
         </p>
-        {(partitionData?.derived?.conversion_rate_by_source || metrics.conversionRateBySource).length === 0 ? (
+        {!hasPartitionData && !analyticsError && !metrics.conversionRateBySource?.length ? (
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>No source data yet.</p>
+        ) : (partitionData?.derived?.conversion_rate_by_source || metrics.conversionRateBySource)
+            .length === 0 ? (
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>No source data yet.</p>
         ) : (
           (partitionData?.derived?.conversion_rate_by_source || metrics.conversionRateBySource).map(
@@ -191,7 +229,10 @@ export default function AnalyticsPage() {
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>No assignment data yet.</p>
         ) : (
           metrics.leadsPerAgent.map((agent) => (
-            <p key={`${agent.assignedTo || 'unassigned'}-${agent.agentName}`} style={{ margin: '3px 0', color: 'var(--text)', fontSize: 12 }}>
+            <p
+              key={`${agent.assignedTo || 'unassigned'}-${agent.agentName}`}
+              style={{ margin: '3px 0', color: 'var(--text)', fontSize: 12 }}
+            >
               {agent.agentName}: {agent.leadCount}
             </p>
           ))

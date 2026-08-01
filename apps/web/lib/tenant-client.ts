@@ -21,9 +21,7 @@ function handleUnauthorizedResponse(res: Response): void {
     tenantSlug = null;
   }
 
-  const loginPath = tenantSlug
-    ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
-    : '/login';
+  const loginPath = tenantSlug ? `/login?tenant=${encodeURIComponent(tenantSlug)}` : '/login';
 
   if (!globalThis.location.pathname.startsWith('/login')) {
     globalThis.location.assign(loginPath);
@@ -41,7 +39,9 @@ async function parseApiResponse(res: Response): Promise<any> {
   } catch {
     const startsWithHtml = text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html');
     if (startsWithHtml) {
-      throw new Error('Server returned HTML instead of JSON. Please check API route/proxy configuration.');
+      throw new Error(
+        'Server returned HTML instead of JSON. Please check API route/proxy configuration.',
+      );
     }
     throw new Error('Server returned an invalid JSON response.');
   }
@@ -249,9 +249,13 @@ export async function fetchLeadAnalyticsForTenant(
     (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
   );
 
+  let lastError: Error | null = null;
+
   for (const key of candidateKeys) {
     try {
-      const analyticsResponse = await api.get(`/tenant/${key}/leads/analytics?partition=${partition}`);
+      const analyticsResponse = await api.get(
+        `/tenant/${key}/leads/analytics?partition=${partition}`,
+      );
 
       if ((analyticsResponse as { success?: boolean })?.success === false) {
         continue;
@@ -263,9 +267,13 @@ export async function fetchLeadAnalyticsForTenant(
           return payload as Record<string, unknown>;
         }
       }
-    } catch {
-      continue;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Failed to fetch analytics');
     }
+  }
+
+  if (lastError) {
+    throw lastError;
   }
 
   return null;
@@ -277,6 +285,8 @@ export async function fetchFeedbackForTenant(tenantKey: string): Promise<any[]> 
   const candidateKeys = [tenant?.slug, tenant?.id, tenantKey].filter(
     (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
   );
+
+  let lastError: Error | null = null;
 
   for (const key of candidateKeys) {
     try {
@@ -291,20 +301,28 @@ export async function fetchFeedbackForTenant(tenantKey: string): Promise<any[]> 
       if (items.length > 0 || (feedbackResponse as { success?: boolean })?.success === true) {
         return items;
       }
-    } catch {
-      continue;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Failed to fetch feedback');
     }
+  }
+
+  if (lastError) {
+    throw lastError;
   }
 
   return [];
 }
 
-export async function fetchTenantSettingsForTenant(tenantKey: string): Promise<Record<string, unknown> | null> {
+export async function fetchTenantSettingsForTenant(
+  tenantKey: string,
+): Promise<Record<string, unknown> | null> {
   const tenant = await resolveTenant(tenantKey).catch(() => null);
 
   const candidateKeys = [tenant?.slug, tenant?.id, tenantKey].filter(
     (value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index,
   );
+
+  let lastError: Error | null = null;
 
   for (const key of candidateKeys) {
     try {
@@ -318,9 +336,13 @@ export async function fetchTenantSettingsForTenant(tenantKey: string): Promise<R
       if (data && typeof data === 'object') {
         return data as Record<string, unknown>;
       }
-    } catch {
-      continue;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Failed to fetch tenant settings');
     }
+  }
+
+  if (lastError) {
+    throw lastError;
   }
 
   return null;

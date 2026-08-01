@@ -11,6 +11,7 @@ import {
   LEAD_STATUS_UI_LABELS,
   LEAD_STATUSES,
   leadStatusToUiLabel,
+  normalizeLeadStatus,
   uiLabelToLeadStatus,
   type LeadStatus,
   type LeadStatusUiLabel,
@@ -27,7 +28,12 @@ type LeadLike = {
   status?: string;
   source?: string;
   assignedToName?: string;
-  timeline?: Array<{ id?: string; type?: string; timestamp?: string; metadata?: Record<string, unknown> }>;
+  timeline?: Array<{
+    id?: string;
+    type?: string;
+    timestamp?: string;
+    metadata?: Record<string, unknown>;
+  }>;
   location?: string;
   createdAt?: string;
   followUpAt?: string;
@@ -73,8 +79,8 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const { tenantSlug } = useAuth();
   const { tenant } = useDashboardData();
   const [status, setStatus] = useState<LeadStatusUiLabel>(leadStatusToUiLabel(lead?.status));
-  const [selectedReminderDay, setSelectedReminderDay] = useState(
-    () => computeDaysFromFollowUp(lead?.followUpAt),
+  const [selectedReminderDay, setSelectedReminderDay] = useState(() =>
+    computeDaysFromFollowUp(lead?.followUpAt),
   );
   const [nowMs, setNowMs] = useState(() => Date.now());
   const isMockLead = Boolean((lead as { __isMock?: boolean })?.__isMock);
@@ -105,17 +111,26 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
 
   const createdAtLabel = getRelativeTime(lead?.createdAt);
   const canonicalStatus = uiLabelToLeadStatus(status);
-  const showReviewButton = canonicalStatus === 'CONVERTED';
-  const showReminderButton = canonicalStatus === 'QUALIFIED';
+  const convertedStatus = normalizeLeadStatus('CONVERTED');
+  const qualifiedStatus = normalizeLeadStatus('QUALIFIED');
+  const showReviewButton = canonicalStatus === convertedStatus;
+  const showReminderButton = canonicalStatus === qualifiedStatus;
 
   const followUpDate = lead?.followUpAt ? new Date(lead.followUpAt) : undefined;
   const isFollowUpPastDue = isFollowUpOverdue(lead?.followUpAt, nowMs);
   const isFollowUpToday = isFollowUpDueToday(lead?.followUpAt, nowMs);
 
-  const reminderLabel = isFollowUpPastDue ? 'Overdue' : isFollowUpToday ? 'Today' : `${selectedReminderDay}d`;
-  const reminderBackground = isFollowUpPastDue ? '#f59e0b' : isFollowUpToday ? '#ef4444' : 'var(--background)';
+  const reminderLabel = isFollowUpPastDue
+    ? 'Overdue'
+    : isFollowUpToday
+      ? 'Today'
+      : `${selectedReminderDay}d`;
+  const reminderBackground = isFollowUpPastDue
+    ? '#f59e0b'
+    : isFollowUpToday
+      ? '#ef4444'
+      : 'var(--background)';
   const reminderColor = isFollowUpPastDue || isFollowUpToday ? 'white' : 'var(--text)';
-
 
   const handleCall = () => {
     if (!isMockLead) {
@@ -184,8 +199,10 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         status: apiStatus,
       });
       announceDashboardDataRefresh(tenantRouteKey);
-    } catch {
-      // Keep optimistic UI. Dashboard context refresh will reconcile eventual consistency.
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unable to update the lead status right now.';
+      toast.error(message);
     }
   };
 
@@ -208,7 +225,9 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     void setFollowUp(nextDay);
   };
 
-  const logActivity = async (type: 'whatsapp_click' | 'call_click' | 'enquiry_click' | 'booking') => {
+  const logActivity = async (
+    type: 'whatsapp_click' | 'call_click' | 'enquiry_click' | 'booking',
+  ) => {
     const leadId = String(lead?.id ?? '').trim();
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
     if (isMockLead || !leadId || !tenantRouteKey) {
@@ -222,8 +241,9 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         buttonId: `lead-card-${type}`,
       });
       announceDashboardDataRefresh(tenantRouteKey);
-    } catch {
-      // Ignore transient activity logging failures.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to log activity right now.';
+      toast.error(message);
     }
   };
 
@@ -242,8 +262,10 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
         note: `Reminder set for ${days} day(s)`,
       });
       announceDashboardDataRefresh(tenantRouteKey);
-    } catch {
-      // Keep wheel interaction responsive even when API call fails.
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unable to update the reminder right now.';
+      toast.error(message);
     }
   };
 
@@ -457,7 +479,9 @@ function getRelativeTime(timestamp?: string): string {
 }
 
 function toReadableActivity(raw?: string): string {
-  const value = String(raw ?? '').trim().toLowerCase();
+  const value = String(raw ?? '')
+    .trim()
+    .toLowerCase();
   if (value === 'whatsapp_click') return 'WhatsApp clicked';
   if (value === 'call_click') return 'Call clicked';
   if (value === 'enquiry_click') return 'Enquiry submitted';
