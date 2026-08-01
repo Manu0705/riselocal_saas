@@ -7,6 +7,7 @@ import { useDashboardData } from '@/context/DashboardDataContext';
 import MobilePageTitle from '../components/mobile-page-title';
 import { getTenantApiClient } from '@/lib/tenant-client';
 import { Loader2, Save } from 'lucide-react';
+import { LEAD_STATUS_UI_LABELS } from '@saas/domain-core/lead.contract';
 
 type LeadLifecycleSettings = {
   convertedKeepDays: number;
@@ -154,10 +155,14 @@ export default function SettingsPage() {
             </p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>Total Leads: {metrics.totalLeads}</p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>
-              Converted Leads: {metrics.convertedLeads}
+              {LEAD_STATUS_UI_LABELS.CONVERTED} Leads: {metrics.convertedLeads}
             </p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Follow-Ups: {metrics.followUpLeads}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Open Leads: {metrics.openLeads}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>
+              {LEAD_STATUS_UI_LABELS.QUALIFIED}: {metrics.followUpLeads}
+            </p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>
+              {LEAD_STATUS_UI_LABELS.NEW} Leads: {metrics.openLeads}
+            </p>
             <p style={{ margin: 0, color: 'var(--muted)' }}>
               Conversion Rate: {metrics.conversionRate}%
             </p>

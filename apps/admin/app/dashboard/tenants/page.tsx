@@ -5,14 +5,10 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Palette } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
 import { THEME_OPTIONS, getThemeLabel } from '@/lib/theme-options';
+import type { TenantPublicPayload, TenantThemeKey } from '@saas/domain-core/tenant.contract';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-  domain: string | null;
-  themeKey?: 'default' | 'modern' | 'minimal' | 'business';
-  createdAt: string;
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug' | 'domain' | 'createdAt'> & {
+  themeKey?: TenantThemeKey;
 };
 
 export default function TenantsPage() {

@@ -12,7 +12,8 @@
     "react": "^18",
     "react-dom": "^18",
     "recharts": "3.7.0",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "@saas/domain-core": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "18.3.12",

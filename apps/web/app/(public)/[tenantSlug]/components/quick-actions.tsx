@@ -7,9 +7,9 @@ import { capturePublicCtaLead, getLeadCapturePrefill, type LeadActionType } from
 import {
   DEFAULT_ACTION_BUTTONS,
   normalizeActionButtons,
-  resolveActionHref,
   type ActionButtonsConfig,
-} from '@/lib/action-buttons';
+} from '@saas/domain-core/tenant.contract';
+import { resolveActionHref } from '@/lib/action-buttons';
 import LeadCaptureModal from './lead-capture-modal';
 
 type Props = {

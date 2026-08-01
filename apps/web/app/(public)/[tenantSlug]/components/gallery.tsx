@@ -6,9 +6,9 @@ import { capturePublicCtaLead, getLeadCapturePrefill } from '@/lib/public-lead-c
 import {
   DEFAULT_ACTION_BUTTONS,
   normalizeActionButtons,
-  resolveActionHref,
   type ActionButtonsConfig,
-} from '@/lib/action-buttons';
+} from '@saas/domain-core/tenant.contract';
+import { resolveActionHref } from '@/lib/action-buttons';
 import LeadCaptureModal from './lead-capture-modal';
 import ImageViewerModal from './image-viewer-modal';
 

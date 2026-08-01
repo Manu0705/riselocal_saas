@@ -8,9 +8,9 @@ import { getTenantApiClient } from '@/lib/tenant-client';
 import {
   DEFAULT_ACTION_BUTTONS,
   normalizeActionButtons,
-  type ActionButtonKey,
   type ActionButtonsConfig,
-} from '@/lib/action-buttons';
+} from '@saas/domain-core/tenant.contract';
+import type { ActionButtonKey } from '@/lib/action-buttons';
 
 type SettingsResponse = {
   sectionOrder?: string[];

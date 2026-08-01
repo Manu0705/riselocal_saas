@@ -1,9 +1,15 @@
 import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
-import { DEFAULT_ACTION_BUTTONS, normalizeActionButtons, type ActionButtonsConfig } from '@/lib/action-buttons';
 import { DEFAULT_TENANT_FONT, sanitizeTenantFontName } from '@/lib/tenant-font';
 import { fetchWithRetry } from '@/lib/retry';
 import { cache } from 'react';
-import { normalizeTenantThemeKey, type TenantThemeKey } from '@saas/domain-core/tenant.contract';
+import {
+  DEFAULT_ACTION_BUTTONS,
+  normalizeActionButtons,
+  normalizeTenantThemeKey,
+  type ActionButtonsConfig,
+  type TenantPublicPayload,
+  type TenantThemeKey,
+} from '@saas/domain-core/tenant.contract';
 export const RESERVED_ROUTES = [
   'dashboard',
   'admin',
@@ -278,51 +284,53 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
       }
 
       const payload = await res.json();
-      const tenant = payload?.data;
+      const tenant = payload?.data as TenantPublicPayload | undefined;
 
       if (!tenant) {
         continue;
       }
 
-      const settings = (tenant.settings ?? {}) as Record<string, unknown>;
+      // Prefer canonical TenantPublicPayload.customization; fall back only if absent.
+      const customization = (tenant.customization ?? {}) as Record<string, unknown>;
+
+      const theme = tenant.theme
+        ? normalizeTenantThemeKey(tenant.theme)
+        : normalizeThemeKey(customization);
 
       return {
         ...defaults,
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
-        domain: tenant.domain,
-        phone: toStringOr(settings.businessPhone, defaults.phone),
-        whatsapp: toStringOr(settings.businessWhatsApp, toStringOr(settings.businessPhone, defaults.whatsapp)),
-        tagline: toStringOr(settings.tagline),
-        logoUrl: toStringOr(settings.logoUrl),
-        bannerUrl: toStringOr(settings.bannerUrl),
-        logoShape: toStringOr(settings.logoShape, defaults.logoShape),
-        primaryColor: toStringOr(settings.primaryColor, defaults.primaryColor),
-        secondaryColor: toStringOr(settings.secondaryColor, defaults.secondaryColor),
-        fontFamily: normalizeFontFamily(settings),
-        theme: normalizeThemeKey(settings),
-        themeKey: normalizeThemeKey(settings),
-        sectionOrder: normalizeSectionOrder(settings.sectionOrder),
-        galleryCategories: normalizeGalleryCategories(settings),
-        actionButtons: normalizeSettingsActionButtons(settings),
+        domain: tenant.domain ?? undefined,
+        phone: toStringOr(customization.businessPhone, defaults.phone),
+        whatsapp: toStringOr(
+          customization.businessWhatsApp,
+          toStringOr(customization.businessPhone, defaults.whatsapp),
+        ),
+        tagline: toStringOr(customization.tagline),
+        logoUrl: toStringOr(customization.logoUrl),
+        bannerUrl: toStringOr(customization.bannerUrl),
+        logoShape: toStringOr(customization.logoShape, defaults.logoShape),
+        primaryColor: toStringOr(customization.primaryColor, defaults.primaryColor),
+        secondaryColor: toStringOr(customization.secondaryColor, defaults.secondaryColor),
+        fontFamily: normalizeFontFamily(customization),
+        theme,
+        themeKey: theme,
+        sectionOrder: normalizeSectionOrder(customization.sectionOrder),
+        galleryCategories: normalizeGalleryCategories(customization),
+        actionButtons: normalizeSettingsActionButtons(customization),
         services: normalizeServices(tenant.services),
-        // gallery: Array.isArray(tenant.galleryImages) ? tenant.galleryImages : defaults.gallery,
         gallery: Array.isArray(tenant.galleryImages)
-          ? tenant.galleryImages.map((img: any) => ({
-              url: img?.url,
-              category: img?.category || 'general',
-            }))
-          : Array.isArray(tenant.gallery)
-          ? tenant.gallery.map((img: any) => ({
+          ? tenant.galleryImages.map((img) => ({
               url: img?.url,
               category: img?.category || 'general',
             }))
           : defaults.gallery,
         socialLinks: Array.isArray(tenant.socialLinks) ? tenant.socialLinks : defaults.socialLinks,
-        openHour: normalizeHour(settings.openHour, DEFAULT_OPEN_HOUR),
-        closeHour: normalizeHour(settings.closeHour, DEFAULT_CLOSE_HOUR),
-        availableHours: normalizeAvailableHours(settings.availableHours),
+        openHour: normalizeHour(customization.openHour, DEFAULT_OPEN_HOUR),
+        closeHour: normalizeHour(customization.closeHour, DEFAULT_CLOSE_HOUR),
+        availableHours: normalizeAvailableHours(customization.availableHours),
       };
     } catch (error) {
       console.error(`Failed to fetch tenant from ${apiBase}: ${slug}`, error);

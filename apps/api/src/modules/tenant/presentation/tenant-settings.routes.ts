@@ -2,23 +2,19 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
 import { invalidatePublicTenantCacheByTenantId } from '../infrastructure/public-tenant-cache';
-import { normalizeTenantThemeKey } from '@saas/domain-core/tenant.contract';
+import {
+  getDefaultActionButtons,
+  normalizeActionButtons,
+  normalizeTenantThemeKey,
+  type ActionButtonsConfig,
+} from '@saas/domain-core/tenant.contract';
 
 import type { Request, Response, NextFunction } from 'express';
 import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.repository';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 const tenantRepository = new PrismaTenantRepository();
-
-type ActionButtonKey = 'chatWhatsApp' | 'call' | 'whatsappEnquiry';
-
-type ActionButtonConfig = {
-  enabled: boolean;
-  phone?: string;
-  message?: string;
-};
-
-type ActionButtonsConfig = Record<ActionButtonKey, ActionButtonConfig>;
 
 type LeadLifecycleConfig = {
   convertedKeepDays: number;
@@ -41,12 +37,7 @@ const ALLOWED_FONT_FAMILIES = new Set([
   'Source Sans 3',
 ]);
 
-const DEFAULT_ACTION_BUTTONS: ActionButtonsConfig = {
-  chatWhatsApp: { enabled: true },
-  call: { enabled: true },
-  whatsappEnquiry: { enabled: true },
-};
-
+const DEFAULT_ACTION_BUTTONS = getDefaultActionButtons();
 const DEFAULT_GALLERY_CATEGORIES = ['gallery', 'before-after', 'team', 'workspace'];
 const DEFAULT_LEAD_LIFECYCLE: LeadLifecycleConfig = {
   convertedKeepDays: 14,
@@ -79,37 +70,6 @@ function normalizeLeadLifecycle(value: unknown): LeadLifecycleConfig {
       DEFAULT_LEAD_LIFECYCLE.missedFollowupNotifyDays,
       1,
       14,
-    ),
-  };
-}
-
-function getDefaultActionButtons(): ActionButtonsConfig {
-  return {
-    chatWhatsApp: { ...DEFAULT_ACTION_BUTTONS.chatWhatsApp },
-    call: { ...DEFAULT_ACTION_BUTTONS.call },
-    whatsappEnquiry: { ...DEFAULT_ACTION_BUTTONS.whatsappEnquiry },
-  };
-}
-
-function normalizeActionButtonConfig(value: unknown, fallback: ActionButtonConfig): ActionButtonConfig {
-  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-
-  return {
-    enabled: raw.enabled === undefined ? fallback.enabled : Boolean(raw.enabled),
-    phone: typeof raw.phone === 'string' && raw.phone.trim().length > 0 ? raw.phone.trim() : undefined,
-    message: typeof raw.message === 'string' && raw.message.trim().length > 0 ? raw.message.trim() : undefined,
-  };
-}
-
-function normalizeActionButtons(value: unknown): ActionButtonsConfig {
-  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-
-  return {
-    chatWhatsApp: normalizeActionButtonConfig(raw.chatWhatsApp, DEFAULT_ACTION_BUTTONS.chatWhatsApp),
-    call: normalizeActionButtonConfig(raw.call, DEFAULT_ACTION_BUTTONS.call),
-    whatsappEnquiry: normalizeActionButtonConfig(
-      raw.whatsappEnquiry,
-      DEFAULT_ACTION_BUTTONS.whatsappEnquiry,
     ),
   };
 }
@@ -210,7 +170,7 @@ router.get('/settings', authMiddleware, async (req, res) => {
   try {
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     let settings = await prisma.tenantSettings.findUnique({
@@ -230,10 +190,10 @@ router.get('/settings', authMiddleware, async (req, res) => {
       });
     }
 
-    return res.json({ success: true, data: toSettingsResponse(settings) });
+    return sendSuccess(res, 200, toSettingsResponse(settings), req);
   } catch (error: any) {
     console.error('Settings fetch error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -242,7 +202,7 @@ router.put('/settings', authMiddleware, async (req, res) => {
   try {
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const {
@@ -356,10 +316,10 @@ router.put('/settings', authMiddleware, async (req, res) => {
     }
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: toSettingsResponse(settings) });
+    return sendSuccess(res, 200, toSettingsResponse(settings), req);
   } catch (error: any) {
     console.error('Settings update error:', error);
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -374,7 +334,7 @@ function resolveTenantSlugToIdMiddleware(slugParamName: string) {
 
       const tenant = await tenantRepository.findBySlug(slug);
       if (!tenant) {
-        return res.status(404).json({ error: 'Tenant not found' });
+        return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
       }
 
       (req.user as any) = { ...(req.user as any), tenantId: tenant.toJSON().id };
@@ -394,7 +354,7 @@ router.get(
     try {
       const tenantId = (req.user as any)?.tenantId;
       if (!tenantId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
       }
 
       let settings = await prisma.tenantSettings.findUnique({
@@ -414,10 +374,10 @@ router.get(
         });
       }
 
-      return res.json({ success: true, data: toSettingsResponse(settings) });
+      return sendSuccess(res, 200, toSettingsResponse(settings), req);
     } catch (error: any) {
       console.error('Settings fetch error:', error);
-      return res.status(500).json({ error: error.message });
+      return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
     }
   },
 );
@@ -431,7 +391,7 @@ router.put(
     try {
       const tenantId = (req.user as any)?.tenantId;
       if (!tenantId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
       }
 
       const {
@@ -531,10 +491,10 @@ router.put(
       }
 
       await invalidatePublicTenantCacheByTenantId(tenantId);
-      return res.json({ success: true, data: toSettingsResponse(settings) });
+      return sendSuccess(res, 200, toSettingsResponse(settings), req);
     } catch (error: any) {
       console.error('Settings update error:', error);
-      return res.status(500).json({ error: error.message });
+      return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
     }
   },
 );

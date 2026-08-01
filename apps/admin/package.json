@@ -14,7 +14,8 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "lucide-react": "^0.344.0",
-    "@saas/database": "workspace:*"
+    "@saas/database": "workspace:*",
+    "@saas/domain-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

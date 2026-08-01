@@ -115,6 +115,9 @@ importers:
       '@saas/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@saas/domain-core':
+        specifier: workspace:*
+        version: link:../../packages/domain-core
       lucide-react:
         specifier: ^0.344.0
         version: 0.344.0(react@18.3.1)
@@ -146,6 +149,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@saas/domain-core':
+        specifier: workspace:*
+        version: link:../../packages/domain-core
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@18.3.1)

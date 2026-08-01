@@ -3,24 +3,26 @@
 import { useEffect, useState } from 'react';
 import { Phone, Mail, MessageSquare } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
+import {
+  leadStatusToUiLabel,
+  normalizeLeadStatus,
+  type LeadStatus,
+} from '@saas/domain-core/lead.contract';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
 type Lead = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string;
-  status: 'Open' | 'Follow-Up' | 'Converted' | 'Lost';
+  status: LeadStatus;
   source: string;
   location?: string;
   createdAt: string;
   tenantId: string;
 };
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-};
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug'>;
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -78,14 +80,16 @@ export default function LeadsPage() {
   }
 
   function getStatusColor(status: Lead['status']) {
-    switch (status) {
-      case 'Open':
+    switch (normalizeLeadStatus(status)) {
+      case 'NEW':
         return '#3b82f6';
-      case 'Follow-Up':
+      case 'CONTACTED':
+        return '#6366f1';
+      case 'QUALIFIED':
         return '#f59e0b';
-      case 'Converted':
+      case 'CONVERTED':
         return '#10b981';
-      case 'Lost':
+      case 'CLOSED':
         return '#ef4444';
       default:
         return '#6b7280';
@@ -171,7 +175,7 @@ export default function LeadsPage() {
                   <td>{lead.location || '-'}</td>
                   <td>
                     <span className="badge" style={{ background: getStatusColor(lead.status) }}>
-                      {lead.status}
+                      {leadStatusToUiLabel(lead.status)}
                     </span>
                   </td>
                   <td>

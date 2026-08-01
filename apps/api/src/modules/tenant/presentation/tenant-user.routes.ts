@@ -3,9 +3,14 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
 import { hashPassword } from '../../auth/infrastructure/password.service';
+import {
+  normalizeTenantUserRole,
+  TENANT_USER_ROLES,
+} from '@saas/domain-core/auth.contract';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
-const ALLOWED_TENANT_ROLES = new Set(['owner', 'manager', 'staff']);
+const ALLOWED_TENANT_ROLES = new Set<string>(TENANT_USER_ROLES);
 
 router.use('/tenant-users', authMiddleware, adminRoleMiddleware);
 
@@ -14,7 +19,7 @@ router.get('/tenant-users', async (req, res) => {
     const tenantId = typeof req.query.tenantId === 'string' ? req.query.tenantId.trim() : '';
 
     if (!tenantId) {
-      return res.status(400).json({ success: false, message: 'tenantId is required' });
+      return sendError(res, 400, 'tenantId is required', { code: 'VALIDATION_ERROR', req });
     }
 
     const users = await prisma.tenantUser.findMany({
@@ -32,9 +37,9 @@ router.get('/tenant-users', async (req, res) => {
       },
     });
 
-    return res.json({ success: true, data: users });
+    return sendSuccess(res, 200, users, req);
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
+    return sendError(res, 500, error.message, { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -49,23 +54,26 @@ router.post('/tenant-users', async (req, res) => {
     };
 
     if (!tenantId || !name || !email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'tenantId, name, email and password are required' });
+      return sendError(res, 400, 'tenantId, name, email and password are required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
 
     if (password.length < 8) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Password must be at least 8 characters' });
+      return sendError(res, 400, 'Password must be at least 8 characters', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
 
-    const normalizedRole = String(role || 'owner')
+    const candidate = String(role || 'owner')
       .trim()
       .toLowerCase();
-    if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
-      return res.status(400).json({ success: false, message: 'Invalid tenant role' });
+    if (!ALLOWED_TENANT_ROLES.has(candidate)) {
+      return sendError(res, 400, 'Invalid tenant role', { code: 'VALIDATION_ERROR', req });
     }
+    const normalizedRole = normalizeTenantUserRole(candidate);
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -89,9 +97,9 @@ router.post('/tenant-users', async (req, res) => {
       },
     });
 
-    return res.status(201).json({ success: true, data: created });
+    return sendSuccess(res, 201, created, req);
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message });
+    return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
   }
 });
 
@@ -106,7 +114,7 @@ router.put('/tenant-users/:id', async (req, res) => {
     };
 
     if (!id) {
-      return res.status(400).json({ success: false, message: 'id is required' });
+      return sendError(res, 400, 'id is required', { code: 'VALIDATION_ERROR', req });
     }
 
     const data: {
@@ -122,19 +130,20 @@ router.put('/tenant-users/:id', async (req, res) => {
 
     if (typeof password === 'string' && password.trim()) {
       if (password.trim().length < 8) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Password must be at least 8 characters' });
+        return sendError(res, 400, 'Password must be at least 8 characters', {
+          code: 'VALIDATION_ERROR',
+          req,
+        });
       }
       data.passwordHash = hashPassword(password);
     }
 
     if (typeof role === 'string') {
-      const normalizedRole = role.trim().toLowerCase();
-      if (!ALLOWED_TENANT_ROLES.has(normalizedRole)) {
-        return res.status(400).json({ success: false, message: 'Invalid tenant role' });
+      const candidate = role.trim().toLowerCase();
+      if (!ALLOWED_TENANT_ROLES.has(candidate)) {
+        return sendError(res, 400, 'Invalid tenant role', { code: 'VALIDATION_ERROR', req });
       }
-      data.role = normalizedRole;
+      data.role = normalizeTenantUserRole(candidate);
     }
 
     if (typeof isActive === 'boolean') {
@@ -156,9 +165,9 @@ router.put('/tenant-users/:id', async (req, res) => {
       },
     });
 
-    return res.json({ success: true, data: updated });
+    return sendSuccess(res, 200, updated, req);
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message });
+    return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
   }
 });
 
@@ -167,14 +176,14 @@ router.delete('/tenant-users/:id', async (req, res) => {
     const id = String(req.params.id || '').trim();
 
     if (!id) {
-      return res.status(400).json({ success: false, message: 'id is required' });
+      return sendError(res, 400, 'id is required', { code: 'VALIDATION_ERROR', req });
     }
 
     await prisma.tenantUser.delete({ where: { id } });
 
-    return res.json({ success: true, message: 'Tenant user deleted' });
+    return sendSuccess(res, 200, { message: 'Tenant user deleted' }, req);
   } catch (error: any) {
-    return res.status(400).json({ success: false, message: error.message });
+    return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
   }
 });
 

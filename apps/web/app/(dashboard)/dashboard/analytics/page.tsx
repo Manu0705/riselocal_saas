@@ -5,6 +5,7 @@ import { useDashboardData } from '@/context/DashboardDataContext';
 import AnalyticsChart from '../components/analytics-chart';
 import MobilePageTitle from '../components/mobile-page-title';
 import { api } from '@/lib/api-client';
+import { LEAD_STATUS_UI_LABELS } from '@saas/domain-core/lead.contract';
 
 export default function AnalyticsPage() {
   const { metrics, loading, error, tenant, tenantSlug } = useDashboardData();
@@ -90,7 +91,9 @@ export default function AnalyticsPage() {
             background: 'var(--card)',
           }}
         >
-          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>Open / Followup</p>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
+            {LEAD_STATUS_UI_LABELS.NEW} / {LEAD_STATUS_UI_LABELS.QUALIFIED}
+          </p>
           <p style={{ margin: '4px 0 0', color: '#10b981', fontWeight: 700, fontSize: 18 }}>
             {metrics.openLeads} / {metrics.followUpLeads}
           </p>

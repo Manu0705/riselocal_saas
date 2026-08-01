@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { sendError } from '../shared/http/api-response';
 
 const WINDOW_MS = 60_000;
 const DEFAULT_MAX = 120;
@@ -30,9 +31,9 @@ export function rateLimitMiddleware(limit = DEFAULT_MAX) {
     current.count += 1;
 
     if (current.count > limit) {
-      return res.status(429).json({
-        success: false,
-        message: 'Too many requests, please try again shortly.',
+      return sendError(res, 429, 'Too many requests, please try again shortly.', {
+        code: 'RATE_LIMITED',
+        req,
       });
     }
 

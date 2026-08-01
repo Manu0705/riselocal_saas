@@ -13,14 +13,10 @@ import {
 } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
 import { THEME_OPTIONS, getThemeLabel, type ThemeKey } from '@/lib/theme-options';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-  domain: string | null;
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug' | 'domain' | 'createdAt'> & {
   themeKey?: ThemeKey;
-  createdAt: string;
 };
 
 const themeIcons: Record<ThemeKey, ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>> = {

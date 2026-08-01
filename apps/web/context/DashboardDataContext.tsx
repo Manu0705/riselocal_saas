@@ -24,6 +24,7 @@ import {
   getDashboardRefreshStorageKey,
   parseDashboardRefreshPayload,
 } from '@/lib/dashboard-events';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 // Centralized metrics calculation to ensure consistency across all dashboard pages.
 export type DashboardMetrics = {
@@ -176,16 +177,7 @@ function parseDateTimestamp(value: unknown): number | null {
 }
 
 function mapStatus(raw?: string): string {
-  const value = String(raw ?? '')
-    .trim()
-    .toUpperCase();
-
-  if (value === 'NEW') return 'NEW';
-  if (value === 'CONTACTED') return 'CONTACTED';
-  if (value === 'QUALIFIED' || value === 'FOLLOW-UP' || value === 'FOLLOWUP') return 'QUALIFIED';
-  if (value === 'CONVERTED') return 'CONVERTED';
-  if (value === 'CLOSED' || value === 'LOST') return 'CLOSED';
-  return 'NEW';
+  return normalizeLeadStatus(raw);
 }
 
 function isLegacyDemoLead(lead: any): boolean {

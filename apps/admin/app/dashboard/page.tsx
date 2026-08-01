@@ -4,14 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, MessageSquare, TrendingUp, Building2 } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-  domain: string | null;
-  createdAt: string;
-};
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug' | 'domain' | 'createdAt'>;
 
 type Stats = {
   totalTenants: number;
@@ -54,10 +50,13 @@ export default function DashboardPage() {
             const leadsResponse = await adminApi.get(`/tenants/${tenant.id}/leads`);
             const leads = Array.isArray(leadsResponse) ? leadsResponse : leadsResponse?.data || [];
             totalLeads += leads.length;
-            activeLeads += leads.filter(
-              (l: any) => l.status === 'Open' || l.status === 'Follow-Up',
+            activeLeads += leads.filter((l: any) => {
+              const status = normalizeLeadStatus(l.status);
+              return status === 'NEW' || status === 'CONTACTED' || status === 'QUALIFIED';
+            }).length;
+            convertedLeads += leads.filter(
+              (l: any) => normalizeLeadStatus(l.status) === 'CONVERTED',
             ).length;
-            convertedLeads += leads.filter((l: any) => l.status === 'Converted').length;
           } catch (err) {
             console.error(`Error fetching leads for tenant ${tenant.id}:`, err);
           }

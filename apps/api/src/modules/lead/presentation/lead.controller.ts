@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '@saas/database';
 import { LeadLifecycleService } from '../infrastructure/lead-lifecycle.service';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import { isAdminRole, normalizeAuthRole } from '@saas/domain-core/auth.contract';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -40,10 +43,7 @@ function toTenantRouteKey(req: Request): string {
 }
 
 function isPrivilegedRole(role?: string): boolean {
-  const normalized = String(role ?? '')
-    .trim()
-    .toLowerCase();
-  return normalized === 'admin' || normalized === 'super_admin';
+  return isAdminRole(role);
 }
 
 function applyPublicRateLimit(req: Request, tenantId: string): boolean {
@@ -127,11 +127,9 @@ async function ensureLeadActionAccess(
   tenantId: string,
   leadId: string,
 ): Promise<void> {
-  const role = String(req.user?.role ?? '')
-    .trim()
-    .toLowerCase();
+  const role = normalizeAuthRole(req.user?.role);
 
-  if (role === 'admin' || role === 'super_admin' || role === 'owner') {
+  if (isAdminRole(role) || role === 'owner') {
     return;
   }
 
@@ -207,9 +205,9 @@ export class LeadController {
       const tenantId = await resolveTenantIdFromPublicSlug(req);
 
       if (!applyPublicRateLimit(req, tenantId)) {
-        return res.status(429).json({
-          success: false,
-          message: 'Too many public lead submissions. Please retry shortly.',
+        return sendError(res, 429, 'Too many public lead submissions. Please retry shortly.', {
+          code: 'RATE_LIMITED',
+          req,
         });
       }
 
@@ -243,14 +241,11 @@ export class LeadController {
         metadata: buildActivityMetadata(req, source),
       });
 
-      return res.status(201).json({
-        success: true,
-        data: result,
-      });
+      return sendSuccess(res, 201, result, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to capture lead',
+      return sendError(res, 400, error?.message ?? 'Failed to capture lead', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -261,7 +256,7 @@ export class LeadController {
       const leadId = getParam(req.params.id).trim();
 
       if (!leadId) {
-        return res.status(400).json({ success: false, message: 'Lead id is required' });
+        return sendError(res, 400, 'Lead id is required', { code: 'VALIDATION_ERROR', req });
       }
 
       const lead = await prisma.lead.findFirst({
@@ -278,14 +273,14 @@ export class LeadController {
       });
 
       if (!lead) {
-        return res.status(404).json({ success: false, message: 'Lead not found' });
+        return sendError(res, 404, 'Lead not found', { code: 'NOT_FOUND', req });
       }
 
-      return res.json({ success: true, data: lead });
+      return sendSuccess(res, 200, lead, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to fetch lead',
+      return sendError(res, 400, error?.message ?? 'Failed to fetch lead', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -324,14 +319,11 @@ export class LeadController {
         metadata: buildActivityMetadata(req, source),
       });
 
-      return res.status(201).json({
-        success: true,
-        data: result,
-      });
+      return sendSuccess(res, 201, result, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to upsert lead',
+      return sendError(res, 400, error?.message ?? 'Failed to upsert lead', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -359,15 +351,19 @@ export class LeadController {
         includeTimeline,
       });
 
-      return res.json({
-        success: true,
-        data: result.items,
-        pagination: result.pagination,
-      });
+      return sendSuccess(
+        res,
+        200,
+        {
+          items: result.items,
+          pagination: result.pagination,
+        },
+        req,
+      );
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to fetch leads',
+      return sendError(res, 400, error?.message ?? 'Failed to fetch leads', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -391,14 +387,11 @@ export class LeadController {
         partition,
       });
 
-      return res.json({
-        success: true,
-        data: result,
-      });
+      return sendSuccess(res, 200, result, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to fetch analytics',
+      return sendError(res, 400, error?.message ?? 'Failed to fetch analytics', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -415,21 +408,28 @@ export class LeadController {
 
       await ensureLeadActionAccess(req, tenantId, leadId);
 
+      const rawStatus = getStringField(body, 'status');
+      if (!rawStatus) {
+        throw new Error('status is required');
+      }
+
+      // Accept legacy aliases via normalize, but reject completely unknown tokens
+      // that normalize would silently coerce only when they are empty — unknown
+      // free-text still maps to NEW to preserve prior lifecycle behavior.
+      const status = normalizeLeadStatus(rawStatus);
+
       const result = await lifecycleService.updateLeadStatus({
         tenantId,
         leadId,
-        status: getStringField(body, 'status'),
+        status,
         actorUserId: req.user?.id,
       });
 
-      return res.json({
-        success: true,
-        data: result,
-      });
+      return sendSuccess(res, 200, result, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to update lead status',
+      return sendError(res, 400, error?.message ?? 'Failed to update lead status', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -454,9 +454,12 @@ export class LeadController {
         actorUserId: req.user?.id,
       });
 
-      return res.json({ success: true });
+      return sendSuccess(res, 200, {}, req);
     } catch (error: any) {
-      return res.status(400).json({ success: false, message: error?.message ?? 'Failed to set follow-up' });
+      return sendError(res, 400, error?.message ?? 'Failed to set follow-up', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
   }
 
@@ -479,9 +482,12 @@ export class LeadController {
         actorUserId: req.user?.id,
       });
 
-      return res.json({ success: true });
+      return sendSuccess(res, 200, {}, req);
     } catch (error: any) {
-      return res.status(400).json({ success: false, message: error?.message ?? 'Failed to assign lead' });
+      return sendError(res, 400, error?.message ?? 'Failed to assign lead', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
   }
 
@@ -498,9 +504,12 @@ export class LeadController {
 
       await lifecycleService.softDeleteLead({ tenantId, leadId });
 
-      return res.json({ success: true });
+      return sendSuccess(res, 200, {}, req);
     } catch (error: any) {
-      return res.status(400).json({ success: false, message: error?.message ?? 'Failed to delete lead' });
+      return sendError(res, 400, error?.message ?? 'Failed to delete lead', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
   }
 
@@ -528,9 +537,12 @@ export class LeadController {
         metadata: buildActivityMetadata(req, type),
       });
 
-      return res.json({ success: true });
+      return sendSuccess(res, 200, {}, req);
     } catch (error: any) {
-      return res.status(400).json({ success: false, message: error?.message ?? 'Failed to log activity' });
+      return sendError(res, 400, error?.message ?? 'Failed to log activity', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
   }
 
@@ -538,9 +550,12 @@ export class LeadController {
     try {
       const tenantId = await resolveTenantIdFromRequest(req);
       await lifecycleService.archiveOldActivities(tenantId);
-      return res.json({ success: true });
+      return sendSuccess(res, 200, {}, req);
     } catch (error: any) {
-      return res.status(400).json({ success: false, message: error?.message ?? 'Failed to archive activities' });
+      return sendError(res, 400, error?.message ?? 'Failed to archive activities', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
   }
 

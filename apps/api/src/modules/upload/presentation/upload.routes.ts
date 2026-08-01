@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -46,12 +47,12 @@ const upload = multer({
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
+      return sendError(res, 400, 'No file provided', { code: 'VALIDATION_ERROR', req });
     }
 
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const type = (req.body.type || 'gallery') as string;
@@ -63,20 +64,27 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     await removeTempFile(req.file.path);
 
     if (!uploadResult.success) {
-      return res.status(400).json({ error: uploadResult.error });
+      return sendError(res, 400, uploadResult.error || 'Upload failed', {
+        code: 'UPLOAD_FAILED',
+        req,
+      });
     }
 
-    return res.json({
-      success: true,
-      url: uploadResult.url,
-      publicId: uploadResult.publicId,
-    });
+    return sendSuccess(
+      res,
+      200,
+      {
+        url: uploadResult.url,
+        publicId: uploadResult.publicId,
+      },
+      req,
+    );
   } catch (error: any) {
     // Clean up on error
     await removeTempFile(req.file?.path);
 
     console.error('Upload error:', error);
-    return res.status(500).json({ error: error.message || 'Upload failed' });
+    return sendError(res, 500, error.message || 'Upload failed', { code: 'INTERNAL_ERROR', req });
   }
 });
 

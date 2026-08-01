@@ -7,8 +7,16 @@ import { useDashboardData } from '@/context/DashboardDataContext';
 import { api } from '@/lib/api-client';
 import { announceDashboardDataRefresh } from '@/lib/dashboard-events';
 import { toast } from 'sonner';
+import {
+  LEAD_STATUS_UI_LABELS,
+  LEAD_STATUSES,
+  leadStatusToUiLabel,
+  uiLabelToLeadStatus,
+  type LeadStatus,
+  type LeadStatusUiLabel,
+} from '@saas/domain-core/lead.contract';
 
-const STATUS_OPTIONS = ['New', 'Contacted', 'Follow-Up', 'Converted', 'Lost'] as const;
+const STATUS_OPTIONS = LEAD_STATUSES.map((status) => LEAD_STATUS_UI_LABELS[status]);
 const REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -64,7 +72,7 @@ function isFollowUpOverdue(followUpAt?: string, nowMs: number = Date.now()): boo
 export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   const { tenantSlug } = useAuth();
   const { tenant } = useDashboardData();
-  const [status, setStatus] = useState(toUiStatus(lead?.status));
+  const [status, setStatus] = useState<LeadStatusUiLabel>(leadStatusToUiLabel(lead?.status));
   const [selectedReminderDay, setSelectedReminderDay] = useState(
     () => computeDaysFromFollowUp(lead?.followUpAt),
   );
@@ -87,13 +95,18 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   }, [lead?.followUpAt]);
 
   useEffect(() => {
+    setStatus(leadStatusToUiLabel(lead?.status));
+  }, [lead?.status]);
+
+  useEffect(() => {
     if (!lead?.followUpAt) return;
     setSelectedReminderDay(computeDaysFromFollowUp(lead?.followUpAt));
   }, [nowMs, lead?.followUpAt]);
 
   const createdAtLabel = getRelativeTime(lead?.createdAt);
-  const showReviewButton = status === 'Converted';
-  const showReminderButton = status === 'Follow-Up';
+  const canonicalStatus = uiLabelToLeadStatus(status);
+  const showReviewButton = canonicalStatus === 'CONVERTED';
+  const showReminderButton = canonicalStatus === 'QUALIFIED';
 
   const followUpDate = lead?.followUpAt ? new Date(lead.followUpAt) : undefined;
   const isFollowUpPastDue = isFollowUpOverdue(lead?.followUpAt, nowMs);
@@ -155,14 +168,14 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: LeadStatusUiLabel) => {
     setStatus(newStatus);
 
     const leadId = String(lead?.id ?? '').trim();
     const tenantRouteKey = tenantSlug || tenant?.slug || tenant?.id;
-    const apiStatus = toApiStatus(newStatus);
+    const apiStatus: LeadStatus = uiLabelToLeadStatus(newStatus);
 
-    if (isMockLead || !leadId || !tenantRouteKey || !apiStatus) {
+    if (isMockLead || !leadId || !tenantRouteKey) {
       return;
     }
 
@@ -177,7 +190,7 @@ export default function LeadCard({ lead }: Readonly<{ lead: LeadLike }>) {
   };
 
   const cycleStatus = (direction: 1 | -1) => {
-    const currentIndex = STATUS_OPTIONS.indexOf(status as (typeof STATUS_OPTIONS)[number]);
+    const currentIndex = STATUS_OPTIONS.indexOf(status);
     const safeIndex = Math.max(0, currentIndex);
     const nextIndex = (safeIndex + direction + STATUS_OPTIONS.length) % STATUS_OPTIONS.length;
     void handleStatusChange(STATUS_OPTIONS[nextIndex]);
@@ -441,30 +454,6 @@ function getRelativeTime(timestamp?: string): string {
   }
   const days = Math.max(1, Math.floor(diffMs / day));
   return `${days} day${days > 1 ? 's' : ''} ago`;
-}
-
-function toUiStatus(raw?: string): string {
-  const value = String(raw ?? '')
-    .trim()
-    .toLowerCase();
-  if (value === 'new' || value === 'open') return 'New';
-  if (value === 'contacted') return 'Contacted';
-  if (value === 'follow-up' || value === 'qualified') return 'Follow-Up';
-  if (value === 'converted') return 'Converted';
-  if (value === 'closed' || value === 'lost') return 'Lost';
-  return 'New';
-}
-
-function toApiStatus(raw?: string): string | null {
-  const value = String(raw ?? '')
-    .trim()
-    .toLowerCase();
-  if (value === 'new') return 'NEW';
-  if (value === 'contacted') return 'CONTACTED';
-  if (value === 'follow-up') return 'QUALIFIED';
-  if (value === 'converted') return 'CONVERTED';
-  if (value === 'lost') return 'CLOSED';
-  return null;
 }
 
 function toReadableActivity(raw?: string): string {

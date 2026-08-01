@@ -1,4 +1,5 @@
 import { prisma, type Lead as PrismaLead } from '@saas/database';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 import { Lead } from '../domain/lead.entity';
 import { LeadRepository } from '../domain/lead.repository';
 
@@ -69,7 +70,7 @@ export class PrismaLeadRepository implements LeadRepository {
       phone: record.phone,
       email: record.email,
       source: record.source,
-      status: record.status as any,
+      status: normalizeLeadStatus(record.status),
       createdAt: record.createdAt,
       updatedAt: record.createdAt,
     });
@@ -93,7 +94,7 @@ export class PrismaLeadRepository implements LeadRepository {
         phone: record.phone,
         email: record.email,
         source: record.source,
-        status: record.status as any,
+        status: normalizeLeadStatus(record.status),
         createdAt: record.createdAt,
         updatedAt: record.createdAt,
       }),

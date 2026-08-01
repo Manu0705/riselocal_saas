@@ -4,6 +4,8 @@ import { PrismaFeedbackRepository } from '../infrastructure/feedback.prisma.repo
 import { PrismaTenantConfigProvider } from '../infrastructure/prisma-tenant-config.provider';
 import { CreateFeedbackUseCase } from '../application/create-feedback.usecase';
 import { LeadLifecycleService } from '../../lead/infrastructure/lead-lifecycle.service';
+import { isAdminRole } from '@saas/domain-core/auth.contract';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const feedbackRepository = new PrismaFeedbackRepository();
 const tenantConfigProvider = new PrismaTenantConfigProvider();
@@ -63,8 +65,7 @@ function applyPublicFeedbackRateLimit(req: Request, tenantId: string): boolean {
 export class FeedbackController {
   private canAccessTenant(targetTenantId: string, user?: { tenantId?: string; role?: string }) {
     if (!user?.tenantId) return true;
-    const role = String(user.role || '').toLowerCase();
-    if (role === 'admin' || role === 'super_admin') return true;
+    if (isAdminRole(user.role)) return true;
     return user.tenantId === targetTenantId;
   }
 
@@ -90,11 +91,14 @@ export class FeedbackController {
       });
 
       if (!tenant) {
-        return res.status(404).json({ success: false, message: 'Tenant not found' });
+        return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
       }
 
       if (!applyPublicFeedbackRateLimit(req, tenant.id)) {
-        return res.status(429).json({ success: false, message: 'Too many feedback submissions. Please retry shortly.' });
+        return sendError(res, 429, 'Too many feedback submissions. Please retry shortly.', {
+          code: 'RATE_LIMITED',
+          req,
+        });
       }
 
       let resolvedLeadId = String(leadId ?? '').trim();
@@ -110,14 +114,17 @@ export class FeedbackController {
         });
 
         if (!lead) {
-          return res.status(404).json({ success: false, message: 'Lead not found' });
+          return sendError(res, 404, 'Lead not found', { code: 'NOT_FOUND', req });
         }
       } else {
         const normalizedName = String(name ?? '').trim();
         const normalizedPhone = String(phone ?? '').trim();
 
         if (!normalizedName || !normalizedPhone) {
-          return res.status(400).json({ success: false, message: 'leadId or name+phone is required' });
+          return sendError(res, 400, 'leadId or name+phone is required', {
+            code: 'VALIDATION_ERROR',
+            req,
+          });
         }
 
         const leadResult = await lifecycleService.upsertLead({
@@ -148,17 +155,19 @@ export class FeedbackController {
         createdBy: 'customer',
       });
 
-      return res.status(201).json({
-        success: true,
-        data: {
+      return sendSuccess(
+        res,
+        201,
+        {
           id: result.id,
           leadId: resolvedLeadId,
         },
-      });
+        req,
+      );
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to submit feedback',
+      return sendError(res, 400, error?.message ?? 'Failed to submit feedback', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -178,11 +187,11 @@ export class FeedbackController {
 
       const normalizedLeadId = String(leadId ?? '').trim();
       if (!normalizedLeadId) {
-        return res.status(400).json({ success: false, message: 'leadId is required' });
+        return sendError(res, 400, 'leadId is required', { code: 'VALIDATION_ERROR', req });
       }
 
       if (typeof rating !== 'number' || Number.isNaN(rating)) {
-        return res.status(400).json({ success: false, message: 'rating is required' });
+        return sendError(res, 400, 'rating is required', { code: 'VALIDATION_ERROR', req });
       }
 
       const tenant = await prisma.tenant.findUnique({
@@ -191,11 +200,14 @@ export class FeedbackController {
       });
 
       if (!tenant) {
-        return res.status(404).json({ success: false, message: 'Tenant not found' });
+        return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
       }
 
       if (!applyPublicFeedbackRateLimit(req, tenant.id)) {
-        return res.status(429).json({ success: false, message: 'Too many review submissions. Please retry shortly.' });
+        return sendError(res, 429, 'Too many review submissions. Please retry shortly.', {
+          code: 'RATE_LIMITED',
+          req,
+        });
       }
 
       const lead = await prisma.lead.findFirst({
@@ -209,7 +221,7 @@ export class FeedbackController {
       });
 
       if (!lead) {
-        return res.status(404).json({ success: false, message: 'Converted lead not found' });
+        return sendError(res, 404, 'Converted lead not found', { code: 'NOT_FOUND', req });
       }
 
       const useCase = new CreateFeedbackUseCase(feedbackRepository, tenantConfigProvider);
@@ -223,17 +235,19 @@ export class FeedbackController {
         createdBy: 'customer',
       });
 
-      return res.status(201).json({
-        success: true,
-        data: {
+      return sendSuccess(
+        res,
+        201,
+        {
           id: result.id,
           leadId: normalizedLeadId,
         },
-      });
+        req,
+      );
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error?.message ?? 'Failed to submit review',
+      return sendError(res, 400, error?.message ?? 'Failed to submit review', {
+        code: 'VALIDATION_ERROR',
+        req,
       });
     }
   }
@@ -260,15 +274,9 @@ export class FeedbackController {
         createdBy,
       });
 
-      return res.status(201).json({
-        success: true,
-        data: result,
-      });
+      return sendSuccess(res, 201, result, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
+      return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
     }
   }
 
@@ -282,15 +290,14 @@ export class FeedbackController {
 
       const feedbacks = await feedbackRepository.findAllByTenant(tenantId);
 
-      return res.json({
-        success: true,
-        data: feedbacks.map((f) => f.toJSON()),
-      });
+      return sendSuccess(
+        res,
+        200,
+        feedbacks.map((f) => f.toJSON()),
+        req,
+      );
     } catch (error: any) {
-      return res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      return sendError(res, 500, error.message, { code: 'INTERNAL_ERROR', req });
     }
   }
 
@@ -304,15 +311,14 @@ export class FeedbackController {
 
       const feedbacks = await feedbackRepository.findPendingByTenant(tenantId);
 
-      return res.json({
-        success: true,
-        data: feedbacks.map((f) => f.toJSON()),
-      });
+      return sendSuccess(
+        res,
+        200,
+        feedbacks.map((f) => f.toJSON()),
+        req,
+      );
     } catch (error: any) {
-      return res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      return sendError(res, 500, error.message, { code: 'INTERNAL_ERROR', req });
     }
   }
 
@@ -327,17 +333,11 @@ export class FeedbackController {
       const feedback = await feedbackRepository.findById(id);
 
       if (!feedback) {
-        return res.status(404).json({
-          success: false,
-          message: 'Feedback not found',
-        });
+        return sendError(res, 404, 'Feedback not found', { code: 'NOT_FOUND', req });
       }
 
       if (!this.canAccessTenant(feedback.toJSON().tenantId, req.user)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied for this tenant',
-        });
+        return sendError(res, 403, 'Access denied for this tenant', { code: 'FORBIDDEN', req });
       }
 
       const approvedBy = req.user?.id || 'system';
@@ -346,15 +346,9 @@ export class FeedbackController {
 
       await feedbackRepository.update(feedback);
 
-      return res.json({
-        success: true,
-        message: 'Feedback approved',
-      });
+      return sendSuccess(res, 200, { message: 'Feedback approved' }, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
+      return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
     }
   }
 
@@ -369,17 +363,11 @@ export class FeedbackController {
       const feedback = await feedbackRepository.findById(id);
 
       if (!feedback) {
-        return res.status(404).json({
-          success: false,
-          message: 'Feedback not found',
-        });
+        return sendError(res, 404, 'Feedback not found', { code: 'NOT_FOUND', req });
       }
 
       if (!this.canAccessTenant(feedback.toJSON().tenantId, req.user)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied for this tenant',
-        });
+        return sendError(res, 403, 'Access denied for this tenant', { code: 'FORBIDDEN', req });
       }
 
       const rejectedBy = req.user?.id || 'system';
@@ -388,15 +376,9 @@ export class FeedbackController {
 
       await feedbackRepository.update(feedback);
 
-      return res.json({
-        success: true,
-        message: 'Feedback rejected',
-      });
+      return sendSuccess(res, 200, { message: 'Feedback rejected' }, req);
     } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
+      return sendError(res, 400, error.message, { code: 'VALIDATION_ERROR', req });
     }
   }
 }
