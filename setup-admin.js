@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./packages/database/generated/prisma');
 const { randomBytes, scryptSync } = require('crypto');
 
 const prisma = new PrismaClient();

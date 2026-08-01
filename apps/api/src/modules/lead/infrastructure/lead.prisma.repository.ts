@@ -1,5 +1,4 @@
-import { prisma } from '@saas/database';
-import { Lead as PrismaLead } from '@prisma/client';
+import { prisma, type Lead as PrismaLead } from '@saas/database';
 import { Lead } from '../domain/lead.entity';
 import { LeadRepository } from '../domain/lead.repository';
 

@@ -1,5 +1,4 @@
-import { prisma } from '@saas/database';
-import { Tenant as PrismaTenant } from '@prisma/client';
+import { prisma, type Tenant as PrismaTenant } from '@saas/database';
 import { Tenant } from '../domain/tenant.entity';
 import { TenantRepository } from '../domain/tenant.repository';
 
