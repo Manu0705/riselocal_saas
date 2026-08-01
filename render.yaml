@@ -3,7 +3,7 @@ services:
     name: riselocal-api
     env: node
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm run build:api && pnpm --filter @saas/database exec prisma generate && pnpm --filter @saas/database exec prisma migrate deploy
+    buildCommand: pnpm install --frozen-lockfile && pnpm run build:api && pnpm run db:generate && pnpm run db:deploy && pnpm run db:sync-check
     startCommand: pnpm run start:api
     healthCheckPath: /health
     envVars:
@@ -27,7 +27,7 @@ services:
     name: riselocal-api-qa
     env: node
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm run build:api && pnpm --filter @saas/database exec prisma generate && pnpm --filter @saas/database exec prisma migrate deploy
+    buildCommand: pnpm install --frozen-lockfile && pnpm run build:api && pnpm run db:generate && pnpm run db:deploy && pnpm run db:sync-check
     startCommand: pnpm run start:api
     healthCheckPath: /health
     envVars:

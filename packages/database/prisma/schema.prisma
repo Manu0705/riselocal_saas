@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Generate outside src/ so the compiled dist/client.js can require
+  // ../generated/prisma without relying on tsc to copy Prisma engine assets.
+  output   = "../generated/prisma"
 }
 
 datasource db {

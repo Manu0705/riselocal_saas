@@ -9,6 +9,8 @@ node_modules
 *.env
 
 /generated/prisma
+packages/database/generated/
+packages/database/src/generated/
 
 # Next.js build artifacts (should not be committed)
 .next/

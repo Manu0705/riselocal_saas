@@ -8,11 +8,13 @@
     ".": "./dist/client.js"
   },
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
+    "build": "node ../../scripts/prisma-generate.cjs && tsc -p tsconfig.json",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
+    "db:generate": "node ../../scripts/prisma-generate.cjs",
     "db:seed": "ts-node prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:validate": "prisma validate",
+    "db:sync-check": "bash ../../scripts/db-sync-check.sh"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

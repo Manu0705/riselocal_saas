@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
-import { prisma } from '@saas/database';
-import { Prisma } from '@prisma/client';
+import { prisma, Prisma } from '@saas/database';
 
 type LeadVisibilityRole = 'admin' | 'super_admin' | 'owner' | 'manager' | 'staff';
 
