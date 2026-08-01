@@ -3,13 +3,9 @@
 
 import {
   type LeadStatus,
-  LEAD_STATUSES,
   canTransitionLeadStatus,
   normalizeLeadStatus,
 } from '../lead.contract';
-
-export type { LeadStatus };
-export { LEAD_STATUSES, canTransitionLeadStatus, normalizeLeadStatus };
 
 export enum LeadSource {
   WEBSITE = 'WEBSITE',
