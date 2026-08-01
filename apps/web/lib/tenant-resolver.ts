@@ -342,7 +342,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
     }
   }
 
-  if (lastError && !sawNotFound) {
+  if (lastError) {
     throw lastError;
   }
 

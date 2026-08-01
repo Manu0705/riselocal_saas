@@ -10,6 +10,7 @@ import {
   Palette,
   Shield,
   Sparkles,
+  type LucideProps,
 } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
 import { THEME_OPTIONS, getThemeLabel, type ThemeKey } from '@/lib/theme-options';
@@ -17,9 +18,12 @@ import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
 type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug' | 'domain' | 'createdAt'> & {
   themeKey?: ThemeKey;
+  theme?: ThemeKey;
 };
 
-const themeIcons: Record<ThemeKey, ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>> = {
+type ThemeIcon = ComponentType<LucideProps>;
+
+const themeIcons: Record<ThemeKey, ThemeIcon> = {
   default: LayoutTemplate,
   modern: MonitorSmartphone,
   business: Shield,
@@ -67,7 +71,10 @@ export default function ThemesPage() {
       setTenants(data);
       setDraftThemes(
         Object.fromEntries(
-          data.map((tenant) => [tenant.id, (tenant.themeKey || 'default') as ThemeKey]),
+          data.map((tenant) => [
+            tenant.id,
+            (tenant.theme || tenant.themeKey || 'default') as ThemeKey,
+          ]),
         ),
       );
     } catch (error) {
@@ -267,7 +274,7 @@ export default function ThemesPage() {
                     <td>
                       <code>{tenant.slug}</code>
                     </td>
-                    <td>{getThemeLabel(tenant.themeKey || 'default')}</td>
+                    <td>{getThemeLabel(tenant.theme || tenant.themeKey || 'default')}</td>
                     <td>
                       <select
                         className="input"

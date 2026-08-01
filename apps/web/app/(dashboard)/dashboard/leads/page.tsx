@@ -9,6 +9,7 @@ import { Plus, X } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { announceDashboardDataRefresh } from '@/lib/dashboard-events';
 import { toast } from 'sonner';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 function formatText(text: string): string {
   return text
@@ -75,10 +76,7 @@ export default function LeadsPage() {
   const isFormValid = formData.name.trim() && formData.phone.trim();
 
   const newLeads = leads.filter(
-    (lead: any) =>
-      String(lead?.status ?? '')
-        .toUpperCase()
-        .trim() === 'NEW',
+    (lead: any) => normalizeLeadStatus(lead?.status) === 'NEW',
   ).length;
 
   let content: JSX.Element | null = null;

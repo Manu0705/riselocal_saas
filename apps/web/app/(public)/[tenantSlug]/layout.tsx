@@ -19,15 +19,10 @@ export default async function TenantLayout({
     notFound();
   }
 
-  let tenant = null;
+  // Do not catch resolver errors here — network/5xx must surface via error.tsx.
+  // Only a confirmed missing tenant (null) becomes notFound().
+  const tenant = await getTenant(tenantSlug);
 
-  try {
-    tenant = await getTenant(tenantSlug);
-  } catch (error) {
-    console.error('Failed to resolve tenant during layout render:', tenantSlug, error);
-  }
-
-  // Return 404 if tenant does not exist in database
   if (!tenant) {
     notFound();
   }

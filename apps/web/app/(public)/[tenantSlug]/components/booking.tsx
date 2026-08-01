@@ -28,6 +28,8 @@ export default function Booking({
     date: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const updateField = (field: 'name' | 'phone' | 'location' | 'date', value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -43,9 +45,11 @@ export default function Booking({
     if (!isValid || submitting) return;
 
     setSubmitting(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      await capturePublicCtaLead({
+      const result = await capturePublicCtaLead({
         tenantSlug,
         source: 'Booking',
         actionType: 'booking',
@@ -58,7 +62,16 @@ export default function Booking({
         buttonId: 'booking-confirm',
       });
 
+      if (!result.success) {
+        setError(result.message || 'Booking failed. Please try again.');
+        return;
+      }
+
       setFormData({ name: '', phone: '', location: '', date: '' });
+      setSuccess('Booking submitted successfully.');
+    } catch (err) {
+      console.error('Booking submission failed', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -107,6 +120,17 @@ export default function Booking({
           onChange={(event) => updateField('date', event.target.value)}
           style={inputStyle}
         />
+
+        {error ? (
+          <p style={{ margin: 0, color: '#b91c1c', fontSize: 13 }} role="alert">
+            {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p style={{ margin: 0, color: '#15803d', fontSize: 13 }} role="status">
+            {success}
+          </p>
+        ) : null}
 
         <button
           type="submit"

@@ -62,13 +62,21 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
     // Prefetch only the opposite view to avoid duplicate heavy RSC downloads.
     const prefetch = () => router.prefetch(targetRoute);
 
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(prefetch, { timeout: 1200 });
-      return () => window.cancelIdleCallback(idleId);
+    if (typeof globalThis !== 'undefined' && 'requestIdleCallback' in globalThis) {
+      const idleId = (globalThis as typeof globalThis & {
+        requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback: (id: number) => void;
+      }).requestIdleCallback(prefetch, { timeout: 1200 });
+      return () =>
+        (
+          globalThis as typeof globalThis & {
+            cancelIdleCallback: (id: number) => void;
+          }
+        ).cancelIdleCallback(idleId);
     }
 
-    const timeoutId = window.setTimeout(prefetch, 300);
-    return () => window.clearTimeout(timeoutId);
+    const timeoutId = globalThis.setTimeout(prefetch, 300);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [router, activeTenant, canToggleViews, isPublicPreview]);
 
   const goToDashboard = () => {
