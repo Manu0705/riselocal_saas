@@ -39,6 +39,7 @@
     "dev": "pnpm run dev:web",
     "qa": "pnpm run qa:api",
     "build": "pnpm run build:web && pnpm run build:api",
+    "build:admin": "pnpm run build:packages && pnpm --filter @saas/admin build",
     "start": "pnpm run start:web",
     "dev:web": "pnpm --filter @saas/web dev",
     "build:web": "pnpm --filter @saas/web build",
