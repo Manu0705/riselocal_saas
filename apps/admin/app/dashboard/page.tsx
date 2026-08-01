@@ -5,14 +5,9 @@ import Link from 'next/link';
 import { Users, MessageSquare, TrendingUp, Building2 } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
 import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-  domain: string | null;
-  createdAt: string;
-};
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug' | 'domain' | 'createdAt'>;
 
 type Stats = {
   totalTenants: number;

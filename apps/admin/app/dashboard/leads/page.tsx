@@ -8,24 +8,21 @@ import {
   normalizeLeadStatus,
   type LeadStatus,
 } from '@saas/domain-core/lead.contract';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
 type Lead = {
   id: string;
   name: string;
   email: string | null;
   phone: string;
-  status: LeadStatus | string;
+  status: LeadStatus;
   source: string;
   location?: string;
   createdAt: string;
   tenantId: string;
 };
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-};
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug'>;
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);

@@ -2,19 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api-client';
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
+import type { AuthRole } from '@saas/domain-core/auth.contract';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-};
+type Tenant = Pick<TenantPublicPayload, 'id' | 'name' | 'slug'>;
 
 type TenantUser = {
   id: string;
   tenantId: string;
   name: string;
   email: string;
-  role: string;
+  role: AuthRole | string;
   isActive: boolean;
   createdAt: string;
 };

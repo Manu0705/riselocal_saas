@@ -1,8 +1,18 @@
 import crypto from 'node:crypto';
 import { prisma, Prisma } from '@saas/database';
 import { normalizeLeadStatus, type LeadStatus } from '@saas/domain-core/lead.contract';
+import { isAdminRole, normalizeAuthRole, type AuthRole } from '@saas/domain-core/auth.contract';
 
-type LeadVisibilityRole = 'admin' | 'super_admin' | 'owner' | 'manager' | 'staff';
+type LeadVisibilityRole = AuthRole;
+
+/** Canonical statuses for SQL — always derived via normalizeLeadStatus. */
+const STATUS = {
+  NEW: normalizeLeadStatus('NEW'),
+  CONTACTED: normalizeLeadStatus('CONTACTED'),
+  QUALIFIED: normalizeLeadStatus('QUALIFIED'),
+  CONVERTED: normalizeLeadStatus('CONVERTED'),
+  CLOSED: normalizeLeadStatus('CLOSED'),
+} as const satisfies Record<LeadStatus, LeadStatus>;
 
 type UpsertLeadInput = {
   tenantId: string;
@@ -150,15 +160,7 @@ function safeTrim(value?: string): string | null {
 }
 
 function asRole(value?: string): LeadVisibilityRole {
-  const role = String(value ?? '')
-    .trim()
-    .toLowerCase();
-
-  if (role === 'admin' || role === 'super_admin' || role === 'owner' || role === 'manager') {
-    return role;
-  }
-
-  return 'staff';
+  return normalizeAuthRole(value);
 }
 
 function toSerializableTimeline(timeline: unknown): Array<Record<string, unknown>> {
@@ -231,7 +233,7 @@ async function resolveAutoAssignment(tenantId: string): Promise<{ assigneeId: st
     FROM "TenantUser"
     WHERE "tenantId" = ${tenantId}
       AND "isActive" = true
-      AND LOWER("role") = 'staff'
+      AND LOWER("role") = ${normalizeAuthRole('staff')}
     ORDER BY "createdAt" ASC
   `;
 
@@ -296,7 +298,7 @@ function buildVisibilityCondition(
   userId: string,
   teamId: string | null,
 ): Prisma.Sql {
-  if (role === 'admin' || role === 'super_admin' || role === 'owner') {
+  if (isAdminRole(role) || role === 'owner') {
     return Prisma.sql`TRUE`;
   }
 
@@ -369,7 +371,7 @@ export class LeadLifecycleService {
             ${safeTrim(input.utmMedium)},
             ${safeTrim(input.utmCampaign)},
             ${safeTrim(input.location)},
-            ${'NEW'},
+            ${STATUS.NEW},
             ${safeTrim(input.notes)},
             ${assigned.assigneeId},
             ${assigned.teamId},
@@ -562,7 +564,7 @@ export class LeadLifecycleService {
           UPDATE "Lead"
           SET
             "status" = ${status},
-            "convertedAt" = CASE WHEN ${status} = 'CONVERTED' THEN NOW() ELSE "convertedAt" END,
+            "convertedAt" = CASE WHEN ${status} = ${STATUS.CONVERTED} THEN NOW() ELSE "convertedAt" END,
             "updatedAt" = NOW()
           WHERE "id" = ${input.leadId}
             AND "tenantId" = ${input.tenantId}
@@ -651,7 +653,7 @@ export class LeadLifecycleService {
 
       await tx.$executeRaw`
         UPDATE "Lead"
-        SET "status" = 'QUALIFIED', "updatedAt" = NOW()
+        SET "status" = ${STATUS.QUALIFIED}, "updatedAt" = NOW()
         WHERE "id" = ${input.leadId}
           AND "tenantId" = ${input.tenantId}
       `;
@@ -820,11 +822,11 @@ export class LeadLifecycleService {
     }>>(Prisma.sql`
       SELECT
         COUNT(*)::bigint AS total_leads,
-        COUNT(*) FILTER (WHERE l."status" = 'NEW')::bigint AS new_leads,
-        COUNT(*) FILTER (WHERE l."status" = 'CONTACTED')::bigint AS contacted_leads,
-        COUNT(*) FILTER (WHERE l."status" = 'QUALIFIED')::bigint AS followup_leads,
-        COUNT(*) FILTER (WHERE l."status" = 'CONVERTED')::bigint AS converted_leads,
-        COUNT(*) FILTER (WHERE l."status" = 'CLOSED')::bigint AS lost_leads,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.NEW})::bigint AS new_leads,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.CONTACTED})::bigint AS contacted_leads,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.QUALIFIED})::bigint AS followup_leads,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.CONVERTED})::bigint AS converted_leads,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.CLOSED})::bigint AS lost_leads,
         COUNT(*) FILTER (WHERE l."createdAt" >= DATE_TRUNC('day', NOW()))::bigint AS leads_today,
         (
           SELECT COUNT(*)::bigint
@@ -853,10 +855,10 @@ export class LeadLifecycleService {
       SELECT
         COALESCE(NULLIF(TRIM(l."source"), ''), 'ORGANIC') AS source,
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE l."status" = 'CONVERTED')::int AS converted,
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.CONVERTED})::int AS converted,
         ROUND(
           CASE WHEN COUNT(*) = 0 THEN 0
-            ELSE (COUNT(*) FILTER (WHERE l."status" = 'CONVERTED')::numeric / COUNT(*)::numeric) * 100
+            ELSE (COUNT(*) FILTER (WHERE l."status" = ${STATUS.CONVERTED})::numeric / COUNT(*)::numeric) * 100
           END,
           2
         )::float AS conversion_rate
@@ -874,7 +876,7 @@ export class LeadLifecycleService {
       FROM "Lead" l
       WHERE l."tenantId" = ${input.tenantId}
         AND l."deletedAt" IS NULL
-        AND l."status" = 'CONVERTED'
+        AND l."status" = ${STATUS.CONVERTED}
         AND l."convertedAt" IS NOT NULL
         AND ${visibility}
     `);
@@ -904,7 +906,7 @@ export class LeadLifecycleService {
       SELECT
         ${bucketExpr} AS bucket,
         COUNT(*)::int AS leads,
-        COUNT(*) FILTER (WHERE l."status" = 'CONVERTED')::int AS converted
+        COUNT(*) FILTER (WHERE l."status" = ${STATUS.CONVERTED})::int AS converted
       FROM "Lead" l
       WHERE l."tenantId" = ${input.tenantId}
         AND l."deletedAt" IS NULL

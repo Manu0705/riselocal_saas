@@ -12,6 +12,7 @@ import {
   resolveThemeInput,
   type ActionButtonsConfig,
   type TenantCustomization,
+  type TenantPublicPayload,
 } from '@saas/domain-core/tenant.contract';
 import { optimizeCloudinaryUrl } from '../../../lib/cloudinary-transform';
 import { prisma } from '@saas/database';
@@ -20,6 +21,7 @@ import {
   invalidatePublicTenantCacheBySlug,
   setPublicTenantCache,
 } from '../infrastructure/public-tenant-cache';
+import { sendError } from '../../../shared/http/api-response';
 
 const router = Router();
 const repository = new PrismaTenantRepository();
@@ -247,13 +249,13 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       .toLowerCase();
 
     // Check cache first
-    const cached = getPublicTenantCache(slug);
+    const cached = getPublicTenantCache(slug) as TenantPublicPayload | null;
     if (cached) {
       return res
         .set('Cache-Control', 'no-store')
         .set('X-Cache', 'HIT')
         .json({
-          success: true,
+          success: true as const,
           data: cached,
         });
     }
@@ -274,10 +276,7 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     });
 
     if (!tenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tenant not found',
-      });
+      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
     }
 
     const sectionConfig = extractSectionOrderConfig(tenant.settings?.sectionOrder);
@@ -304,25 +303,17 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       ...(availableHours !== undefined ? { availableHours } : {}),
     };
 
-    const publicTenant = {
+    const publicTenant: TenantPublicPayload = {
       id: tenant.id,
       name: tenant.name,
       slug: tenant.slug,
       domain: tenant.domain,
-      createdAt: tenant.createdAt,
-      updatedAt: tenant.updatedAt,
+      createdAt:
+        tenant.createdAt instanceof Date ? tenant.createdAt.toISOString() : String(tenant.createdAt),
+      updatedAt:
+        tenant.updatedAt instanceof Date ? tenant.updatedAt.toISOString() : String(tenant.updatedAt),
       theme,
       customization,
-      // Compatibility projection for web resolver — same fields as customization.
-      settings: tenant.settings
-        ? {
-            ...customization,
-            themeKey: theme,
-            openHour: tenant.settings.openHour,
-            closeHour: tenant.settings.closeHour,
-            availableHours: tenant.settings.availableHours,
-          }
-        : null,
       galleryImages: tenant.galleryImages.map((image) => ({
         url: optimizeCloudinaryUrl(image.url),
         category: image.category,
@@ -342,23 +333,19 @@ router.get('/tenants/slug/:slug', async (req, res) => {
       })),
     };
 
-    // Cache the response
     setPublicTenantCache(slug, publicTenant);
 
     return res
       .set('Cache-Control', 'no-store')
       .set('X-Cache', 'MISS')
+      .status(200)
       .json({
-        success: true,
+        success: true as const,
         data: publicTenant,
       });
   } catch (error: any) {
     const response = getTenantErrorResponse(error);
-
-    return res.status(response.status).json({
-      success: false,
-      message: response.message,
-    });
+    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
   }
 });
 

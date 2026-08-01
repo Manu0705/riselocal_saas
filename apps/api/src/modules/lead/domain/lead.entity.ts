@@ -70,7 +70,7 @@ export class Lead {
       email: props.email ?? null,
       source: props.source ?? null,
       location: props.location ?? null,
-      status: 'NEW',
+      status: normalizeLeadStatus('NEW'),
       createdAt: now,
       updatedAt: now,
     });

@@ -136,10 +136,13 @@ export default function BrandingEditor() {
 
       if (uploadResponse?.success === false) {
         setError(uploadResponse?.message || uploadResponse?.error || `Failed to upload ${type}`);
-      } else if (uploadResponse?.url) {
+      } else {
+        const uploadedUrl =
+          uploadResponse?.data?.url ?? uploadResponse?.url;
+        if (uploadedUrl) {
         const fieldName = type === 'logo' ? 'logoUrl' : 'bannerUrl';
         const updateResponse = await api.put('/settings', {
-          [fieldName]: uploadResponse.url,
+          [fieldName]: uploadedUrl,
         });
 
         if (updateResponse?.success === false) {
@@ -151,10 +154,11 @@ export default function BrandingEditor() {
         } else {
           setError('Unexpected response while saving image settings');
         }
-      } else if (uploadResponse?.error) {
-        setError(uploadResponse.error);
-      } else {
-        setError(`Unexpected upload response for ${type}`);
+        } else if (uploadResponse?.error) {
+          setError(uploadResponse.error);
+        } else {
+          setError(`Unexpected upload response for ${type}`);
+        }
       }
     } catch (error) {
       console.error(`Failed to upload ${type}:`, error);

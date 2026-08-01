@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, Users, Target, Activity } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
-import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import { LEAD_STATUS_UI_LABELS, normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 type TenantStats = {
   tenantId: string;
@@ -190,9 +190,9 @@ export default function AnalyticsPage() {
               <tr>
                 <th>Tenant</th>
                 <th>Total Leads</th>
-                <th>Open</th>
-                <th>Follow-Up</th>
-                <th>Converted</th>
+                <th>{LEAD_STATUS_UI_LABELS.NEW}</th>
+                <th>{LEAD_STATUS_UI_LABELS.QUALIFIED}</th>
+                <th>{LEAD_STATUS_UI_LABELS.CONVERTED}</th>
                 <th>Conversion Rate</th>
               </tr>
             </thead>

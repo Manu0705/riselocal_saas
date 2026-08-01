@@ -1,24 +1,14 @@
 // packages/domain-core/lead/lead.aggregate.ts
-// Legacy aggregate kept for compatibility. Canonical statuses live in lead.contract.ts.
+// Legacy aggregate kept for domain modeling. Canonical statuses live in lead.contract.ts.
 
 import {
-  type LeadStatus as CanonicalLeadStatus,
+  type LeadStatus,
   LEAD_STATUSES,
   canTransitionLeadStatus,
   normalizeLeadStatus,
 } from '../lead.contract';
 
-/** @deprecated Prefer string union / helpers from lead.contract.ts */
-export const LeadStatus = {
-  NEW: 'NEW',
-  CONTACTED: 'CONTACTED',
-  QUALIFIED: 'QUALIFIED',
-  CONVERTED: 'CONVERTED',
-  CLOSED: 'CLOSED',
-} as const;
-
-export type LeadStatus = CanonicalLeadStatus;
-
+export type { LeadStatus };
 export { LEAD_STATUSES, canTransitionLeadStatus, normalizeLeadStatus };
 
 export enum LeadSource {
@@ -84,7 +74,7 @@ export class Lead {
       name: props.name.trim(),
       email: props.email?.trim().toLowerCase(),
       phone: props.phone.trim(),
-      status: LeadStatus.NEW,
+      status: normalizeLeadStatus('NEW'),
       source: props.source ?? LeadSource.ORGANIC,
     });
   }

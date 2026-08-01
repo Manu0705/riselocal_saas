@@ -127,11 +127,12 @@ router.post('/admin-login', async (req, res) => {
     return sendError(res, 401, 'Invalid admin credentials', { code: 'UNAUTHORIZED', req });
   }
 
+  const adminRole = normalizeAuthRole('admin');
   const userId = email.trim().toLowerCase();
   const token = jwtService.sign({
     userId,
     tenantId: 'admin',
-    role: 'admin',
+    role: adminRole,
   });
 
   return res.json({
@@ -140,7 +141,7 @@ router.post('/admin-login', async (req, res) => {
     user: {
       userId,
       tenantId: 'admin',
-      role: 'admin',
+      role: adminRole,
     },
   });
 });

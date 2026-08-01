@@ -1,23 +1,13 @@
 'use client';
 
-import LeadStatus from '@/components/lead-status';
+import LeadStatusBadge from '@/components/lead-status';
 import { useDashboardData } from '@/context/DashboardDataContext';
-
-const statusOrder = ['New', 'Contacted', 'Follow-Up', 'Converted', 'Lost'] as const;
-
-function normalizeStatus(status?: string): (typeof statusOrder)[number] {
-  const value = String(status ?? '')
-    .trim()
-    .toLowerCase();
-
-  if (value === 'new' || value === 'open') return 'New';
-  if (value === 'contacted') return 'Contacted';
-  if (value === 'follow-up' || value === 'qualified') return 'Follow-Up';
-  if (value === 'converted') return 'Converted';
-  if (value === 'lost' || value === 'closed') return 'Lost';
-
-  return 'New';
-}
+import {
+  LEAD_STATUSES,
+  leadStatusToUiLabel,
+  normalizeLeadStatus,
+  type LeadStatus,
+} from '@saas/domain-core/lead.contract';
 
 function formatLeadDate(dateText?: string): string {
   if (!dateText) return '-';
@@ -33,9 +23,9 @@ function formatLeadDate(dateText?: string): string {
 export default function LeadsPreview() {
   const { leads } = useDashboardData();
 
-  const groupedByStatus = statusOrder.map((status) => {
+  const groupedByStatus = LEAD_STATUSES.map((status: LeadStatus) => {
     const latest = leads
-      .filter((lead) => normalizeStatus(lead?.status) === status)
+      .filter((lead) => normalizeLeadStatus(lead?.status) === status)
       .sort((left, right) => {
         const leftDate = new Date(left?.createdAt ?? 0).getTime();
         const rightDate = new Date(right?.createdAt ?? 0).getTime();
@@ -45,6 +35,7 @@ export default function LeadsPreview() {
     return {
       date: formatLeadDate(latest?.createdAt),
       status,
+      label: leadStatusToUiLabel(status),
     };
   });
 
@@ -84,7 +75,7 @@ export default function LeadsPreview() {
             }}
           >
             <span style={{ color: 'var(--text)', fontWeight: 500 }}>{l.date}</span>
-            <LeadStatus status={l.status} />
+            <LeadStatusBadge status={l.status} />
           </div>
         ))}
       </div>

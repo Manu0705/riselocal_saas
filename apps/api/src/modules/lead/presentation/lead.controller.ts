@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '@saas/database';
 import { LeadLifecycleService } from '../infrastructure/lead-lifecycle.service';
 import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import { isAdminRole, normalizeAuthRole } from '@saas/domain-core/auth.contract';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -41,10 +42,7 @@ function toTenantRouteKey(req: Request): string {
 }
 
 function isPrivilegedRole(role?: string): boolean {
-  const normalized = String(role ?? '')
-    .trim()
-    .toLowerCase();
-  return normalized === 'admin' || normalized === 'super_admin';
+  return isAdminRole(role);
 }
 
 function applyPublicRateLimit(req: Request, tenantId: string): boolean {
@@ -128,11 +126,9 @@ async function ensureLeadActionAccess(
   tenantId: string,
   leadId: string,
 ): Promise<void> {
-  const role = String(req.user?.role ?? '')
-    .trim()
-    .toLowerCase();
+  const role = normalizeAuthRole(req.user?.role);
 
-  if (role === 'admin' || role === 'super_admin' || role === 'owner') {
+  if (isAdminRole(role) || role === 'owner') {
     return;
   }
 

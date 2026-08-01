@@ -1,14 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
+import { isAdminRole } from '@saas/domain-core/auth.contract';
 
 type RequestWithTenantAccess = Request & {
   tenant?: { id: string };
   user?: { tenantId: string; role: string };
 };
-
-function isPrivilegedRole(role?: string): boolean {
-  const normalized = String(role || '').toLowerCase();
-  return normalized === 'admin' || normalized === 'super_admin';
-}
 
 export function tenantAccessMiddleware(req: Request, res: Response, next: NextFunction) {
   const request = req as RequestWithTenantAccess;
@@ -27,7 +23,7 @@ export function tenantAccessMiddleware(req: Request, res: Response, next: NextFu
   const effectiveTenantId = routeTenantId ?? resolvedTenantId;
 
   if (
-    !isPrivilegedRole(request.user?.role) &&
+    !isAdminRole(request.user?.role) &&
     userTenantId &&
     effectiveTenantId &&
     userTenantId !== effectiveTenantId

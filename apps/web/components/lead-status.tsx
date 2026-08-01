@@ -1,20 +1,25 @@
+import {
+  leadStatusToUiLabel,
+  normalizeLeadStatus,
+  type LeadStatus,
+} from '@saas/domain-core/lead.contract';
+
 type Props = {
   status: string;
 };
 
+const STATUS_COLORS: Record<LeadStatus, string> = {
+  NEW: '#2563eb',
+  CONTACTED: '#f59e0b',
+  QUALIFIED: '#10b981',
+  CONVERTED: '#14b8a6',
+  CLOSED: '#ef4444',
+};
+
 export default function LeadStatus({ status }: Props) {
-  const color =
-    status === 'New'
-      ? '#2563eb'
-      : status === 'Contacted'
-        ? '#f59e0b'
-        : status === 'Follow-Up'
-          ? '#10b981'
-          : status === 'Converted'
-            ? '#14b8a6'
-            : status === 'Lost'
-              ? '#ef4444'
-              : '#6b7280';
+  const canonical = normalizeLeadStatus(status);
+  const color = STATUS_COLORS[canonical] ?? '#6b7280';
+  const label = leadStatusToUiLabel(canonical);
 
   return (
     <span
@@ -29,7 +34,7 @@ export default function LeadStatus({ status }: Props) {
         textAlign: 'center',
       }}
     >
-      {status}
+      {label}
     </span>
   );
 }

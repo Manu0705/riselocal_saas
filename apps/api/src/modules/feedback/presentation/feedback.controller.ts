@@ -4,6 +4,7 @@ import { PrismaFeedbackRepository } from '../infrastructure/feedback.prisma.repo
 import { PrismaTenantConfigProvider } from '../infrastructure/prisma-tenant-config.provider';
 import { CreateFeedbackUseCase } from '../application/create-feedback.usecase';
 import { LeadLifecycleService } from '../../lead/infrastructure/lead-lifecycle.service';
+import { isAdminRole } from '@saas/domain-core/auth.contract';
 
 const feedbackRepository = new PrismaFeedbackRepository();
 const tenantConfigProvider = new PrismaTenantConfigProvider();
@@ -63,8 +64,7 @@ function applyPublicFeedbackRateLimit(req: Request, tenantId: string): boolean {
 export class FeedbackController {
   private canAccessTenant(targetTenantId: string, user?: { tenantId?: string; role?: string }) {
     if (!user?.tenantId) return true;
-    const role = String(user.role || '').toLowerCase();
-    if (role === 'admin' || role === 'super_admin') return true;
+    if (isAdminRole(user.role)) return true;
     return user.tenantId === targetTenantId;
   }
 

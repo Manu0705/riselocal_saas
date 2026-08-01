@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import FollowupCard from '@/components/followup-card';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import MobilePageTitle from '../components/mobile-page-title';
+import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
 
 function classifyFollowup(item: any): 'today' | 'overdue' | 'upcoming' | 'unscheduled' {
   const followUpAt = item?.followUpAt;
@@ -37,12 +38,9 @@ export default function FollowupsPage() {
   const { leads, metrics, loading, error } = useDashboardData();
 
   const { today, overdue, upcoming, unscheduled } = useMemo(() => {
-    const items = leads.filter((item) => {
-      const status = String(item?.status ?? '')
-        .trim()
-        .toUpperCase();
-      return status === 'QUALIFIED' || status === 'FOLLOW-UP' || status === 'FOLLOWUP';
-    });
+    const items = leads.filter(
+      (item) => normalizeLeadStatus(item?.status) === 'QUALIFIED',
+    );
 
     return {
       today: items.filter((i) => classifyFollowup(i) === 'today'),

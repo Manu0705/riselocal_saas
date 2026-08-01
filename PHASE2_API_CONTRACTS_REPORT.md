@@ -1,6 +1,6 @@
 # Phase 2 — API & Shared Contracts
 
-**Status:** Complete (local verification)  
+**Status:** Complete (re-verified after duplicate purge)  
 **Branch:** `cursor/phase2-api-shared-contracts-7ca4`  
 **Date:** 2026-08-01  
 **Depends on:** Phase 1 baseline (`cursor/phase1-database-prisma-7ca4`)
@@ -30,10 +30,10 @@
 | **Severity** | High |
 | **Evidence** | Public GET omitted `updatedAt`, `openHour`, `closeHour`, `availableHours` while settings PUT saved hours. |
 | **Root Cause** | Serializer not built from shared contract. |
-| **Fix** | Public serializer includes `updatedAt` + hours on `customization` and compatibility `settings`. |
-| **Files** | `tenant.routes.ts`, `tenant.contract.ts` (`normalizeHour` / `normalizeAvailableHours`) |
-| **Risk** | Low — additive fields. |
-| **Verification** | Code inspection of public tenant builder |
+| **Fix** | Public serializer returns typed `TenantPublicPayload` (ISO dates, customization hours). Stale `settings` compatibility projection removed; web resolver reads `customization`. |
+| **Files** | `tenant.routes.ts`, `tenant.contract.ts`, `apps/web/lib/tenant-resolver.ts` |
+| **Risk** | Low — additive fields; web resolver updated in lockstep. |
+| **Verification** | Code inspection of public tenant builder; `TenantPublicPayload` typed assignment |
 
 ---
 
@@ -44,8 +44,8 @@
 | **Severity** | High |
 | **Evidence** | Public normalizer kept label/url, dropped message; settings kept phone/message, dropped label/url/confirmBooking. |
 | **Root Cause** | Duplicate incompatible normalizers. |
-| **Fix** | Single `normalizeActionButtons` in `tenant.contract.ts` used by both routes. |
-| **Files** | `tenant.contract.ts`, `tenant.routes.ts`, `tenant-settings.routes.ts` |
+| **Fix** | Single `normalizeActionButtons` in `tenant.contract.ts` used by API + web. Deleted web duplicate implementation; web keeps only `resolveActionHref` helper. |
+| **Files** | `tenant.contract.ts`, `tenant.routes.ts`, `tenant-settings.routes.ts`, web public/customize consumers |
 | **Risk** | Low — preserves more fields. |
 
 ---
@@ -57,9 +57,9 @@
 | **Severity** | High |
 | **Evidence** | Auth/gallery/settings returned `{ error }`; admin client reads `message` only. |
 | **Root Cause** | No shared response helper. |
-| **Fix** | `api-response.contract.ts` + `sendError`/`sendSuccess`. Migrated auth, gallery, tenant-settings. Global errorHandler already used `{ success:false, message }`. |
-| **Files** | `api-response.contract.ts`, `apps/api/src/shared/http/api-response.ts`, auth/gallery/settings routes |
-| **Remaining** | Some content/upload routes may still use `{ error }` — follow-up cleanup. |
+| **Fix** | `api-response.contract.ts` + `sendError`/`sendSuccess`. Migrated auth, gallery, tenant-settings, content, upload. Global errorHandler already used `{ success:false, message }`. |
+| **Files** | `api-response.contract.ts`, `apps/api/src/shared/http/api-response.ts`, auth/gallery/settings/content/upload routes |
+| **Remaining** | None for `{ error }` JSON responses in `apps/api/src`. |
 
 ---
 
@@ -81,7 +81,7 @@
 |---|---|
 | **Severity** | Medium |
 | **Evidence** | `auth.types.ts` declared `ADMIN\|USER`; runtime uses lowercase `owner/manager/staff/admin/super_admin`. |
-| **Fix** | `auth.contract.ts`; `auth.types.ts` re-exports; login uses `normalizeAuthRole`; tenant-user uses `TENANT_USER_ROLES`. |
+| **Fix** | `auth.contract.ts`; `auth.types.ts` re-exports; login uses `normalizeAuthRole`; tenant-user uses `TENANT_USER_ROLES`; middleware/controllers use `isAdminRole` / `normalizeAuthRole`. |
 
 ---
 
@@ -97,7 +97,6 @@ pnpm run db:sync-check   # Phase 1 gate still green
 ## Intentionally deferred
 
 - Full Zod validation on every route (contracts + normalizers first; schema validation can layer on later)
-- Migrating every remaining `{ error }` response in content/upload modules
 - Collapsing `Tenant.theme` column vs JSON dual storage to one DB column (serializer now prefers JSON themeKey consistently)
 - Frontend typecheck enablement (`ignoreBuildErrors`) — Phase 3+
 - 404-masking in TenantLayout — Phase 3 frontend

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { prisma } from '@saas/database';
 import { invalidatePublicTenantCacheByTenantId } from '../../tenant/infrastructure/public-tenant-cache';
+import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -12,7 +13,7 @@ router.get('/services', authMiddleware, async (req, res) => {
   try {
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const services = await prisma.service.findMany({
@@ -20,9 +21,9 @@ router.get('/services', authMiddleware, async (req, res) => {
       orderBy: { position: 'asc' },
     });
 
-    return res.json({ success: true, data: services });
+    return sendSuccess(res, 200, services, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -33,7 +34,7 @@ router.post('/services', authMiddleware, async (req, res) => {
     const { name, description, icon } = req.body;
 
     if (!tenantId || !name) {
-      return res.status(400).json({ error: 'Tenant and name are required' });
+      return sendError(res, 400, 'Tenant and name are required', { code: 'VALIDATION_ERROR', req });
     }
 
     const maxPosition = await prisma.service.findFirst({
@@ -53,9 +54,9 @@ router.post('/services', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.status(201).json({ success: true, data: service });
+    return sendSuccess(res, 201, service, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -69,7 +70,7 @@ router.put('/services/:id', authMiddleware, async (req, res) => {
     // Verify ownership
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service || service.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     const updated = await prisma.service.update({
@@ -83,9 +84,9 @@ router.put('/services/:id', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: updated });
+    return sendSuccess(res, 200, updated, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -97,14 +98,14 @@ router.delete('/services/:id', authMiddleware, async (req, res) => {
 
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service || service.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     await prisma.service.delete({ where: { id: serviceId } });
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, message: 'Service deleted' });
+    return sendSuccess(res, 200, { message: 'Service deleted' }, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -115,16 +116,16 @@ router.get('/social', authMiddleware, async (req, res) => {
   try {
     const tenantId = (req.user as any)?.tenantId;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return sendError(res, 401, 'Unauthorized', { code: 'UNAUTHORIZED', req });
     }
 
     const links = await prisma.socialLink.findMany({
       where: { tenantId },
     });
 
-    return res.json({ success: true, data: links });
+    return sendSuccess(res, 200, links, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -135,7 +136,7 @@ router.post('/social', authMiddleware, async (req, res) => {
     const { platform, url, label } = req.body;
 
     if (!tenantId || !platform || !url) {
-      return res.status(400).json({ error: 'Platform and URL are required' });
+      return sendError(res, 400, 'Platform and URL are required', { code: 'VALIDATION_ERROR', req });
     }
 
     const link = await prisma.socialLink.create({
@@ -148,9 +149,9 @@ router.post('/social', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.status(201).json({ success: true, data: link });
+    return sendSuccess(res, 201, link, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -163,7 +164,7 @@ router.put('/social/:id', authMiddleware, async (req, res) => {
 
     const link = await prisma.socialLink.findUnique({ where: { id: linkId } });
     if (!link || link.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     const updated = await prisma.socialLink.update({
@@ -175,9 +176,9 @@ router.put('/social/:id', authMiddleware, async (req, res) => {
     });
 
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, data: updated });
+    return sendSuccess(res, 200, updated, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 
@@ -189,14 +190,14 @@ router.delete('/social/:id', authMiddleware, async (req, res) => {
 
     const link = await prisma.socialLink.findUnique({ where: { id: linkId } });
     if (!link || link.tenantId !== tenantId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden', { code: 'FORBIDDEN', req });
     }
 
     await prisma.socialLink.delete({ where: { id: linkId } });
     await invalidatePublicTenantCacheByTenantId(tenantId);
-    return res.json({ success: true, message: 'Social link deleted' });
+    return sendSuccess(res, 200, { message: 'Social link deleted' }, req);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return sendError(res, 500, error.message || 'Internal error', { code: 'INTERNAL_ERROR', req });
   }
 });
 

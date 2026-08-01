@@ -140,13 +140,12 @@ export function getTenantApiClient() {
   };
 }
 
-export type TenantRecord = {
-  id: string;
-  name?: string;
-  slug?: string | null;
-  domain?: string | null;
-  createdAt?: string;
-};
+import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
+
+export type TenantRecord = Pick<
+  TenantPublicPayload,
+  'id' | 'name' | 'slug' | 'domain' | 'createdAt'
+>;
 
 export function toArrayPayload(data: unknown): any[] {
   const nested = (data as { data?: unknown })?.data;

@@ -107,14 +107,15 @@ export default function GalleryManager() {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
 
-          if (!uploadResponse?.url) {
+          const uploadedUrl = uploadResponse?.data?.url ?? uploadResponse?.url;
+          if (!uploadedUrl) {
             const uploadError =
               uploadResponse?.error || uploadResponse?.message || 'Upload service did not return a URL.';
             throw new Error(String(uploadError));
           }
 
           const createResponse = await api.post('/gallery', {
-            url: uploadResponse.url,
+            url: uploadedUrl,
             category: selectedCategory,
             alt: file.name,
           });
