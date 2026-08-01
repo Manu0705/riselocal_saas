@@ -5,8 +5,6 @@ import {
   normalizeLeadStatus,
 } from '@saas/domain-core/lead.contract';
 
-export type { LeadStatus };
-
 interface LeadProps {
   id: string;
   tenantId: string;

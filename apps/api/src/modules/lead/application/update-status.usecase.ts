@@ -1,4 +1,4 @@
-import { LeadStatus } from '../domain/lead.entity';
+import { LeadStatus } from '@saas/domain-core/lead.contract';
 import { LeadRepository } from '../domain/lead.repository';
 import { AppError } from '../../../shared/errors/app-error';
 
