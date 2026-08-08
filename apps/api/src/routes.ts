@@ -5,6 +5,10 @@ import leadRoutes from './modules/lead/presentation/lead.routes';
 import leadPublicRoutes from './modules/lead/presentation/lead.public.routes';
 import feedbackRoutes from './modules/feedback/presentation/feedback.routes';
 import feedbackPublicRoutes from './modules/feedback/presentation/feedback.public.routes';
+import diningRoutes from './modules/dining/presentation/dining.routes';
+import diningPublicRoutes from './modules/dining/presentation/dining.public.routes';
+import sessionTokenRoutes from './modules/dining/presentation/session-token.routes';
+import sessionTokenPublicRoutes from './modules/dining/presentation/session-token.public.routes';
 import { authMiddleware } from './modules/auth/presentation/auth.middleware';
 import authRoutes from './modules/auth/presentation/auth.routes';
 import tenantUserRoutes from './modules/tenant/presentation/tenant-user.routes';
@@ -40,6 +44,8 @@ router.use(tenantRoutes);
 router.use(tenantUserRoutes);
 router.use(leadPublicRoutes);
 router.use(feedbackPublicRoutes);
+router.use(diningPublicRoutes);
+router.use(sessionTokenPublicRoutes);
 
 /* =========================================
    AUTH PROTECTED ROUTES
@@ -55,6 +61,8 @@ router.use(tenantAccessMiddleware);
 
 router.use(leadRoutes);
 router.use(feedbackRoutes);
+router.use(diningRoutes);
+router.use(sessionTokenRoutes);
 router.use(uploadRoutes);
 router.use(galleryRoutes);
 router.use(tenantSettingsRoutes);

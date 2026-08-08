@@ -23,6 +23,45 @@ const {
 
 const { normalizeAuthRole, isAdminRole, normalizeTenantUserRole } = require('../dist/auth.contract.js');
 const { apiError, apiSuccess } = require('../dist/api-response.contract.js');
+const {
+  normalizeSessionParticipantRole,
+  normalizeSessionParticipantStatus,
+  normalizeSessionTokenStatus,
+  isValidSessionToken,
+  isValidDeviceId,
+} = require('../dist/dining/session.validation.js');
+const {
+  resolveSessionParticipantPermissions,
+  DINING_SESSION_PARTICIPANT_PERMISSION_REMOVE,
+  DINING_SESSION_TRANSFER_OWNERSHIP_PERMISSION,
+} = require('../dist/dining/waiter-assist.permissions.js');
+const {
+  normalizeOrderRoundStatus,
+  normalizeOrderStatus,
+  normalizeKitchenItemStatus,
+  canTransitionOrderRoundStatus,
+} = require('../dist/dining/order-round.validation.js');
+const {
+  normalizeOrderLockStatus,
+  normalizeOrderItemLockStatus,
+  canTransitionOrderLockStatus,
+  canTransitionOrderItemLockStatus,
+} = require('../dist/dining/order-lock.validation.js');
+const {
+  normalizeModificationStatus,
+  normalizeAdjustmentType,
+  canTransitionModificationStatus,
+} = require('../dist/dining/order-modification.validation.js');
+const {
+  normalizeTableTransferStatus,
+  normalizeTableAssignmentStatus,
+  canTransitionTableTransferStatus,
+} = require('../dist/dining/table-transfer.validation.js');
+const {
+  normalizeTableMergeStatus,
+  normalizeTableGroupStatus,
+  canTransitionTableMergeStatus,
+} = require('../dist/dining/table-group.validation.js');
 
 assert.deepEqual([...LEAD_STATUSES], ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'CLOSED']);
 
@@ -63,5 +102,46 @@ const err = apiError('boom', { code: 'X' });
 assert.equal(err.success, false);
 assert.equal(err.message, 'boom');
 assert.equal(err.code, 'X');
+
+assert.equal(normalizeSessionParticipantRole('waiter'), 'WAITER');
+assert.equal(normalizeSessionParticipantStatus('disconnected'), 'DISCONNECTED');
+assert.equal(normalizeSessionParticipantStatus('removed'), 'REMOVED');
+assert.equal(normalizeSessionTokenStatus('active'), 'ACTIVE');
+assert.equal(isValidSessionToken('S9F2-KM8A-Q7P4'), true);
+assert.equal(isValidSessionToken('bad token'), false);
+assert.equal(isValidDeviceId('device-12345'), true);
+assert.equal(isValidDeviceId('a'), false);
+
+const waiterPermissions = resolveSessionParticipantPermissions('WAITER');
+const managerPermissions = resolveSessionParticipantPermissions('MANAGER');
+assert.equal(waiterPermissions.length > 0, true);
+assert.equal(managerPermissions.includes(DINING_SESSION_PARTICIPANT_PERMISSION_REMOVE), true);
+assert.equal(managerPermissions.includes(DINING_SESSION_TRANSFER_OWNERSHIP_PERMISSION), true);
+
+assert.equal(normalizeOrderRoundStatus('processing'), 'PROCESSING');
+assert.equal(normalizeOrderStatus('completed'), 'COMPLETED');
+assert.equal(normalizeKitchenItemStatus('ready'), 'READY');
+assert.equal(canTransitionOrderRoundStatus('DRAFT', 'SUBMITTED'), true);
+assert.equal(canTransitionOrderRoundStatus('COMPLETED', 'DRAFT'), false);
+
+assert.equal(normalizeOrderLockStatus('lock requested'), 'LOCK_REQUESTED');
+assert.equal(normalizeOrderItemLockStatus('processing'), 'PROCESSING');
+assert.equal(canTransitionOrderLockStatus('UNLOCKED', 'LOCKED'), true);
+assert.equal(canTransitionOrderItemLockStatus('LOCKED', 'DRAFT'), false);
+
+assert.equal(normalizeModificationStatus('approved'), 'APPROVED');
+assert.equal(normalizeAdjustmentType('quantity-change'), 'QUANTITY_CHANGE');
+assert.equal(canTransitionModificationStatus('REQUESTED', 'APPROVED'), true);
+assert.equal(canTransitionModificationStatus('REJECTED', 'APPROVED'), false);
+
+assert.equal(normalizeTableTransferStatus('rejected'), 'REJECTED');
+assert.equal(normalizeTableAssignmentStatus('released'), 'RELEASED');
+assert.equal(canTransitionTableTransferStatus('REQUESTED', 'APPROVED'), true);
+assert.equal(canTransitionTableTransferStatus('COMPLETED', 'REQUESTED'), false);
+assert.equal(normalizeTableMergeStatus('approved'), 'APPROVED');
+assert.equal(normalizeTableGroupStatus('released'), 'RELEASED');
+assert.equal(canTransitionTableMergeStatus('REQUESTED', 'APPROVED'), true);
+assert.equal(canTransitionTableMergeStatus('APPROVED', 'COMPLETED'), true);
+assert.equal(canTransitionTableMergeStatus('COMPLETED', 'REQUESTED'), false);
 
 console.log('PASS: domain-core contract selftest');

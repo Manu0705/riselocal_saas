@@ -55,6 +55,7 @@
     "db:sync-check": "bash scripts/db-sync-check.sh",
     "db:validate": "pnpm --filter @saas/database exec prisma validate",
     "test:contracts": "pnpm --filter @saas/domain-core run build && pnpm --filter @saas/domain-core run test:contracts",
+    "test:dining": "pnpm run build:api && node --test tests/dining/**/*.test.cjs",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write .",

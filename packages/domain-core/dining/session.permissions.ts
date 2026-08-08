@@ -1,0 +1,13 @@
+export const DINING_SESSION_PERMISSION_CREATE = 'dining.session.create';
+export const DINING_SESSION_PERMISSION_ASSIGN_WAITER = 'dining.session.assign-waiter';
+export const DINING_SESSION_PERMISSION_UPDATE_GUESTS = 'dining.session.update-guests';
+export const DINING_SESSION_PERMISSION_CHANGE_STATUS = 'dining.session.change-status';
+export const DINING_SESSION_PERMISSION_CLOSE = 'dining.session.close';
+export const DINING_SESSION_PERMISSION_ARCHIVE = 'dining.session.archive';
+export const DINING_SESSION_PERMISSION_VIEW = 'dining.session.view';
+export const DINING_SESSION_TOKEN_PERMISSION_GENERATE = 'dining.session-token.generate';
+export const DINING_SESSION_TOKEN_PERMISSION_VALIDATE = 'dining.session-token.validate';
+export const DINING_SESSION_TOKEN_PERMISSION_JOIN = 'dining.session-token.join';
+export const DINING_SESSION_TOKEN_PERMISSION_LEAVE = 'dining.session-token.leave';
+export const DINING_SESSION_TOKEN_PERMISSION_REGENERATE = 'dining.session-token.regenerate';
+export const DINING_SESSION_TOKEN_PERMISSION_VIEW_PARTICIPANTS = 'dining.session-token.view-participants';

@@ -10,6 +10,8 @@
     "./tenant.contract": "./dist/tenant.contract.js",
     "./lead/*": "./dist/lead/*.js",
     "./feedback/*": "./dist/feedback/*.js",
+    "./dining": "./dist/dining/index.js",
+    "./dining/*": "./dist/dining/*.js",
     "./*": "./dist/*.js"
   },
   "main": "dist/lead.contract.js",

@@ -1,0 +1,862 @@
+FIS-000
+DiningOS Menu & Catalog Engine
+Reason:
+Almost every feature depends on menu data:
+•	Cart
+•	Orders
+•	Kitchen
+•	Billing
+•	Out-of-stock
+Without a proper menu model, the ordering engine will become unstable.
+It should define:
+Menu
+
+ ├── Categories
+
+ ├── Items
+
+ │     ├── Variants
+
+ │     ├── Add-ons
+
+ │     ├── Modifiers
+
+ │     └── Pricing
+
+ └── Availability
+I would treat this as P0.5.
+________________________________________
+Recommended Implementation Sequence
+The actual coding order should be:
+FIS-000
+Menu Engine
+
+        ↓
+
+FIS-001
+Dining Session
+
+        ↓
+
+FIS-002
+Session Token
+
+        ↓
+
+FIS-003
+Table State Engine
+
+        ↓
+
+FIS-004
+Shared Cart
+
+        ↓
+
+FIS-005
+Order Rounds
+
+        ↓
+
+FIS-006
+Waiter Ordering
+
+        ↓
+
+FIS-012
+Kitchen Workflow
+
+        ↓
+
+FIS-007
+Order Locking
+
+        ↓
+
+FIS-008
+Stock Control
+
+        ↓
+
+FIS-009
+Transfer
+
+        ↓
+
+FIS-010
+Merge
+
+        ↓
+
+FIS-011
+Split
+
+        ↓
+
+FIS-013
+Billing
+
+        ↓
+
+FIS-014
+Closure
+
+        ↓
+
+FIS-015
+Permissions
+
+        ↓
+
+FIS-016
+Audit
+
+        ↓
+
+FIS-017
+Shift
+
+        ↓
+
+FIS-018
+Realtime Hardening
+________________________________________
+Next Document
+I will start with:
+FIS-000 — DiningOS Menu & Catalog Engine
+because it is the foundation for ordering, kitchen workflow, billing, and inventory availability.
+After completing FIS-000, we proceed sequentially through FIS-001 to FIS-018.
+
+
+
+
+
+
+
+
+
+
+
+RiseLocal DiningOS
+Feature Implementation Specification (FIS-000)
+DiningOS Menu & Catalog Engine
+Version: 1.0
+Priority: P0 Foundation
+Status: Draft Specification
+Module: DiningOS → Menu Domain
+Dependencies: RiseLocal Core Platform (Tenant, Location, Users, RBAC, Audit)
+________________________________________
+1. Feature Overview
+The DiningOS Menu & Catalog Engine is the foundational product catalog system that powers restaurant ordering, kitchen operations, billing, availability control, analytics, and future inventory integration.
+The menu is not simply a list of food items.
+It is a structured business model that defines:
+•	What customers can order.
+•	How items are grouped.
+•	How items are priced.
+•	What variations exist.
+•	What customization options are available.
+•	Whether an item can currently be sold.
+•	How kitchen preparation should happen.
+________________________________________
+2. Business Objective
+The system must allow restaurants to digitally represent their complete menu while supporting real-world restaurant complexity.
+Examples:
+Simple item:
+Tea
+₹50
+Complex item:
+Pizza
+
+Variants:
+- Small
+- Medium
+- Large
+
+Add-ons:
+- Extra Cheese
+- Jalapeno
+- Mushroom
+
+Modifiers:
+- Less spicy
+- No onion
+
+Kitchen Station:
+- Pizza Counter
+________________________________________
+3. Scope
+Included in P0
+The Menu Engine supports:
+•	Menu creation
+•	Categories
+•	Items
+•	Variants
+•	Add-ons
+•	Modifiers
+•	Pricing
+•	Images
+•	Availability
+•	Kitchen routing
+•	Ordering integration
+________________________________________
+Not Included in P0
+Future versions:
+•	Ingredient inventory
+•	Recipe management
+•	Automatic stock deduction
+•	Nutrition information
+•	AI recommendations
+•	Dynamic pricing
+•	Customer personalization
+________________________________________
+4. Actors
+Actor	Responsibility
+Owner	Manage menu structure
+Manager	Update availability and pricing
+Kitchen Manager	Configure preparation routing
+Waiter	View active menu
+Customer	Browse and order
+Super Admin	Platform support
+________________________________________
+5. Domain Model
+The menu hierarchy:
+Menu
+
+ └── Categories
+
+       └── Items
+
+             ├── Variants
+
+             ├── Add-ons
+
+             ├── Modifiers
+
+             ├── Pricing
+
+             ├── Images
+
+             └── Availability
+________________________________________
+6. Core Entities
+________________________________________
+6.1 Menu
+Represents a restaurant menu.
+Example:
+Dinner Menu
+
+Lunch Menu
+
+Weekend Special
+Entity:
+Menu {
+ id
+ tenantId
+ locationId
+ name
+ description
+ status
+ sortOrder
+ createdAt
+ updatedAt
+}
+________________________________________
+Rules
+•	A location can have multiple menus.
+•	Only active menus are visible to customers.
+•	A menu belongs to one location.
+________________________________________
+6.2 Category
+Groups menu items.
+Examples:
+Starters
+
+Main Course
+
+Desserts
+
+Drinks
+Entity:
+MenuCategory {
+
+ id
+
+ menuId
+
+ name
+
+ description
+
+ image
+
+ sortOrder
+
+ status
+
+}
+________________________________________
+Rules
+•	Category belongs to one menu.
+•	Categories control display ordering.
+•	Empty categories should not appear publicly.
+________________________________________
+6.3 Menu Item
+The primary sellable product.
+Examples:
+Butter Chicken
+
+Masala Dosa
+
+Cold Coffee
+Entity:
+MenuItem {
+
+ id
+
+ categoryId
+
+ name
+
+ description
+
+ shortDescription
+
+ image
+
+ basePrice
+
+ itemType
+
+ kitchenStationId
+
+ status
+
+ availability
+
+}
+________________________________________
+Item Types
+STANDARD
+
+VARIABLE
+
+COMBO
+
+SERVICE
+________________________________________
+Examples:
+Standard:
+Coffee
+$50
+Variable:
+Pizza
+Small $100
+Large $250
+________________________________________
+6.4 Variant
+Used when one item has multiple forms.
+Examples:
+Burger
+
+Small
+
+Medium
+
+Large
+Entity:
+ItemVariant {
+
+ id
+
+ itemId
+
+ name
+
+ priceAdjustment
+
+ sku
+
+ status
+
+}
+________________________________________
+Example:
+Base:
+Burger
+$5
+Variants:
+Regular
++$0
+
+Double
++$2
+________________________________________
+6.5 Add-on
+Optional additions.
+Examples:
+Extra Cheese
+
+Extra Sauce
+
+Extra Bread
+Entity:
+Addon {
+
+ id
+
+ itemId
+
+ name
+
+ price
+
+ maxQuantity
+
+ status
+
+}
+________________________________________
+Rules:
+•	Add-ons cannot exist without an item.
+•	Customer quantity limits can be configured.
+________________________________________
+6.6 Modifier
+Customer instructions.
+Examples:
+No onion
+
+Less spicy
+
+Extra crispy
+Entity:
+Modifier {
+
+ id
+
+ itemId
+
+ name
+
+ type
+
+ status
+
+}
+________________________________________
+Modifier types:
+TEXT
+
+OPTION
+
+BOOLEAN
+________________________________________
+Examples:
+Boolean:
+Make spicy?
+Yes/No
+Option:
+Spice Level:
+
+Mild
+
+Medium
+
+Hot
+________________________________________
+6.7 Pricing
+Pricing must support future complexity.
+Entity:
+ItemPrice {
+
+ id
+
+ itemId
+
+ variantId
+
+ amount
+
+ currency
+
+ effectiveFrom
+
+ effectiveTo
+
+}
+________________________________________
+Future support:
+•	Happy hours
+•	Branch-specific pricing
+•	Seasonal menus
+________________________________________
+6.8 Availability
+Controls whether customers can order.
+Entity:
+ItemAvailability {
+
+ id
+
+ itemId
+
+ status
+
+ reason
+
+ updatedBy
+
+ updatedAt
+
+}
+States:
+AVAILABLE
+
+OUT_OF_STOCK
+
+DISABLED
+
+TEMPORARILY_UNAVAILABLE
+________________________________________
+6.9 Kitchen Station
+Defines where preparation happens.
+Examples:
+Kitchen
+
+Bar
+
+Dessert Counter
+
+Bakery
+Entity:
+KitchenStation {
+
+ id
+
+ locationId
+
+ name
+
+ status
+
+}
+________________________________________
+Purpose:
+When an order arrives:
+Burger
+
+↓
+
+Kitchen Station
+
+↓
+
+Kitchen Queue
+________________________________________
+7. Database Design
+Tables
+menus
+
+menu_categories
+
+menu_items
+
+item_variants
+
+item_addons
+
+item_modifiers
+
+item_prices
+
+item_availability
+
+kitchen_stations
+
+menu_item_images
+________________________________________
+All tables include:
+id
+
+tenant_id
+
+location_id
+
+created_at
+
+updated_at
+
+created_by
+
+updated_by
+
+version
+________________________________________
+8. Important Database Constraints
+Unique Item Name
+Within a location:
+Same category:
+
+Burger
+
+Burger
+
+should be prevented if business rules require uniqueness.
+________________________________________
+Soft Delete
+Never hard delete sold items.
+Reason:
+Historical orders must always display original item information.
+Example:
+Old order:
+Chicken Biryani
+$12
+must remain visible even if the menu item is removed later.
+________________________________________
+9. API Design
+Base:
+/api/v1/dining/menu
+________________________________________
+Menu APIs
+Create Menu
+POST /menus
+________________________________________
+Get Active Menu
+GET /menus/public
+Customer QR flow uses this.
+________________________________________
+Update Menu
+PATCH /menus/:id
+________________________________________
+Category APIs
+POST /categories
+
+PATCH /categories/:id
+
+DELETE /categories/:id
+________________________________________
+Item APIs
+Create:
+POST /items
+Update:
+PATCH /items/:id
+Availability:
+PATCH /items/:id/availability
+________________________________________
+Variant APIs
+POST /items/:id/variants
+
+DELETE /variants/:id
+________________________________________
+Add-on APIs
+POST /items/:id/addons
+________________________________________
+10. Domain Events
+The Menu Engine publishes events.
+________________________________________
+MenuCreated
+{
+ menuId,
+ locationId
+}
+________________________________________
+ItemAvailabilityChanged
+Example:
+Chicken 65
+
+AVAILABLE
+
+↓
+
+OUT_OF_STOCK
+Event:
+{
+ itemId,
+ oldStatus,
+ newStatus,
+ changedBy
+}
+Consumers:
+•	Customer menu
+•	Waiter app
+•	Kitchen
+•	Analytics
+________________________________________
+PriceChanged
+Consumers:
+•	Cart validation
+•	Billing
+________________________________________
+11. Business Rules
+Rule 1
+Customers only see:
+Active Menu
+
++
+
+Available Items
+________________________________________
+Rule 2
+Out-of-stock items cannot enter a new cart.
+________________________________________
+Rule 3
+Existing orders are not affected by menu changes.
+________________________________________
+Rule 4
+Price changes apply only to future orders.
+Existing orders retain original pricing.
+________________________________________
+Rule 5
+Deleting a menu item is actually archival.
+________________________________________
+12. Permissions
+Action	Owner	Manager	Waiter
+Create Menu	✓	✓	✗
+Edit Price	✓	✓	✗
+Disable Item	✓	✓	✗
+View Menu	✓	✓	✓
+Change Availability	✓	✓	Limited
+________________________________________
+13. UI Requirements
+Customer Menu
+Must support:
+•	Mobile-first browsing
+•	Categories
+•	Images
+•	Search
+•	Item customization
+•	Availability indicators
+________________________________________
+Staff Menu
+Additional controls:
+•	Quick availability toggle
+•	Edit item
+•	View kitchen routing
+•	Price update
+________________________________________
+14. Edge Cases
+Item Sold Out While In Cart
+Example:
+Customer adds:
+Butter Chicken
+Kitchen marks unavailable.
+System:
+•	Allows existing draft cart to continue.
+•	Validates before submission.
+•	Shows unavailable message.
+________________________________________
+Price Changed During Ordering
+Example:
+Cart:
+Coffee $5
+Manager changes:
+Coffee $6
+Before checkout:
+System:
+•	Shows updated price.
+•	Requires confirmation.
+________________________________________
+Deleted Item With Existing Orders
+Old orders display:
+Archived Item
+with original name and price.
+________________________________________
+Menu Empty
+System should:
+•	Show maintenance state.
+•	Prevent ordering.
+•	Notify manager.
+________________________________________
+15. Testing Requirements
+Unit Tests
+Must test:
+•	Price calculations
+•	Availability rules
+•	Variant selection
+•	Modifier validation
+________________________________________
+Integration Tests
+Test:
+•	Create menu
+•	Add item
+•	Update availability
+•	Retrieve public menu
+________________________________________
+End-to-End Tests
+Scenario:
+Manager creates menu
+
+↓
+
+Customer scans QR
+
+↓
+
+Customer sees item
+
+↓
+
+Customer orders
+
+↓
+
+Kitchen receives correct item
+________________________________________
+16. Acceptance Criteria
+DiningOS Menu Engine is complete when:
+✅ Restaurant can create menus.
+✅ Restaurant can create categories.
+✅ Restaurant can create items.
+✅ Items support variants.
+✅ Items support add-ons.
+✅ Items support modifiers.
+✅ Customer sees only active available items.
+✅ Staff can control availability.
+✅ Kitchen routing information is available.
+✅ Price changes do not corrupt existing orders.
+✅ Deleted items remain visible in historical orders.
+✅ All changes are tenant isolated.
+✅ All sensitive changes are audited.
+________________________________________
+17. Cursor / AI Implementation Notes
+When implementing this feature:
+Do not ask AI:
+"Build restaurant menu system"
+Instead:
+Use:
+Implement DiningOS Menu Engine.
+
+Reference:
+FIS-000
+
+Requirements:
+- Follow existing RiseLocal module structure.
+- Use tenant_id and location_id.
+- Add database migrations.
+- Add repository/service/domain separation.
+- Add validation.
+- Add tests.
+- Emit domain events.
+- Do not modify unrelated modules.
+________________________________________
+Dependency Output
+After FIS-000 is completed, the following features become possible:
+Menu Engine
+
+        ↓
+
+Dining Session
+
+        ↓
+
+Shared Cart
+
+        ↓
+
+Orders
+
+        ↓
+
+Kitchen Workflow
+
+        ↓
+
+Billing

@@ -30,6 +30,21 @@ model Tenant {
   galleryImages GalleryImage[]
   socialLinks SocialLink[]
   services  Service[]
+  menus     Menu[]
+  kitchenStations KitchenStation[]
+  diningTables DiningTable[]
+  diningCarts DiningCart[]
+  diningSessions DiningSession[]
+  diningOrderRounds DiningOrderRound[]
+  diningOrders DiningOrder[]
+  diningOrderItems DiningOrderItem[]
+  diningOrderLocks DiningOrderLock[]
+  diningOrderLockEvents DiningOrderLockEvent[]
+  diningOrderModificationRequests DiningOrderModificationRequest[]
+  diningOrderItemAdjustments DiningOrderItemAdjustment[]
+  diningTableGroups DiningTableGroup[]
+  diningTableGroupMembers DiningTableGroupMember[]
+  diningTableMergeRequests DiningTableMergeRequest[]
 
   @@index([createdAt])
 }
@@ -267,4 +282,775 @@ model Service {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+}
+
+model Menu {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categories   MenuCategory[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, sortOrder])
+}
+
+model MenuCategory {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  menuId      String
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  menu        Menu        @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items       MenuItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([menuId])
+  @@index([menuId, sortOrder])
+}
+
+model MenuItem {
+  id                String   @id @default(uuid())
+  tenantId          String
+  locationId        String
+  categoryId        String
+  name              String
+  description       String?
+  shortDescription  String?
+  image             String?
+  basePrice         Float?
+  itemType          String   @default("STANDARD")
+  kitchenStationId  String?
+  status            String   @default("ACTIVE")
+  availability      String   @default("AVAILABLE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+  updatedBy         String?
+  version           Int      @default(0)
+  deletedAt         DateTime?
+
+  category          MenuCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  kitchenStation    KitchenStation?     @relation(fields: [kitchenStationId], references: [id], onDelete: SetNull)
+  variants          ItemVariant[]
+  addons            ItemAddon[]
+  modifiers         ItemModifier[]
+  prices            ItemPrice[]
+  availabilityState ItemAvailability?
+  images            MenuItemImage[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, categoryId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, availability])
+}
+
+model ItemVariant {
+  id              String   @id @default(uuid())
+  tenantId        String
+  locationId      String
+  itemId          String
+  name            String
+  priceAdjustment Float?
+  sku             String?
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  version         Int      @default(0)
+  deletedAt       DateTime?
+
+  item            MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  prices          ItemPrice[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([itemId])
+}
+
+model ItemAddon {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  itemId      String
+  name        String
+  price       Float?
+  maxQuantity Int?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([itemId])
+}
+
+model ItemModifier {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  itemId      String
+  name        String
+  type        String   @default("TEXT")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([itemId])
+}
+
+model ItemPrice {
+  id              String   @id @default(uuid())
+  tenantId        String
+  locationId      String
+  itemId          String
+  variantId       String?
+  amount          Float?
+  currency        String   @default("INR")
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  version         Int      @default(0)
+  deletedAt       DateTime?
+
+  item            MenuItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  variant         ItemVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([itemId])
+  @@index([tenantId, locationId, effectiveFrom])
+}
+
+model ItemAvailability {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  itemId      String   @unique
+  status      String   @default("AVAILABLE")
+  reason      String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, status])
+}
+
+model KitchenStation {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  name        String
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items       MenuItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, name])
+}
+
+model MenuItemImage {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  itemId      String
+  url         String
+  sortOrder   Int      @default(0)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  version     Int      @default(0)
+  deletedAt   DateTime?
+
+  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([itemId])
+  @@index([itemId, sortOrder])
+}
+
+model DiningSession {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  tableId     String
+  status      String   @default("CREATED")
+  openedBy    String
+  openedAt    DateTime @default(now())
+  closedBy    String?
+  closedAt    DateTime?
+  assignedWaiterId String?
+  guestCount  Int      @default(0)
+  currentRound Int     @default(1)
+  participantCount Int @default(0)
+  version     Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  deletedAt   DateTime?
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table          DiningTable          @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  carts          DiningCart[]
+  orderRounds    DiningOrderRound[]
+  orders         DiningOrder[]
+  tokens         SessionToken[]
+  participants   SessionParticipant[]
+  tableAssignments DiningTableAssignment[]
+  tableTransferRequests DiningTableTransferRequest[]
+  tableGroups DiningTableGroup[]
+  tableMergeRequests DiningTableMergeRequest[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, tableId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningCart {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  roundNumber  Int      @default(1)
+  status      String   @default("ACTIVE")
+  subtotal    Int      @default(0)
+  total       Int      @default(0)
+  version     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  deletedAt   DateTime?
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session    DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  draftRound DiningOrderRound? @relation("DraftRoundCart")
+  items      DiningCartItem[]
+  snapshots  DiningCartSnapshot[]
+
+  @@unique([tenantId, locationId, sessionId, roundNumber])
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningOrderRound {
+  id             String   @id @default(uuid())
+  tenantId       String
+  locationId     String
+  sessionId      String
+  draftCartId    String?  @unique
+  roundNumber    Int
+  status         String   @default("DRAFT")
+  submittedBy    String?
+  submittedAt    DateTime?
+  cancelledBy    String?
+  cancelledAt    DateTime?
+  idempotencyKey String?
+  version        Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session        DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  draftCart      DiningCart?   @relation("DraftRoundCart", fields: [draftCartId], references: [id], onDelete: SetNull)
+  orders         DiningOrder[]
+
+  @@unique([tenantId, locationId, sessionId, roundNumber])
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, deletedAt])
+  @@index([tenantId, locationId, idempotencyKey])
+}
+
+model DiningOrder {
+  id           String   @id @default(uuid())
+  tenantId     String
+  locationId   String
+  roundId      String
+  sessionId    String
+  status       String   @default("SUBMITTED")
+  totalAmount  Int      @default(0)
+  submittedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+  deletedAt    DateTime?
+  version      Int      @default(0)
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  round        DiningOrderRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  session      DiningSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  items        DiningOrderItem[]
+  locks        DiningOrderLock[]
+  lockEvents   DiningOrderLockEvent[]
+  modifications DiningOrderModificationRequest[]
+  adjustments  DiningOrderItemAdjustment[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, roundId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningOrderItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  locationId    String
+  orderId       String
+  menuItemId    String
+  itemSnapshot  Json
+  priceSnapshot Json
+  quantity      Int      @default(1)
+  unitPrice     Int      @default(0)
+  subtotal      Int      @default(0)
+  kitchenStatus String   @default("PENDING")
+  lockStatus    String   @default("DRAFT")
+  lockedAt      DateTime?
+  lockedBy      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  deletedAt     DateTime?
+  version       Int      @default(0)
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order         DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  adjustments   DiningOrderItemAdjustment[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, orderId])
+  @@index([tenantId, locationId, kitchenStatus])
+  @@index([tenantId, locationId, lockStatus])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningOrderLock {
+  id             String   @id @default(uuid())
+  tenantId       String
+  locationId     String
+  orderId        String
+  status         String   @default("UNLOCKED")
+  lockedBy       String?
+  lockedAt       DateTime?
+  reason         String?
+  idempotencyKey String?
+  version        Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order          DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId])
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, orderId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, lockedAt])
+  @@index([tenantId, locationId, idempotencyKey])
+}
+
+model DiningOrderLockEvent {
+  id            String   @id @default(uuid())
+  tenantId      String
+  locationId    String
+  orderId       String
+  action        String
+  performedBy   String?
+  previousState String?
+  newState      String?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order         DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, orderId])
+  @@index([tenantId, locationId, action])
+  @@index([tenantId, locationId, createdAt])
+}
+
+model DiningOrderModificationRequest {
+  id             String   @id @default(uuid())
+  tenantId       String
+  locationId     String
+  orderId        String
+  sessionId      String
+  requestedBy    String
+  reason         String
+  status         String   @default("REQUESTED")
+  approvedBy     String?
+  completedAt    DateTime?
+  rejectedReason String?
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order          DiningOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  adjustments    DiningOrderItemAdjustment[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, orderId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, idempotencyKey])
+}
+
+model DiningOrderItemAdjustment {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  locationId            String
+  orderId               String
+  orderItemId           String
+  modificationRequestId String
+  type                  String
+  oldValue              Json?
+  newValue              Json?
+  reason                String
+  createdBy             String
+  createdAt             DateTime @default(now())
+
+  tenant                Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order                 DiningOrder                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem             DiningOrderItem                @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  modificationRequest   DiningOrderModificationRequest @relation(fields: [modificationRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, orderId])
+  @@index([tenantId, locationId, orderItemId])
+  @@index([tenantId, locationId, modificationRequestId])
+  @@index([tenantId, locationId, type])
+  @@index([tenantId, locationId, createdAt])
+}
+
+model DiningCartItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  cartId      String
+  menuItemId  String
+  variantId   String?
+  quantity    Int      @default(1)
+  notes       String?
+  modifiers   Json?
+  unitPrice   Int      @default(0)
+  subtotal    Int      @default(0)
+  addedBy     String?
+  addedAt     DateTime @default(now())
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  status      String   @default("DRAFT")
+  deletedAt   DateTime?
+  version     Int      @default(0)
+
+  cart        DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, cartId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningCartSnapshot {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  cartId      String
+  version     Int
+  checksum    String
+  createdAt   DateTime @default(now())
+
+  cart        DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, version])
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, cartId])
+}
+
+model DiningTable {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  locationId          String
+  areaId              String
+  name                String
+  capacity            Int      @default(0)
+  status              String   @default("AVAILABLE")
+  activeSessionId     String?
+  currentWaiterId     String?
+  lastStatusChangedAt DateTime @default(now())
+  lastStatusChangedBy  String
+  version             Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           String?
+  updatedBy           String?
+  deletedAt           DateTime?
+
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions            DiningSession[]
+  tableAssignments    DiningTableAssignment[]
+  transfersFrom       DiningTableTransferRequest[] @relation("TableTransferFrom")
+  transfersTo         DiningTableTransferRequest[] @relation("TableTransferTo")
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, areaId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, activeSessionId])
+  @@index([tenantId, locationId, deletedAt])
+}
+
+model DiningTableAssignment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  tableId     String
+  status      String   @default("ACTIVE")
+  assignedAt  DateTime @default(now())
+  releasedAt  DateTime?
+  assignedBy  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  table       DiningTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, tableId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, assignedAt])
+}
+
+model DiningTableTransferRequest {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  fromTableId String
+  toTableId   String
+  requestedBy String
+  reason      String
+  status      String   @default("REQUESTED")
+  approvedBy  String?
+  rejectedReason String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fromTable   DiningTable   @relation("TableTransferFrom", fields: [fromTableId], references: [id], onDelete: Cascade)
+  toTable     DiningTable   @relation("TableTransferTo", fields: [toTableId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, fromTableId])
+  @@index([tenantId, locationId, toTableId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, createdAt])
+}
+
+model DiningTableGroup {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  status      String   @default("ACTIVE")
+  createdBy   String
+  createdAt   DateTime @default(now())
+  releasedAt  DateTime?
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session     DiningSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  members     DiningTableGroupMember[]
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, createdAt])
+}
+
+model DiningTableGroupMember {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tableGroupId  String
+  tableId       String
+  joinedAt      DateTime @default(now())
+  releasedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tableGroup    DiningTableGroup @relation(fields: [tableGroupId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tableGroupId])
+  @@index([tableId])
+}
+
+model DiningTableMergeRequest {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  tableIds    Json
+  requestedBy String
+  reason      String
+  status      String   @default("REQUESTED")
+  approvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, sessionId])
+  @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId, createdAt])
+}
+
+model SessionToken {
+  id            String   @id @default(uuid())
+  tenantId      String
+  locationId    String
+  sessionId     String
+  token         String
+  status        String   @default("GENERATED")
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  createdBy     String?
+  lastAccessedAt DateTime?
+  regeneratedAt DateTime?
+
+  session       DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId])
+  @@unique([token])
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, token])
+  @@index([tenantId, locationId, status])
+  @@index([sessionId, status])
+}
+
+model SessionParticipant {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String
+  sessionId   String
+  actorId     String?
+  role        String
+  participantType String @default("CUSTOMER")
+  displayName String?
+  deviceId    String
+  status      String   @default("JOINING")
+  permissions Json?
+  joinedBy    String?
+  joinedAt    DateTime @default(now())
+  leftAt      DateTime?
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, locationId])
+  @@index([sessionId])
+  @@index([sessionId, status])
+  @@index([sessionId, deviceId])
+  @@index([sessionId, actorId])
+  @@index([tenantId, locationId, sessionId, status])
 }
