@@ -5,8 +5,6 @@ ALTER TABLE "Student" ADD COLUMN "outstandingAmount" DECIMAL(12,2) NOT NULL DEFA
 ALTER TABLE "TenantSettings" ADD COLUMN "upiVpa" TEXT;
 ALTER TABLE "TenantSettings" ADD COLUMN "upiPayeeName" TEXT;
 
-CREATE UNIQUE INDEX "Student_id_tenantId_key" ON "Student"("id", "tenantId");
-
 CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
