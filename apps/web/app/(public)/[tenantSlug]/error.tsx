@@ -15,7 +15,7 @@ export default function TenantPageError({ error, reset }: Props) {
           </div>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-stone-900">This tenant page is not available right now</h1>
           <p className="mt-3 text-sm leading-6 text-stone-600">
-            {error.message || 'The upstream API may still be waking up. Please retry in a few seconds.'}
+            The tenant service is temporarily unavailable. Please retry in a few seconds.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button

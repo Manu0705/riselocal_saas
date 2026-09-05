@@ -2,10 +2,10 @@
  * Canonical auth role contract — matches runtime JWT / TenantUser roles.
  */
 
-export const AUTH_ROLES = ['owner', 'manager', 'staff', 'admin', 'super_admin'] as const;
+export const AUTH_ROLES = ['owner', 'manager', 'staff', 'student', 'admin', 'super_admin'] as const;
 export type AuthRole = (typeof AUTH_ROLES)[number];
 
-export const TENANT_USER_ROLES = ['owner', 'manager', 'staff'] as const;
+export const TENANT_USER_ROLES = ['owner', 'manager', 'staff', 'student'] as const;
 export type TenantUserRole = (typeof TENANT_USER_ROLES)[number];
 
 export const ADMIN_ROLES = ['admin', 'super_admin'] as const;

@@ -223,6 +223,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
       openHour,
       closeHour,
       availableHours,
+      upiVpa,
+      upiPayeeName,
     } = req.body;
 
     // Get or create settings
@@ -279,6 +281,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
           ...(tagline !== undefined && { tagline }),
           ...(logoUrl !== undefined && { logoUrl }),
           ...(bannerUrl !== undefined && { bannerUrl }),
+          ...(upiVpa !== undefined && { upiVpa }),
+          ...(upiPayeeName !== undefined && { upiPayeeName }),
         },
       });
     } else {
@@ -311,6 +315,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
           ...(tagline !== undefined && { tagline }),
           ...(logoUrl !== undefined && { logoUrl }),
           ...(bannerUrl !== undefined && { bannerUrl }),
+          ...(upiVpa !== undefined && { upiVpa }),
+          ...(upiPayeeName !== undefined && { upiPayeeName }),
         },
       });
     }

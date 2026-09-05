@@ -143,7 +143,11 @@ const RESERVED_SLUGS = [
   '_next',
   'qa',
   'www',
+  'wp-admin',
+  'xmlrpc',
 ];
+
+const TENANT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function toSlug(value: string): string {
   const unsupportedCharsRegex = /[^a-z0-9\s-]/g;
@@ -246,6 +250,10 @@ router.get('/tenants/slug/:slug', async (req, res) => {
     const slug = String(req.params.slug || '')
       .trim()
       .toLowerCase();
+
+    if (!TENANT_SLUG_PATTERN.test(slug) || RESERVED_SLUGS.includes(slug)) {
+      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
+    }
 
     // Check cache first
     const cached = getPublicTenantCache(slug) as TenantPublicPayload | null;

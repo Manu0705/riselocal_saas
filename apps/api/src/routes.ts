@@ -18,6 +18,7 @@ import uploadRoutes from './modules/upload/presentation/upload.routes';
 import galleryRoutes from './modules/gallery/presentation/gallery.routes';
 import tenantSettingsRoutes from './modules/tenant/presentation/tenant-settings.routes';
 import contentRoutes from './modules/content/presentation/content.routes';
+import hostelRoutes from './modules/hostel/presentation/hostel.routes';
 import { sendError, sendSuccess } from './shared/http/api-response';
 
 const router = Router();
@@ -67,5 +68,6 @@ router.use(uploadRoutes);
 router.use(galleryRoutes);
 router.use(tenantSettingsRoutes);
 router.use(contentRoutes);
+router.use(hostelRoutes);
 
 export default router;

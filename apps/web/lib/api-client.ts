@@ -19,9 +19,7 @@ function handleUnauthorizedResponse(res: Response): void {
     // Ignore transient storage failures during recovery redirects.
   }
 
-  const loginPath = tenantSlug
-    ? `/login?tenant=${encodeURIComponent(tenantSlug)}`
-    : '/login';
+  const loginPath = tenantSlug ? `/login?tenant=${encodeURIComponent(tenantSlug)}` : '/login';
 
   if (!globalThis.location.pathname.startsWith('/login')) {
     globalThis.location.assign(loginPath);
@@ -132,6 +130,22 @@ export const api = {
       body,
     });
 
+    return parseJsonResponse<TResponse>(res);
+  },
+
+  async upload<TResponse = unknown>(
+    path: string,
+    file: File,
+    type = 'payment-proof',
+  ): Promise<TResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    const res = await fetch(buildUrl(withTenantQuery(path)), {
+      method: 'POST',
+      headers: buildAuthHeaders(),
+      body: formData,
+    });
     return parseJsonResponse<TResponse>(res);
   },
 };

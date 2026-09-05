@@ -63,6 +63,13 @@ export default function DashboardHeader() {
     setMenuOpen(false);
   };
 
+  const goToHostel = () => {
+    const tenant = searchParams.get('tenant');
+    const query = tenant ? '?tenant=' + tenant : '';
+    router.push('/dashboard/hostel' + query);
+    setMenuOpen(false);
+  };
+
   const goToLeadView = () => {
     const tenantRouteKey =
       searchParams.get('tenant') ??
@@ -105,6 +112,7 @@ export default function DashboardHeader() {
     if (pathname === '/dashboard') return 'home';
     if (pathname.startsWith('/dashboard/customize')) return 'customize';
     if (pathname.startsWith('/dashboard/analytics')) return 'analytics';
+    if (pathname.startsWith('/dashboard/hostel')) return 'hostel';
     if (pathname.startsWith('/dashboard/settings')) return 'settings';
     if (pathname.startsWith('/dashboard/help')) return 'help';
     return null;
@@ -115,6 +123,7 @@ export default function DashboardHeader() {
     { key: 'lead-view', label: 'Lead View', onPress: goToLeadView },
     { key: 'customize', label: 'Customize', onPress: goToCustomize },
     { key: 'analytics', label: 'Analytics', onPress: goToAnalytics },
+    { key: 'hostel', label: 'Hostel', onPress: goToHostel },
     { key: 'settings', label: 'Settings', onPress: goToSettings },
     { key: 'help', label: 'Help', onPress: goToHelp },
     { key: 'logout', label: 'Logout', onPress: handleLogout },

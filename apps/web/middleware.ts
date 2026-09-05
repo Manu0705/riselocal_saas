@@ -10,6 +10,8 @@ const RESERVED = new Set([
   'favicon.ico',
   'qa',
   'www',
+  'wp-admin',
+  'xmlrpc',
   'analytics',
   'leads',
   'feedback',
@@ -17,6 +19,8 @@ const RESERVED = new Set([
   'followups',
   'settings',
 ]);
+
+const TENANT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // Normalize and extract host from request
 function normalizeHost(host: string): string {
@@ -40,7 +44,7 @@ function extractSubdomainSlug(host: string): string | null {
       if (parts.length >= minParts) {
         const slug = parts[0];
         // Treat "www" and other reserved keywords as root domain, not a tenant
-        return slug && !RESERVED.has(slug) ? slug : null;
+        return slug && TENANT_SLUG_PATTERN.test(slug) && !RESERVED.has(slug) ? slug : null;
       }
     }
   }
@@ -54,7 +58,9 @@ function extractPathSlug(pathname: string): string | null {
   if (segments.length === 0) return null;
 
   const firstSegment = segments[0];
-  return RESERVED.has(firstSegment) ? null : firstSegment;
+  return RESERVED.has(firstSegment) || !TENANT_SLUG_PATTERN.test(firstSegment)
+    ? null
+    : firstSegment;
 }
 
 // Check if path is an asset or should be ignored
