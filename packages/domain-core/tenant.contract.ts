@@ -1,4 +1,4 @@
-export const TENANT_THEME_KEYS = ['default', 'modern', 'minimal', 'business'] as const;
+export const TENANT_THEME_KEYS = ['default', 'modern', 'minimal', 'business', 'hostel'] as const;
 export type TenantThemeKey = (typeof TENANT_THEME_KEYS)[number];
 
 const LEGACY_THEME_KEY_MAP: Record<string, TenantThemeKey> = {

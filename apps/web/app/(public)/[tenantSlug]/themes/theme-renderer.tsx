@@ -3,6 +3,7 @@ import DefaultTheme from './defaultTheme';
 import ThemeBusiness from './themeBusiness';
 import ThemeMinimal from './themeMinimal';
 import ThemeModern from './themeModern';
+import ThemeHostel from './themeHostel';
 import { resolveTenantThemeKey } from './theme-utils';
 
 type Props = {
@@ -20,6 +21,8 @@ export default function ThemeRenderer({ tenant, tenantSlug }: Readonly<Props>) {
       return <ThemeMinimal tenant={tenant} tenantSlug={tenantSlug} />;
     case 'business':
       return <ThemeBusiness tenant={tenant} tenantSlug={tenantSlug} />;
+    case 'hostel':
+      return <ThemeHostel tenant={tenant} tenantSlug={tenantSlug} />;
     case 'default':
     default:
       return <DefaultTheme tenant={tenant} tenantSlug={tenantSlug} />;

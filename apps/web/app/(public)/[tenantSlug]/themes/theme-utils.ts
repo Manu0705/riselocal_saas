@@ -26,6 +26,11 @@ export const TENANT_THEME_OPTIONS: Array<{
     label: 'Business Security',
     description: 'Professional storefront for CCTV and security-focused tenants.',
   },
+  {
+    key: 'hostel',
+    label: 'Hostel',
+    description: 'Professional storefront for hostels and student accommodation.',
+  },
 ];
 
 function toTenantSearchText(tenant: ResolvedTenant): string {
@@ -52,6 +57,11 @@ export function inferTenantThemeKey(tenant: ResolvedTenant): TenantThemeKey {
   const businessKeywords = ['cctv', 'camera', 'security', 'surveillance', 'access control', 'alarm'];
   if (businessKeywords.some((keyword) => searchText.includes(keyword))) {
     return 'business';
+  }
+
+  const hostelKeywords = ['hostel', 'hostels', 'student accommodation', 'student residence', 'pg accommodation', 'paying guest', 'boys hostel', 'girls hostel'];
+  if (hostelKeywords.some((keyword) => searchText.includes(keyword))) {
+    return 'hostel';
   }
 
   const modernKeywords = ['laptop', 'computer', 'mobile', 'hardware', 'electronics', 'accessories', 'printer', 'desktop'];

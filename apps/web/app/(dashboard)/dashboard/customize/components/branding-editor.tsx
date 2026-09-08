@@ -15,7 +15,7 @@ interface TenantSettings {
   primaryColor: string;
   secondaryColor: string;
   fontFamily?: string;
-  themeKey?: 'default' | 'modern' | 'minimal' | 'business';
+  themeKey?: 'default' | 'modern' | 'minimal' | 'business' | 'hostel';
   tagline?: string;
   businessPhone?: string;
   businessWhatsApp?: string;
@@ -49,6 +49,11 @@ const THEME_OPTIONS = [
     label: 'Minimal Beauty',
     description: 'Best for salons and beauty parlours.',
   },
+  {
+    value: 'hostel',
+    label: 'Hostel Management',
+    description: 'Designed for hostel and accommodation providers.',
+  }
 ] as const;
 
 export default function BrandingEditor() {
