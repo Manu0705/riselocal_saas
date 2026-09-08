@@ -32,6 +32,13 @@ export const THEME_OPTIONS = [
     bestFor: 'Salon, spa, and beauty parlour tenants',
     description: 'Soft premium presentation built around appointments and gallery-driven enquiries.',
   },
+  {
+    value: 'hostel' as const,
+    label: 'Hostel Management',
+    shortLabel: 'Hostel',
+    bestFor: 'Hostels and student accommodation',
+    description: 'Professional storefront for hostel rooms, amenities, food, and accommodation enquiries.',
+  },
 ] as const satisfies ReadonlyArray<{
   value: ThemeKey;
   label: string;

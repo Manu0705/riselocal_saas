@@ -28,6 +28,7 @@ const themeIcons: Record<ThemeKey, ThemeIcon> = {
   modern: MonitorSmartphone,
   business: Shield,
   minimal: Sparkles,
+  hostel: Building2,
 };
 
 const themeAccents: Record<ThemeKey, { background: string; border: string; iconBg: string }> = {
@@ -50,6 +51,11 @@ const themeAccents: Record<ThemeKey, { background: string; border: string; iconB
     background: '#fdf2f8',
     border: '#fbcfe8',
     iconBg: '#fce7f3',
+  },
+  hostel: {
+    background: '#f0fdf4',
+    border: '#bbf7d0',
+    iconBg: '#dcfce7',
   },
 };
 
