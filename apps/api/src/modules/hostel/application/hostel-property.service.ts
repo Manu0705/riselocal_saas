@@ -219,6 +219,13 @@ export class HostelPropertyService {
     };
   }
 
+  async hostelDashboardSummary(tenantId: string, hostelId?: unknown) {
+    return this.repository.hostelDashboardSummary({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: hostelId ? requiredText(hostelId, 'hostelId') : undefined,
+    });
+  }
+
   async getStudent(tenantId: string, id: unknown, userId?: string) {
     return this.repository.findStudent({
       tenantId: tenantIdValue(tenantId),

@@ -121,6 +121,19 @@ export class HostelController {
     return respond(req, res, () => service.vacancySummary(tenantId, getHostelId(req)));
   }
 
+  hostelDashboardSummary(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId)
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+
+    return respond(req, res, () =>
+      service.hostelDashboardSummary(tenantId, getHostelId(req)),
+    );
+  }
+
   allocateStudent(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId)

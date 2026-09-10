@@ -1,0 +1,251 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { api } from '@/lib/api-client';
+
+type HostelStudent = {
+  id: string;
+  name: string;
+  admissionNumber?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  paymentStatus: string;
+  status: string;
+  outstandingAmount?: string | number | null;
+  room?: {
+    id: string;
+    roomNumber?: string | null;
+  } | null;
+};
+
+type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+  message?: string;
+};
+
+type StudentDetailsPageProps = {
+  params: {
+    id: string;
+  };
+};
+
+export default function StudentDetailsPage({
+  params,
+}: StudentDetailsPageProps) {
+  const [student, setStudent] = useState<HostelStudent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deallocating, setDeallocating] = useState(false);
+
+  useEffect(() => {
+    async function loadStudent() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await api.get<ApiResponse<HostelStudent>>(
+          `/hostel/students/${encodeURIComponent(params.id)}`,
+        );
+
+        setStudent(response.data);
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Failed to load student',
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadStudent();
+  }, [params.id]);
+
+  async function handleDeallocate() {
+    if (!student?.room?.id) {
+      return;
+    }
+
+    try {
+      setDeallocating(true);
+      setError(null);
+
+      await api.post('/hostel/rooms/deallocate', {
+        studentId: student.id,
+        roomId: student.room.id,
+    });
+
+      setStudent((currentStudent) =>
+        currentStudent
+          ? {
+              ...currentStudent,
+              room: null,
+            }
+          : currentStudent,
+        );
+    } catch (deallocateError) {
+        setError(
+        deallocateError instanceof Error
+            ? deallocateError.message
+            : 'Failed to deallocate student',
+        );
+    } finally {
+      setDeallocating(false);
+    }
+  }
+  if (loading) {
+    return <div>Loading student...</div>;
+  }
+
+  if (error) {
+    return (
+      <div>
+        <p style={{ color: '#b91c1c' }}>{error}</p>
+
+        <Link href="/dashboard/hostel/students">
+          ← Back to Students
+        </Link>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div>
+        <p>Student not found.</p>
+
+        <Link href="/dashboard/hostel/students">
+          ← Back to Students
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <Link
+          href="/dashboard/hostel/students"
+          style={{
+            fontSize: 13,
+            textDecoration: 'none',
+            color: 'var(--muted, #6b7280)',
+          }}
+        >
+          ← Back to Students
+        </Link>
+
+        <h1
+          style={{
+            margin: '12px 0 0',
+            fontSize: 28,
+            fontWeight: 700,
+            color: 'var(--foreground, #111827)',
+          }}
+        >
+          {student.name}
+        </h1>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 16,
+        }}
+      >
+        <InfoCard label="Admission Number" value={student.admissionNumber ?? '—'} />
+        <InfoCard label="Phone" value={student.phone ?? '—'} />
+        <InfoCard label="Email" value={student.email ?? '—'} />
+        <InfoCard label="Status" value={student.status} />
+        <InfoCard
+          label="Room"
+          value={student.room?.roomNumber ?? 'Not allocated'}
+        />
+        {student.room && (
+        <div
+            style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            background: 'var(--bg, #ffffff)',
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 12,
+            }}
+        >
+            <button
+            type="button"
+            onClick={() => void handleDeallocate()}
+            disabled={deallocating}
+            style={{
+                width: '100%',
+                padding: '10px 14px',
+                border: '1px solid #fecaca',
+                borderRadius: 8,
+                background: '#fef2f2',
+                color: '#b91c1c',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: deallocating ? 'not-allowed' : 'pointer',
+                opacity: deallocating ? 0.6 : 1,
+            }}
+            >
+            {deallocating ? 'Deallocating...' : 'Deallocate Student'}
+            </button>
+        </div>
+        )}
+        <InfoCard label="Payment Status" value={student.paymentStatus} />
+        <InfoCard
+          label="Outstanding Amount"
+          value={`₹${Number(
+            student.outstandingAmount ?? 0,
+          ).toLocaleString('en-IN')}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        background: 'var(--bg, #ffffff)',
+        border: '1px solid var(--border, #e5e7eb)',
+        borderRadius: 12,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          color: 'var(--muted, #6b7280)',
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 16,
+          fontWeight: 600,
+          color: 'var(--foreground, #111827)',
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}

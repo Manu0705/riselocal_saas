@@ -26,6 +26,10 @@ router.post(
 );
 router.get('/hostel/rooms/vacancies', controller.listVacancies.bind(controller));
 router.get('/hostel/rooms/vacancy-summary', controller.vacancySummary.bind(controller));
+router.get(
+  '/hostel/dashboard-summary',
+  controller.hostelDashboardSummary.bind(controller),
+);
 router.get('/hostel/rooms/:id', controller.getRoom.bind(controller));
 router.patch(
   '/hostel/rooms/:id',

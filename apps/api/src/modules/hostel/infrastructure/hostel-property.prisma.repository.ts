@@ -56,6 +56,15 @@ export type HostelRepository = {
     page: number;
     limit: number;
   }): Promise<{ items: unknown[]; total: number }>;
+  hostelDashboardSummary(input: {
+    tenantId: string;
+     hostelId?: string;
+  }): Promise<{
+    outstandingFees: number;
+    paidPayments: number;
+    paidPaymentCount: number;
+    pendingPaymentCount: number;
+  }>;
   findStudent(input: { tenantId: string; id: string; userId?: string }): Promise<unknown | null>;
   createStudent(input: {
     tenantId: string;
@@ -453,6 +462,59 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     ]);
 
     return { items, total };
+  }
+
+  async hostelDashboardSummary(input: {
+    tenantId: string;
+    hostelId?: string;
+  }) {
+    const studentWhere = {
+      tenantId: input.tenantId,
+      ...(input.hostelId ? { hostelId: input.hostelId } : {}),
+    };
+
+    const paymentWhere = {
+      tenantId: input.tenantId,
+      ...(input.hostelId ? { student: { hostelId: input.hostelId } } : {}),
+    };
+
+    const [outstanding, paidPayments, pendingPaymentCount] = await prisma.$transaction([
+      prisma.student.aggregate({
+        where: studentWhere,
+        _sum: {
+          outstandingAmount: true,
+        },
+      }),
+
+      prisma.payment.aggregate({
+        where: {
+          ...paymentWhere,
+          status: 'PAID',
+        },
+        _sum: {
+          amount: true,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      prisma.payment.count({
+        where: {
+          ...paymentWhere,
+          status: {
+            in: ['INITIATED', 'PENDING', 'SUBMITTED', 'VERIFYING'],
+          },
+        },
+      }),
+    ]);
+
+    return {
+      outstandingFees: outstanding._sum.outstandingAmount?.toNumber() ?? 0,
+      paidPayments: paidPayments._sum.amount?.toNumber() ?? 0,
+      paidPaymentCount: paidPayments._count._all,
+      pendingPaymentCount,
+    };
   }
 
   findStudent(input: { tenantId: string; id: string; userId?: string }) {

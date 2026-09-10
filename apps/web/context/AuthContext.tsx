@@ -6,17 +6,20 @@ import {
   getTenantSlug as getStoredTenantSlug,
   getToken as getStoredToken,
   getUserName as getStoredUserName,
+  getUserRole as getStoredUserRole,
   setTenantSlug as storeTenantSlug,
   setUserName as storeUserName,
+  setUserRole as storeUserRole,
 } from '@/lib/auth';
 
 type AuthContextValue = {
   token: string | null;
   tenantSlug: string | null;
   userName: string | null;
+  userRole: string | null;
   isAuthenticated: boolean;
   hydrated: boolean;
-  login: (token: string, tenantSlug?: string, userName?: string) => void;
+  login: (token: string, tenantSlug?: string, userName?: string, userRole?: string) => void;
   logout: () => void;
   setTenant: (slug: string) => void;
 };
@@ -27,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -34,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(getStoredToken());
     setTenantSlug(getStoredTenantSlug());
     setUserName(getStoredUserName());
+    setUserRole(getStoredUserRole());
     setHydrated(true);
   }, []);
 
@@ -76,16 +81,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, userName]);
 
-  const login = (newToken: string, slug?: string, nextUserName?: string) => {
+  useEffect(() => {
+    if (!hydrated) return;
+    if (userRole) {
+      storeUserRole(userRole);
+    } else {
+      try {
+        localStorage.removeItem('userRole');
+      } catch {
+        // Ignore transient storage failures on restored tabs/private browsing.
+      }
+    }
+  }, [hydrated, userRole]);
+
+  const login = (newToken: string, slug?: string, nextUserName?: string, nextUserRole?: string) => {
     setToken(newToken);
     if (slug) setTenantSlug(slug);
     if (nextUserName) setUserName(nextUserName);
+    if (nextUserRole) setUserRole(nextUserRole);
   };
 
   const logout = () => {
     setToken(null);
     setTenantSlug(null);
     setUserName(null);
+    setUserRole(null);
     clearStoredAuth();
   };
 
@@ -94,13 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token,
       tenantSlug,
       userName,
+      userRole,
       isAuthenticated: Boolean(token),
       hydrated,
       login,
       logout,
       setTenant: setTenantSlug,
     }),
-    [token, tenantSlug, userName, hydrated],
+    [token, tenantSlug, userName, userRole, hydrated],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -108,7 +108,7 @@ function LoginContent() {
 
       const tenantSlugFromServer = data?.user?.tenantSlug;
       const userNameFromServer = data?.user?.name;
-      loginWithContext(data.token, tenant ?? tenantSlugFromServer, userNameFromServer);
+      loginWithContext(data.token, tenant ?? tenantSlugFromServer, userNameFromServer, data?.user?.role);
       router.push('/dashboard');
     } finally {
       setLoading(false);

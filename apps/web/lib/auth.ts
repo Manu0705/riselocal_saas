@@ -4,6 +4,7 @@ import { fetchWithRetry } from '@/lib/retry';
 const TOKEN_KEY = 'token';
 const TENANT_SLUG_KEY = 'tenantSlug';
 const USER_NAME_KEY = 'userName';
+const USER_ROLE_KEY = 'userRole';
 
 function hasBrowserWindow(): boolean {
   return typeof window !== 'undefined';
@@ -244,8 +245,17 @@ export function getUserName() {
   return readStorageItem(USER_NAME_KEY);
 }
 
+export function setUserRole(role: string) {
+  writeStorageItem(USER_ROLE_KEY, role);
+}
+
+export function getUserRole() {
+  return readStorageItem(USER_ROLE_KEY);
+}
+
 export function clearAuth() {
   removeStorageItem(TOKEN_KEY);
   removeStorageItem(TENANT_SLUG_KEY);
   removeStorageItem(USER_NAME_KEY);
+  removeStorageItem(USER_ROLE_KEY);
 }
