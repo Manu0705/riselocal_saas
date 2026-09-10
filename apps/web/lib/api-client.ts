@@ -14,7 +14,7 @@ function handleUnauthorizedResponse(res: Response): void {
 
   const tenantSlug = getStoredTenantSlug();
   try {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
   } catch {
     // Ignore transient storage failures during recovery redirects.
   }
@@ -53,7 +53,7 @@ function getStoredTenantSlug(): string | null {
 
   let value: string | null = null;
   try {
-    value = localStorage.getItem('tenantSlug');
+    value = sessionStorage.getItem('tenantSlug');
   } catch {
     return null;
   }
@@ -76,7 +76,7 @@ function buildAuthHeaders(includeJson = false): Record<string, string> {
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     try {
-      token = localStorage.getItem('token');
+      token = sessionStorage.getItem('token');
     } catch {
       token = null;
     }

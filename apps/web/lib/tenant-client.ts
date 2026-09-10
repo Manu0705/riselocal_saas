@@ -15,8 +15,8 @@ function handleUnauthorizedResponse(res: Response): void {
 
   let tenantSlug: string | null = null;
   try {
-    tenantSlug = localStorage.getItem('tenantSlug');
-    localStorage.removeItem('token');
+    tenantSlug = sessionStorage.getItem('tenantSlug');
+    sessionStorage.removeItem('token');
   } catch {
     tenantSlug = null;
   }
@@ -62,8 +62,8 @@ function getAuthHeaders(extra?: Record<string, string>): Record<string, string> 
 
   if (typeof window !== 'undefined') {
     try {
-      token = localStorage.getItem('token');
-      tenantSlug = localStorage.getItem('tenantSlug');
+      token = sessionStorage.getItem('token');
+      tenantSlug = sessionStorage.getItem('tenantSlug');
     } catch {
       token = null;
       tenantSlug = null;
@@ -144,7 +144,7 @@ import type { TenantPublicPayload } from '@saas/domain-core/tenant.contract';
 
 export type TenantRecord = Pick<
   TenantPublicPayload,
-  'id' | 'name' | 'slug' | 'domain' | 'createdAt'
+  'id' | 'name' | 'slug' | 'domain' | 'theme' | 'createdAt'
 >;
 
 export function toArrayPayload(data: unknown): any[] {
@@ -191,6 +191,7 @@ export async function resolveTenant(tenantKey: string): Promise<TenantRecord | n
         name: resolved.name,
         slug: resolved.slug,
         domain: resolved.domain,
+        theme: resolved.theme,
         createdAt: resolved.createdAt,
       };
     }

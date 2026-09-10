@@ -46,9 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     try {
       if (token) {
-        localStorage.setItem('token', token);
+        sessionStorage.setItem('token', token);
       } else {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       }
     } catch {
       // Ignore transient storage failures on restored tabs/private browsing.
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       storeTenantSlug(tenantSlug);
     } else {
       try {
-        localStorage.removeItem('tenantSlug');
+        sessionStorage.removeItem('tenantSlug');
       } catch {
         // Ignore transient storage failures on restored tabs/private browsing.
       }
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       storeUserName(userName);
     } else {
       try {
-        localStorage.removeItem('userName');
+        sessionStorage.removeItem('userName');
       } catch {
         // Ignore transient storage failures on restored tabs/private browsing.
       }
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       storeUserRole(userRole);
     } else {
       try {
-        localStorage.removeItem('userRole');
+        sessionStorage.removeItem('userRole');
       } catch {
         // Ignore transient storage failures on restored tabs/private browsing.
       }

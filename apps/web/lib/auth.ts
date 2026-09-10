@@ -14,7 +14,7 @@ function readStorageItem(key: string): string | null {
   if (!hasBrowserWindow()) return null;
 
   try {
-    return localStorage.getItem(key);
+    return sessionStorage.getItem(key);
   } catch {
     return null;
   }
@@ -24,7 +24,7 @@ function writeStorageItem(key: string, value: string): void {
   if (!hasBrowserWindow()) return;
 
   try {
-    localStorage.setItem(key, value);
+    sessionStorage.setItem(key, value)
   } catch {
     // Ignore transient storage write failures (mobile restore/private modes).
   }
@@ -34,7 +34,7 @@ function removeStorageItem(key: string): void {
   if (!hasBrowserWindow()) return;
 
   try {
-    localStorage.removeItem(key);
+    sessionStorage.removeItem(key)
   } catch {
     // Ignore transient storage removal failures (mobile restore/private modes).
   }

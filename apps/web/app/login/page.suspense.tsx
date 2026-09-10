@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithRetry } from '@/lib/retry';
+import { resolveTenant } from '@/lib/tenant-client';
 
 export const dynamic = 'force-dynamic';
 const LAST_TENANT_KEY = 'riselocal:last-tenant';
@@ -108,8 +109,22 @@ function LoginContent() {
 
       const tenantSlugFromServer = data?.user?.tenantSlug;
       const userNameFromServer = data?.user?.name;
-      loginWithContext(data.token, tenant ?? tenantSlugFromServer, userNameFromServer, data?.user?.role);
-      router.push('/dashboard');
+      const tenantSlug = tenant ?? tenantSlugFromServer;
+
+      if (!tenantSlug) {
+        setError('Unable to determine your tenant. Please try again.');
+        return;
+      }
+
+      loginWithContext(data.token, tenantSlug, userNameFromServer, data?.user?.role);
+
+      const tenantRecord = await resolveTenant(tenantSlug);
+      
+      if (tenantRecord?.theme === 'hostel') {
+        router.push('/dashboard/hostel');
+      } else {
+        router.push('/dashboard');
+      }
     } finally {
       setLoading(false);
     }
