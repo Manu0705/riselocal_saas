@@ -20,6 +20,10 @@ type HostelStudent = {
   paymentStatus: string;
   status: string;
   outstandingAmount?: string | number | null;
+  room?: {
+    id: string;
+    roomNumber?: string | null;
+  } | null;
 };
 
 type StudentPage = {
@@ -40,6 +44,8 @@ type ApiResponse<T> = {
 
 export default function HostelStudentsPage() {
   const [students, setStudents] = useState<HostelStudent[]>([]);
+  const [properties, setProperties] = useState<HostelProperty[]>([]);
+  const [selectedHostelId, setSelectedHostelId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -57,19 +63,27 @@ export default function HostelStudentsPage() {
           ApiResponse<HostelProperty[]>
         >('/hostel/properties');
 
-        const hostelId = propertyResponse.data[0]?.id;
+        const availableProperties = propertyResponse.data;
+
+        setProperties(availableProperties);
+
+        const hostelId = selectedHostelId || undefined;
 
         if (!hostelId) {
           setStudents([]);
+          setTotalPages(1);
+          setTotalStudents(0);
           return;
         }
 
         const studentResponse = await api.get<
           ApiResponse<StudentPage>
         >(
-          `/hostel/students?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&page=${page}&limit=25&search=${encodeURIComponent(search.trim())}`,
+          `/hostel/students${
+            hostelId
+              ? `?hostelId=${encodeURIComponent(hostelId)}&`
+              : '?'
+          }page=${page}&limit=25&search=${encodeURIComponent(search.trim())}`,
         );
 
         setStudents(studentResponse.data.items);
@@ -87,7 +101,7 @@ export default function HostelStudentsPage() {
     }
 
     void loadStudents();
-  }, [page, search]);
+}, [page, search, selectedHostelId]);
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -129,6 +143,35 @@ export default function HostelStudentsPage() {
           flexWrap: 'wrap',
         }}
       >
+
+        <select
+          value={selectedHostelId}
+          onChange={(event) => {
+            setSelectedHostelId(event.target.value);
+            setPage(1);
+          }}
+          style={{
+            width: '100%',
+            maxWidth: 240,
+            height: 40,
+            padding: '0 12px',
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 8,
+            background: 'var(--bg, #ffffff)',
+            color: 'var(--foreground, #111827)',
+            fontSize: 13,
+            outline: 'none',
+          }}
+        >
+          <option value="">All Hostels</option>
+
+          {properties.map((property) => (
+            <option key={property.id} value={property.id}>
+              {property.name}
+            </option>
+          ))}
+        </select>
+
         <input
           type="text"
           value={search}
@@ -200,6 +243,7 @@ export default function HostelStudentsPage() {
                   <th style={headerStyle}>Student</th>
                   <th style={headerStyle}>Admission No.</th>
                   <th style={headerStyle}>Phone</th>
+                  <th style={headerStyle}>Room</th>
                   <th style={headerStyle}>Payment Status</th>
                   <th style={headerStyle}>Outstanding</th>
                   <th style={headerStyle}>Status</th>
@@ -227,6 +271,24 @@ export default function HostelStudentsPage() {
 
                     <td style={cellStyle}>
                       {student.phone ?? '—'}
+                    </td>
+
+                    <td style={cellStyle}>
+                      {student.room ? (
+                        <Link
+                          href={`/dashboard/hostel/rooms/${encodeURIComponent(
+                            student.room.id,
+                          )}`}
+                          style={{
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {student.room.roomNumber ?? '—'}
+                        </Link>
+                      ) : (
+                        'Not allocated'
+                      )}
                     </td>
 
                     <td style={cellStyle}>

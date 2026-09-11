@@ -27,11 +27,7 @@ export default function RequireAuth({ children }: Readonly<{ children: ReactNode
       return;
     }
 
-    // If authenticated with tenant but URL doesn't have it, add to URL
-    if (!queryTenant && tenantSlug) {
-      router.replace(`/dashboard?tenant=${tenantSlug}`);
-    }
-  }, [hydrated, isAuthenticated, searchParams, tenantSlug, setTenant, router]);
+  }, [hydrated, isAuthenticated, searchParams, tenantSlug, setTenant]);
 
   useEffect(() => {
     if (!hydrated) return;

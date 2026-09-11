@@ -9,6 +9,7 @@ type HostelStudent = {
   id: string;
   name: string;
   admissionNumber?: string | null;
+  admissionDate?: string | null;
   phone?: string | null;
   email?: string | null;
   paymentStatus: string;
@@ -159,13 +160,57 @@ export default function StudentDetailsPage({
         }}
       >
         <InfoCard label="Admission Number" value={student.admissionNumber ?? '—'} />
+        <InfoCard
+          label="Admission Date"
+          value={
+            student.admissionDate
+              ? new Date(student.admissionDate).toLocaleDateString('en-IN')
+              : '—'
+          }
+        />
         <InfoCard label="Phone" value={student.phone ?? '—'} />
         <InfoCard label="Email" value={student.email ?? '—'} />
         <InfoCard label="Status" value={student.status} />
-        <InfoCard
-          label="Room"
-          value={student.room?.roomNumber ?? 'Not allocated'}
-        />
+        {student.room ? (
+          <div
+            style={{
+              background: 'var(--bg, #ffffff)',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: 12,
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--muted, #6b7280)',
+              }}
+            >
+              Room
+            </div>
+
+            <Link
+              href={`/dashboard/hostel/rooms/${encodeURIComponent(
+                student.room.id,
+              )}`}
+              style={{
+                display: 'inline-block',
+                marginTop: 8,
+                fontSize: 16,
+                fontWeight: 600,
+                color: 'var(--foreground, #111827)',
+                textDecoration: 'none',
+              }}
+            >
+              {student.room.roomNumber ?? '—'}
+            </Link>
+          </div>
+        ) : (
+          <InfoCard
+            label="Room"
+            value="Not allocated"
+          />
+        )}
         {student.room && (
         <div
             style={{

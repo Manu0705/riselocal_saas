@@ -19,7 +19,7 @@ function getProxyCandidates(request: NextRequest): string[] {
 
   return getApiBaseCandidates()
     .map((base) => base.trim())
-    .filter((base) => /^https?:\/\//i.test(base))
+    .filter((base) => /^https?:\/\/.+/i.test(base))
     .filter((base, index, items) => items.indexOf(base) === index)
     .filter((base) => {
       try {

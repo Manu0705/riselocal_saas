@@ -147,6 +147,8 @@ export type TenantRecord = Pick<
   'id' | 'name' | 'slug' | 'domain' | 'theme' | 'createdAt'
 >;
 
+const tenantRequestCache = new Map<string, Promise<TenantRecord | null>>();
+
 export function toArrayPayload(data: unknown): any[] {
   const nested = (data as { data?: unknown })?.data;
 
@@ -176,33 +178,68 @@ export function matchTenant(tenant: TenantRecord, tenantKey: string): boolean {
   return id === key || slug === key || domain === key;
 }
 
-export async function resolveTenant(tenantKey: string): Promise<TenantRecord | null> {
-  if (!tenantKey) return null;
+export async function resolveTenant(
+  tenantKey: string,
+): Promise<TenantRecord | null> {
+  const key = tenantKey?.trim().toLowerCase();
 
-  try {
-    const bySlugResponse = await api.get<{ success?: boolean; data?: TenantRecord }>(
-      `/tenants/slug/${encodeURIComponent(tenantKey)}`,
-    );
+  if (!key) return null;
 
-    if (bySlugResponse?.success && bySlugResponse.data) {
-      const resolved = bySlugResponse.data;
-      return {
-        id: String(resolved.id ?? ''),
-        name: resolved.name,
-        slug: resolved.slug,
-        domain: resolved.domain,
-        theme: resolved.theme,
-        createdAt: resolved.createdAt,
-      };
-    }
-  } catch {
-    // fallback to protected listing endpoint if slug route is unavailable
+  // Reuse an already-running request for the same tenant.
+  const existingRequest = tenantRequestCache.get(key);
+
+  if (existingRequest) {
+    return existingRequest;
   }
 
-  const response = await api.get('/tenants');
-  const tenants = toArrayPayload(response) as TenantRecord[];
-  const tenant = tenants.find((entry) => matchTenant(entry, tenantKey));
-  return tenant ?? null;
+  const request = (async (): Promise<TenantRecord | null> => {
+    try {
+      const bySlugResponse = await api.get<{
+        success?: boolean;
+        data?: TenantRecord;
+      }>(
+        `/tenants/slug/${encodeURIComponent(key)}`,
+      );
+
+      if (bySlugResponse?.success && bySlugResponse.data) {
+        const resolved = bySlugResponse.data;
+
+        return {
+          id: String(resolved.id ?? ''),
+          name: resolved.name,
+          slug: resolved.slug,
+          domain: resolved.domain,
+          theme: resolved.theme,
+          createdAt: resolved.createdAt,
+        };
+      }
+    } catch {
+      // Fallback to protected listing endpoint
+      // if slug route is unavailable.
+    }
+
+    try {
+      const response = await api.get('/tenants');
+      const tenants = toArrayPayload(response) as TenantRecord[];
+
+      const tenant = tenants.find(
+        (entry) => matchTenant(entry, key),
+      );
+
+      return tenant ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  tenantRequestCache.set(key, request);
+
+  try {
+    return await request;
+  } finally {
+    // Remove after completion so future calls can fetch fresh data.
+    tenantRequestCache.delete(key);
+  }
 }
 
 export async function fetchLeadsForTenant(tenantKey: string): Promise<any[]> {
