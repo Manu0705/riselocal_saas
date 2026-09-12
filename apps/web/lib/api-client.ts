@@ -133,6 +133,15 @@ export const api = {
     return parseJsonResponse<TResponse>(res);
   },
 
+  async delete<TResponse = unknown>(path: string): Promise<TResponse> {
+    const res = await fetch(buildUrl(withTenantQuery(path)), {
+      method: 'DELETE',
+      headers: buildAuthHeaders(),
+    });
+
+    return parseJsonResponse<TResponse>(res);
+  },
+
   async upload<TResponse = unknown>(
     path: string,
     file: File,

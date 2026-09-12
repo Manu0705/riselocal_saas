@@ -178,6 +178,7 @@ export default function RoomDetailsPage({
             'repeat(auto-fit, minmax(180px, 1fr))',
           gap: 16,
           marginBottom: 24,
+          minWidth: 0,
         }}
       >
         <InfoCard
@@ -213,6 +214,7 @@ export default function RoomDetailsPage({
 
       <div
         style={{
+          width: '100%',
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
           borderRadius: 12,
@@ -242,6 +244,7 @@ export default function RoomDetailsPage({
       </div>
       <div
         style={{
+          width: '100%',
           marginTop: 24,
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
@@ -276,6 +279,7 @@ export default function RoomDetailsPage({
               marginTop: 16,
               display: 'grid',
               gap: 12,
+              minWidth: 0,
             }}
           >
             {room.students.map((student) => (
@@ -285,6 +289,7 @@ export default function RoomDetailsPage({
                   padding: 14,
                   border: '1px solid var(--border, #e5e7eb)',
                   borderRadius: 10,
+                  minWidth: 0,
                 }}
               >
                 <Link
@@ -331,6 +336,7 @@ function InfoCard({
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: 12,
         padding: 18,
+        minWidth: 0,
       }}
     >
       <div

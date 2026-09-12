@@ -235,6 +235,7 @@ export default function RoomAllocationPage() {
 
       <div
         style={{
+          width: '100%',
           maxWidth: 720,
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
@@ -387,6 +388,7 @@ export default function RoomAllocationPage() {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
+  minWidth: 0,
   padding: '11px 12px',
   border: '1px solid var(--border, #d1d5db)',
   borderRadius: 8,

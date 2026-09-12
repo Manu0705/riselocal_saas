@@ -69,13 +69,6 @@ export default function HostelStudentsPage() {
 
         const hostelId = selectedHostelId || undefined;
 
-        if (!hostelId) {
-          setStudents([]);
-          setTotalPages(1);
-          setTotalStudents(0);
-          return;
-        }
-
         const studentResponse = await api.get<
           ApiResponse<StudentPage>
         >(
@@ -154,6 +147,7 @@ export default function HostelStudentsPage() {
             width: '100%',
             maxWidth: 240,
             height: 40,
+            minWidth: 0,
             padding: '0 12px',
             border: '1px solid var(--border, #e5e7eb)',
             borderRadius: 8,
@@ -180,6 +174,7 @@ export default function HostelStudentsPage() {
           style={{
             width: '100%',
             maxWidth: 360,
+            minWidth: 0,
             height: 40,
             padding: '0 12px',
             border: '1px solid var(--border, #e5e7eb)',
@@ -230,12 +225,18 @@ export default function HostelStudentsPage() {
             No students found.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div 
+            style={{
+              width: '100%',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                minWidth: 800,
+                minWidth: 680,
               }}
             >
               <thead>
@@ -320,6 +321,7 @@ export default function HostelStudentsPage() {
           alignItems: 'center',
           marginTop: 16,
           gap: 12,
+          flexWrap: 'wrap',
         }}
       >
         <div
@@ -381,7 +383,7 @@ export default function HostelStudentsPage() {
 }
 
 const headerStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '12px 12px',
   textAlign: 'left',
   fontSize: 12,
   fontWeight: 600,
@@ -391,7 +393,7 @@ const headerStyle: React.CSSProperties = {
 };
 
 const cellStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '12px 12px',
   fontSize: 13,
   color: 'var(--foreground, #111827)',
   borderBottom: '1px solid var(--border, #e5e7eb)',

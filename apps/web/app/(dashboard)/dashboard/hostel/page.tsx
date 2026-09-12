@@ -45,6 +45,23 @@ type DashboardSummary = {
   pendingPaymentCount: number;
 };
 
+type RecentAllocationActivity = {
+  id: string;
+  roomId: string;
+  studentId: string;
+  action: string;
+  happenedAt: string;
+  room?: {
+    id: string;
+    roomNumber: string;
+  } | null;
+  student?: {
+    id: string;
+    name: string;
+    admissionNumber?: string | null;
+  } | null;
+};
+
 type ApiResponse<T> = {
   success: boolean;
   data: T;
@@ -59,6 +76,7 @@ function StatCard({ label, value, description }: StatCardProps) {
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: 12,
         padding: 20,
+        minWidth: 0,
       }}
     >
       <div
@@ -96,6 +114,401 @@ function StatCard({ label, value, description }: StatCardProps) {
   );
 }
 
+function OccupancyOverview({
+  summary,
+}: {
+  summary: VacancySummary;
+}) {
+  const occupancyPercentage =
+    summary.capacity > 0
+      ? Math.round((summary.occupancy / summary.capacity) * 100)
+      : 0;
+
+  return (
+    <section
+      style={{
+        marginTop: 16,
+        background: 'var(--bg, #ffffff)',
+        border: '1px solid var(--border, #e5e7eb)',
+        borderRadius: 12,
+        padding: 20,
+        minWidth: 0,
+      }}
+    >
+      <div>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 17,
+            fontWeight: 650,
+            color: 'var(--foreground, #111827)',
+          }}
+        >
+          Occupancy Overview
+        </h2>
+
+        <p
+          style={{
+            margin: '6px 0 0',
+            fontSize: 13,
+            color: 'var(--muted, #6b7280)',
+          }}
+        >
+          Current room and bed occupancy status.
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 16,
+          marginTop: 20,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Total Capacity
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 22,
+              fontWeight: 700,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            {summary.capacity}
+          </div>
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Occupied
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 22,
+              fontWeight: 700,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            {summary.occupancy}
+          </div>
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Available
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 22,
+              fontWeight: 700,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            {summary.vacancy}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: 12,
+            color: 'var(--muted, #6b7280)',
+            marginBottom: 6,
+          }}
+        >
+          <span>Occupancy</span>
+          <span>{occupancyPercentage}%</span>
+        </div>
+
+        <div
+          style={{
+            width: '100%',
+            height: 8,
+            borderRadius: 999,
+            background: 'var(--border, #e5e7eb)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${occupancyPercentage}%`,
+              height: '100%',
+              borderRadius: 999,
+              background: 'var(--foreground, #111827)',
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 12,
+          marginTop: 20,
+        }}
+      >
+        <div
+          style={{
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Full Rooms
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 18,
+              fontWeight: 650,
+            }}
+          >
+            {summary.full}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Partial Rooms
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 18,
+              fontWeight: 650,
+            }}
+          >
+            {summary.partial}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Vacant Rooms
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 18,
+              fontWeight: 650,
+            }}
+          >
+            {summary.vacant}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RecentRoomActivity({
+  activities,
+}: {
+  activities: RecentAllocationActivity[];
+}) {
+  return (
+    <section
+      style={{
+        marginTop: 24,
+        padding: 20,
+        background: 'var(--bg, #ffffff)',
+        border: '1px solid var(--border, #e5e7eb)',
+        borderRadius: 12,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 18,
+              fontWeight: 700,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            Recent Room Activity
+          </h2>
+
+          <p
+            style={{
+              margin: '6px 0 0',
+              fontSize: 13,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            Latest room allocation activity.
+          </p>
+        </div>
+
+        <Link
+          href="/dashboard/hostel/rooms"
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          View Rooms
+        </Link>
+      </div>
+
+      {activities.length === 0 ? (
+        <div
+          style={{
+            padding: '20px 0',
+            fontSize: 13,
+            color: 'var(--muted, #6b7280)',
+          }}
+        >
+          No recent room activity.
+        </div>
+      ) : (
+        <div>
+          {activities.map((activity) => {
+            const isAllocation = activity.action === 'ALLOCATED';
+
+            return (
+              <div
+                key={activity.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '14px 0',
+                  borderBottom:
+                    '1px solid var(--border, #e5e7eb)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--foreground, #111827)',
+                    }}
+                  >
+                    {activity.student?.name ?? 'Unknown student'}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 12,
+                      color: 'var(--muted, #6b7280)',
+                    }}
+                  >
+                    Room {activity.room?.roomNumber ?? '—'}
+                    {activity.student?.admissionNumber
+                      ? ` • ${activity.student.admissionNumber}`
+                      : ''}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    textAlign: 'right',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isAllocation ? 'Allocated' : activity.action}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 11,
+                      color: 'var(--muted, #6b7280)',
+                    }}
+                  >
+                    {new Date(
+                      activity.happenedAt,
+                    ).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 type ActionCardProps = {
   title: string;
   description: string;
@@ -108,6 +521,7 @@ function ActionCard({ title, description, href }: ActionCardProps) {
       href={href}
       style={{
         display: 'block',
+        minWidth: 0,
         padding: 18,
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: 12,
@@ -156,6 +570,9 @@ export default function HostelDashboardPage() {
   const [vacancySummary, setVacancySummary] = useState<VacancySummary | null>(null);
   const [dashboardSummary, setDashboardSummary] =
     useState<DashboardSummary | null>(null);
+  const [recentActivity, setRecentActivity] = useState<
+    RecentAllocationActivity[]
+  >([]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -170,8 +587,19 @@ export default function HostelDashboardPage() {
           setTotalStudents(0);
           setVacancySummary(null);
           setDashboardSummary(null);
+          setRecentActivity([]);
           return;
         }
+
+        const activityResponse = await api.get<
+          ApiResponse<RecentAllocationActivity[]>
+        >(
+          `/hostel/rooms/recent-activity?hostelId=${encodeURIComponent(
+            hostelId,
+          )}&limit=8`,
+        );
+
+        setRecentActivity(activityResponse.data);
 
         const vacancyResponse = await api.get<
           ApiResponse<VacancySummary>
@@ -203,10 +631,21 @@ export default function HostelDashboardPage() {
 
         setDashboardSummary(summaryResponse.data);
 
+        const recentActivityResponse = await api.get<
+          ApiResponse<RecentAllocationActivity[]>
+        >(
+          `/hostel/rooms/recent-activity?hostelId=${encodeURIComponent(
+            hostelId,
+          )}&limit=5`,
+        );
+
+        setRecentActivity(recentActivityResponse.data);
+
       } catch {
         setTotalStudents(null);
         setVacancySummary(null);
         setDashboardSummary(null);
+        setRecentActivity([]);
       }
     }
 
@@ -344,6 +783,10 @@ export default function HostelDashboardPage() {
             />
           </div>
 
+          {vacancySummary && (
+            <OccupancyOverview summary={vacancySummary} />
+          )}
+
           <section
             style={{
               marginTop: 16,
@@ -437,6 +880,10 @@ export default function HostelDashboardPage() {
             />
           </div>
 
+          {vacancySummary && (
+            <OccupancyOverview summary={vacancySummary} />
+          )}
+
           <section
             style={{
               marginTop: 16,
@@ -523,6 +970,10 @@ export default function HostelDashboardPage() {
               description="Payments requiring attention"
             />
           </div>
+
+          {vacancySummary && (
+            <OccupancyOverview summary={vacancySummary} />
+          )}
 
           <section
             style={{

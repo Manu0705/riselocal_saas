@@ -73,10 +73,19 @@ export class HostelPropertyService {
     });
   }
 
-  async listRooms(tenantId: string, hostelId: unknown) {
+  async listRooms(
+    tenantId: string,
+    hostelId: unknown,
+    page = 1,
+    limit = 25,
+    search?: unknown,
+  ) {
     return this.repository.findRooms({
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(hostelId, 'hostelId'),
+      page,
+      limit,
+      search: typeof search === 'string' ? search : undefined,
     });
   }
 
@@ -173,6 +182,26 @@ export class HostelPropertyService {
     return this.repository.allocationHistory({
       tenantId: tenantIdValue(tenantId),
       roomId: requiredText(roomId, 'roomId'),
+    });
+  }
+
+  async recentAllocationActivity(
+    tenantId: string,
+    hostelId: unknown,
+    limit?: unknown,
+  ) {
+    const parsedLimit =
+      typeof limit === 'string' && limit.trim() !== ''
+        ? Number(limit)
+        : undefined;
+
+    return this.repository.recentAllocationActivity({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(hostelId, 'hostelId'),
+      limit:
+        parsedLimit !== undefined && Number.isFinite(parsedLimit)
+          ? parsedLimit
+          : undefined,
     });
   }
 
@@ -339,6 +368,77 @@ export class HostelPropertyService {
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(hostelId, 'hostelId'),
     });
+  }
+
+  async listAvailableStaffUsers(tenantId: string) {
+    return this.repository.findAvailableStaffUsers(
+      tenantIdValue(tenantId),
+    );
+  }
+
+  async deleteStaffAssignment(
+    tenantId: string,
+    input: {
+      hostelId: unknown;
+      assignmentId: unknown;
+    },
+  ) {
+    const hostelId = requiredText(input.hostelId, 'hostelId');
+    const assignmentId = requiredText(
+      input.assignmentId,
+      'assignmentId',
+    );
+
+    const result = await this.repository.deleteStaffAssignment({
+      tenantId: tenantIdValue(tenantId),
+      hostelId,
+      assignmentId,
+    });
+
+    if (!result || result.count === 0) {
+      throw new Error('Staff assignment not found');
+    }
+
+    return {
+      success: true,
+    };
+  }
+
+  async updateStaffAssignment(
+    tenantId: string,
+    input: {
+      hostelId: unknown;
+      assignmentId: unknown;
+      role: unknown;
+    },
+  ) {
+    const hostelId = requiredText(input.hostelId, 'hostelId');
+    const assignmentId = requiredText(
+      input.assignmentId,
+      'assignmentId',
+    );
+
+    const role =
+      input.role === 'ADMIN' || input.role === 'STAFF'
+        ? input.role
+        : null;
+
+    if (!role) {
+      throw new Error('Role must be ADMIN or STAFF');
+    }
+
+    const result = await this.repository.updateStaffAssignment({
+      tenantId: tenantIdValue(tenantId),
+      hostelId,
+      assignmentId,
+      role,
+    });
+
+    if (!result) {
+      throw new Error('Staff assignment not found');
+    }
+
+    return result;
   }
 
   async createStaff(tenantId: string, input: Record<string, unknown>) {

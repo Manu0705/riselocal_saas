@@ -72,10 +72,23 @@ export class HostelController {
 
   listRooms(req: Request, res: Response) {
     const tenantId = getTenantId(req);
+
     if (!tenantId) {
-      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
     }
-    return respond(req, res, () => service.listRooms(tenantId, getHostelId(req)));
+
+    return respond(req, res, () =>
+      service.listRooms(
+        tenantId,
+        getHostelId(req),
+        getPageValue(req.query.page, 1),
+        getPageValue(req.query.limit, 25),
+        req.query.search,
+      ),
+    );
   }
 
   createRoom(req: Request, res: Response) {
@@ -176,6 +189,25 @@ export class HostelController {
       return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
     return respond(req, res, () => service.allocationHistory(tenantId, req.params.id));
   }
+  
+  recentAllocationActivity(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.recentAllocationActivity(
+        tenantId,
+        req.query.hostelId,
+        req.query.limit,
+      ),
+    );
+  }
 
   listStudents(req: Request, res: Response) {
     const tenantId = getTenantId(req);
@@ -230,6 +262,59 @@ export class HostelController {
     return respond(req, res, () => service.listStaff(tenantId, getHostelId(req)));
   }
 
+  listAvailableStaffUsers(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listAvailableStaffUsers(tenantId),
+    );
+  }
+
+
+  deleteStaffAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.deleteStaffAssignment(tenantId, {
+        hostelId: req.query.hostelId,
+        assignmentId: req.params.id,
+      }),
+    );
+  }
+
+  updateStaffAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.updateStaffAssignment(tenantId, {
+        hostelId: req.query.hostelId,
+        assignmentId: req.params.id,
+        role: req.body.role,
+      }),
+    );
+  }
+
   createStaff(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId) {
@@ -237,7 +322,6 @@ export class HostelController {
     }
     return respond(req, res, () => service.createStaff(tenantId, req.body ?? {}), 201);
   }
-
   initiatePayment(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId)

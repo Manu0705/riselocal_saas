@@ -108,6 +108,7 @@ export default function AdmissionsPage() {
           justifyContent: 'space-between',
           gap: 16,
           marginBottom: 24,
+          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -183,6 +184,7 @@ export default function AdmissionsPage() {
           placeholder="Search by name, admission number, phone..."
           style={{
             width: '100%',
+            minWidth: 0,
             padding: '11px 12px',
             border: '1px solid var(--border, #d1d5db)',
             borderRadius: 8,
@@ -195,7 +197,9 @@ export default function AdmissionsPage() {
 
       <div
         style={{
+          width: '100%',
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
           borderRadius: 12,
@@ -205,7 +209,7 @@ export default function AdmissionsPage() {
           style={{
             width: '100%',
             borderCollapse: 'collapse',
-            minWidth: 850,
+            minWidth: 620,
           }}
         >
           <thead>
@@ -356,7 +360,7 @@ export default function AdmissionsPage() {
 }
 
 const headerStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '12px 12px',
   textAlign: 'left',
   fontSize: 12,
   fontWeight: 600,
@@ -365,7 +369,7 @@ const headerStyle: React.CSSProperties = {
 };
 
 const cellStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '12px 12px',
   fontSize: 14,
   color: 'var(--foreground, #111827)',
   borderBottom: '1px solid var(--border, #e5e7eb)',

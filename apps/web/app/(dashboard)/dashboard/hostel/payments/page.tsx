@@ -5,26 +5,23 @@ import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api-client';
 
-type HostelProperty = {
+type HostelPayment = {
   id: string;
-  name: string;
+  amount: string | number;
   status: string;
+  createdAt: string;
+  student?: {
+    id: string;
+    name: string;
+    admissionNumber?: string | null;
+  } | null;
+  receipt?: {
+    id: string;
+  } | null;
 };
 
-type HostelRoom = {
-  id: string;
-  roomNumber?: string | null;
-  floor?: string | number | null;
-  capacity?: number | null;
-  occupied?: number | null;
-  occupiedBeds?: number | null;
-  vacant?: number | null;
-  vacantBeds?: number | null;
-  status?: string | null;
-};
-
-type RoomPage = {
-  items: HostelRoom[];
+type PaymentPage = {
+  items: HostelPayment[];
   pagination: {
     page: number;
     limit: number;
@@ -39,62 +36,65 @@ type ApiResponse<T> = {
   message?: string;
 };
 
-export default function HostelRoomsPage() {
-  const [rooms, setRooms] = useState<HostelRoom[]>([]);
+const STATUS_OPTIONS = [
+  'ALL',
+  'INITIATED',
+  'PENDING',
+  'SUBMITTED',
+  'VERIFYING',
+  'PAID',
+  'FAILED',
+  'REJECTED',
+  'REFUNDED',
+];
+
+export default function HostelPaymentsPage() {
+  const [payments, setPayments] = useState<HostelPayment[]>([]);
+  const [status, setStatus] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPayments, setTotalPayments] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRooms, setTotalRooms] = useState(0);
-
   useEffect(() => {
-    async function loadRooms() {
+    async function loadPayments() {
       try {
         setLoading(true);
         setError(null);
 
-        const propertyResponse = await api.get<
-          ApiResponse<HostelProperty[]>
-        >('/hostel/properties');
+        const query = new URLSearchParams({
+          page: String(page),
+          limit: '25',
+        });
 
-        const hostelId = propertyResponse.data[0]?.id;
-
-        if (!hostelId) {
-          setRooms([]);
-          setTotalPages(1);
-          setTotalRooms(0);
-          return;
+        if (status !== 'ALL') {
+          query.set('status', status);
         }
 
-        const roomResponse = await api.get<ApiResponse<RoomPage>>(
-          `/hostel/rooms?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&page=${page}&limit=25&search=${encodeURIComponent(
-            search.trim(),
-          )}`,
+        const response = await api.get<ApiResponse<PaymentPage>>(
+          `/payments?${query.toString()}`,
         );
 
-        setRooms(roomResponse.data.items);
-        setTotalPages(roomResponse.data.pagination.totalPages);
-        setTotalRooms(roomResponse.data.pagination.total);
+        setPayments(response.data.items);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalPayments(response.data.pagination.total);
       } catch (loadError) {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Failed to load rooms',
+            : 'Failed to load payments',
         );
       } finally {
         setLoading(false);
       }
     }
 
-    void loadRooms();
-  }, [page, search]);
+    void loadPayments();
+  }, [page, status]);
 
-  function handleSearchChange(value: string) {
-    setSearch(value);
+  function handleStatusChange(value: string) {
+    setStatus(value);
     setPage(1);
   }
 
@@ -109,7 +109,7 @@ export default function HostelRoomsPage() {
             color: 'var(--foreground, #111827)',
           }}
         >
-          Rooms
+          Payments
         </h1>
 
         <p
@@ -119,7 +119,7 @@ export default function HostelRoomsPage() {
             color: 'var(--muted, #6b7280)',
           }}
         >
-          View and manage rooms in your hostel.
+          View and manage hostel payments.
         </p>
       </div>
 
@@ -133,16 +133,12 @@ export default function HostelRoomsPage() {
           flexWrap: 'wrap',
         }}
       >
-        <input
-          type="text"
-          value={search}
-          onChange={(event) =>
-            handleSearchChange(event.target.value)
-          }
-          placeholder="Search rooms..."
+        <select
+          value={status}
+          onChange={(event) => handleStatusChange(event.target.value)}
           style={{
             width: '100%',
-            maxWidth: 360,
+            maxWidth: 220,
             minWidth: 0,
             height: 40,
             padding: '0 12px',
@@ -153,7 +149,13 @@ export default function HostelRoomsPage() {
             fontSize: 13,
             outline: 'none',
           }}
-        />
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option === 'ALL' ? 'All Statuses' : option}
+            </option>
+          ))}
+        </select>
 
         <div
           style={{
@@ -161,7 +163,7 @@ export default function HostelRoomsPage() {
             color: 'var(--muted, #6b7280)',
           }}
         >
-          {totalRooms} rooms
+          {totalPayments} payments
         </div>
       </div>
 
@@ -174,33 +176,28 @@ export default function HostelRoomsPage() {
         }}
       >
         {loading ? (
-          <div style={{ padding: 24 }}>Loading rooms...</div>
+          <div style={{ padding: 24 }}>Loading payments...</div>
         ) : error ? (
-          <div
-            style={{
-              padding: 24,
-              color: '#b91c1c',
-            }}
-          >
+          <div style={{ padding: 24, color: '#b91c1c' }}>
             {error}
           </div>
-        ) : rooms.length === 0 ? (
+        ) : payments.length === 0 ? (
           <div
             style={{
               padding: 24,
               color: 'var(--muted, #6b7280)',
             }}
           >
-            No rooms found.
+            No payments found.
           </div>
         ) : (
-          <div 
+          <div
             style={{
               width: '100%',
-              overflowX: 'auto',
+               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
             }}
-            >
+          >
             <table
               style={{
                 width: '100%',
@@ -210,57 +207,63 @@ export default function HostelRoomsPage() {
             >
               <thead>
                 <tr>
-                  <th style={headerStyle}>Room</th>
-                  <th style={headerStyle}>Floor</th>
-                  <th style={headerStyle}>Capacity</th>
-                  <th style={headerStyle}>Occupied</th>
-                  <th style={headerStyle}>Vacant</th>
+                  <th style={headerStyle}>Student</th>
+                  <th style={headerStyle}>Admission No.</th>
+                  <th style={headerStyle}>Amount</th>
                   <th style={headerStyle}>Status</th>
+                  <th style={headerStyle}>Date</th>
+                  <th style={headerStyle}>Action</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rooms.map((room) => {
-                  const occupied =
-                    room.occupiedBeds ?? room.occupied ?? 0;
-
-                  const capacity = room.capacity ?? 0;
-
-                  const vacant =
-                    room.vacantBeds ??
-                    room.vacant ??
-                    Math.max(capacity - occupied, 0);
-
-                  return (
-                    <tr key={room.id}>
-                      <td style={cellStyle}>
+                {payments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td style={cellStyle}>
+                      {payment.student ? (
                         <Link
-                          href={`/dashboard/hostel/rooms/${room.id}`}
+                          href={`/dashboard/hostel/students/${payment.student.id}`}
                           style={{
                             fontWeight: 600,
                             textDecoration: 'none',
                           }}
                         >
-                          {room.roomNumber ?? '—'}
+                          {payment.student.name}
                         </Link>
-                      </td>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
 
-                      <td style={cellStyle}>
-                        {room.floor ?? '—'}
-                      </td>
+                    <td style={cellStyle}>
+                      {payment.student?.admissionNumber ?? '—'}
+                    </td>
 
-                      <td style={cellStyle}>{capacity}</td>
+                    <td style={cellStyle}>
+                      ₹{Number(payment.amount).toLocaleString('en-IN')}
+                    </td>
 
-                      <td style={cellStyle}>{occupied}</td>
+                    <td style={cellStyle}>{payment.status}</td>
 
-                      <td style={cellStyle}>{vacant}</td>
+                    <td style={cellStyle}>
+                      {new Date(payment.createdAt).toLocaleDateString(
+                        'en-IN',
+                      )}
+                    </td>
 
-                      <td style={cellStyle}>
-                        {room.status ?? '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    <td style={cellStyle}>
+                      <Link
+                        href={`/dashboard/hostel/payments/${payment.id}`}
+                        style={{
+                          fontWeight: 600,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -286,18 +289,11 @@ export default function HostelRoomsPage() {
           Page {page} of {totalPages}
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-          }}
-        >
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
             type="button"
             disabled={page === 1 || loading}
-            onClick={() =>
-              setPage((current) => current - 1)
-            }
+            onClick={() => setPage((current) => current - 1)}
             style={buttonStyle(page === 1 || loading)}
           >
             Previous
@@ -306,9 +302,7 @@ export default function HostelRoomsPage() {
           <button
             type="button"
             disabled={page >= totalPages || loading}
-            onClick={() =>
-              setPage((current) => current + 1)
-            }
+            onClick={() => setPage((current) => current + 1)}
             style={buttonStyle(page >= totalPages || loading)}
           >
             Next
@@ -317,19 +311,6 @@ export default function HostelRoomsPage() {
       </div>
     </div>
   );
-}
-
-function buttonStyle(disabled: boolean): React.CSSProperties {
-  return {
-    height: 36,
-    padding: '0 12px',
-    border: '1px solid var(--border, #e5e7eb)',
-    borderRadius: 8,
-    background: 'var(--bg, #ffffff)',
-    color: 'var(--foreground, #111827)',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-  };
 }
 
 const headerStyle: React.CSSProperties = {
@@ -349,3 +330,16 @@ const cellStyle: React.CSSProperties = {
   borderBottom: '1px solid var(--border, #e5e7eb)',
   whiteSpace: 'nowrap',
 };
+
+function buttonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    height: 36,
+    padding: '0 12px',
+    border: '1px solid var(--border, #e5e7eb)',
+    borderRadius: 8,
+    background: 'var(--bg, #ffffff)',
+    color: 'var(--foreground, #111827)',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+  };
+}

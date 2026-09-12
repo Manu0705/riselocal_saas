@@ -41,6 +41,20 @@ router.delete(
   roleGuard('owner', 'manager'),
   controller.deleteRoom.bind(controller),
 );
+router.patch(
+  '/hostel/staff/:id',
+  roleGuard('owner', 'manager'),
+  controller.updateStaffAssignment.bind(controller),
+);
+router.delete(
+  '/hostel/staff/:id',
+  roleGuard('owner', 'manager'),
+  controller.deleteStaffAssignment.bind(controller),
+);
+router.get(
+  '/hostel/rooms/recent-activity',
+  controller.recentAllocationActivity.bind(controller),
+);
 router.get('/hostel/rooms/:id/history', controller.allocationHistory.bind(controller));
 router.post(
   '/hostel/rooms/allocate',
@@ -70,10 +84,20 @@ router.patch(
   controller.updateStudent.bind(controller),
 );
 router.get('/hostel/staff', controller.listStaff.bind(controller));
+router.get(
+  '/hostel/staff/available-users',
+  roleGuard('owner', 'manager'),
+  controller.listAvailableStaffUsers.bind(controller),
+);
 router.post(
   '/hostel/staff',
   roleGuard('owner', 'manager'),
   controller.createStaff.bind(controller),
+);
+router.delete(
+  '/hostel/staff/:id',
+  roleGuard('owner', 'manager'),
+  controller.deleteStaffAssignment.bind(controller),
 );
 router.post(
   '/payments/initiate',

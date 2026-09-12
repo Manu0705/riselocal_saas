@@ -3,7 +3,21 @@ import { prisma, Prisma } from '@saas/database';
 export type HostelRepository = {
   findHostels(tenantId: string): Promise<unknown[]>;
   createHostel(input: { tenantId: string; name: string }): Promise<unknown>;
-  findRooms(input: { tenantId: string; hostelId: string }): Promise<unknown[]>;
+  findRooms(input: {
+    tenantId: string;
+    hostelId: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    items: unknown[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>;
   createRoom(input: {
     tenantId: string;
     hostelId: string;
@@ -45,6 +59,11 @@ export type HostelRepository = {
     actorId?: string;
   }): Promise<unknown>;
   allocationHistory(input: { tenantId: string; roomId: string }): Promise<unknown[]>;
+  recentAllocationActivity(input: {
+    tenantId: string;
+    hostelId: string;
+    limit?: number;
+  }): Promise<unknown[]>;
   listStudents(input: {
     tenantId: string;
     hostelId?: string;
@@ -101,6 +120,18 @@ export type HostelRepository = {
     status?: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }): Promise<unknown>;
   findStaff(input: { tenantId: string; hostelId: string }): Promise<unknown[]>;
+  findAvailableStaffUsers(tenantId: string): Promise<unknown[]>;
+  deleteStaffAssignment(input: {
+    tenantId: string;
+    hostelId: string;
+    assignmentId: string;
+  }): Promise<{ count: number }>;
+  updateStaffAssignment(input: {
+  tenantId: string;
+  hostelId: string;
+  assignmentId: string;
+  role: 'ADMIN' | 'STAFF';
+}): Promise<unknown>;
   createStaffAssignment(input: {
     tenantId: string;
     hostelId: string;
@@ -169,11 +200,54 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     });
   }
 
-  findRooms(input: { tenantId: string; hostelId: string }) {
-    return prisma.room.findMany({
-      where: { tenantId: input.tenantId, hostelId: input.hostelId },
-      orderBy: { roomNumber: 'asc' },
-    });
+  async findRooms(input: {
+    tenantId: string;
+    hostelId: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+    const page = input.page ?? 1;
+    const limit = input.limit ?? 25;
+    const skip = (page - 1) * limit;
+
+    const search = input.search?.trim();
+
+    const where = {
+      tenantId: input.tenantId,
+      hostelId: input.hostelId,
+      ...(search
+        ? {
+            roomNumber: {
+              contains: search,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.room.findMany({
+        where,
+        orderBy: { roomNumber: 'asc' },
+        skip,
+        take: limit,
+      }),
+
+      prisma.room.count({
+        where,
+      }),
+    ]);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   createRoom(input: {
@@ -420,6 +494,40 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     return prisma.roomAllocation.findMany({ where: input, orderBy: { happenedAt: 'desc' } });
   }
 
+  async recentAllocationActivity(input: {
+    tenantId: string;
+    hostelId: string;
+    limit?: number;
+  }) {
+    const limit = Math.min(20, Math.max(1, input.limit ?? 10));
+
+    return prisma.roomAllocation.findMany({
+      where: {
+        tenantId: input.tenantId,
+        hostelId: input.hostelId,
+      },
+      orderBy: {
+        happenedAt: 'desc',
+      },
+      take: limit,
+      include: {
+        room: {
+          select: {
+            id: true,
+            roomNumber: true,
+          },
+        },
+        student: {
+          select: {
+            id: true,
+            name: true,
+            admissionNumber: true,
+          },
+        },
+      },
+    });
+  }
+
   async listStudents(input: {
     tenantId: string;
     hostelId?: string;
@@ -639,6 +747,25 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     });
   }
 
+  findAvailableStaffUsers(tenantId: string) {
+    return prisma.tenantUser.findMany({
+      where: {
+        tenantId,
+        role: 'staff',
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   createStaffAssignment(input: {
     tenantId: string;
     hostelId: string;
@@ -658,6 +785,38 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       },
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },
+      },
+    });
+  }
+
+  deleteStaffAssignment(input: {
+    tenantId: string;
+    hostelId: string;
+    assignmentId: string;
+  }) {
+    return prisma.hostelStaffAssignment.deleteMany({
+      where: {
+        id: input.assignmentId,
+        tenantId: input.tenantId,
+        hostelId: input.hostelId,
+      },
+    });
+  }
+
+  updateStaffAssignment(input: {
+    tenantId: string;
+    hostelId: string;
+    assignmentId: string;
+    role: 'ADMIN' | 'STAFF';
+  }) {
+    return prisma.hostelStaffAssignment.updateMany({
+      where: {
+        id: input.assignmentId,
+        tenantId: input.tenantId,
+        hostelId: input.hostelId,
+      },
+      data: {
+        role: input.role,
       },
     });
   }

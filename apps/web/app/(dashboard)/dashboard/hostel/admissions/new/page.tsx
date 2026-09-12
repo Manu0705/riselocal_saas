@@ -118,9 +118,10 @@ export default function NewAdmissionPage() {
       setSaving(true);
       setError(null);
 
-      await api.post('/hostel/students', {
+      const studentResponse = await api.post<
+        ApiResponse<{ id: string }>
+      >('/hostel/students', {
         hostelId: property.id,
-        roomId: selectedRoomId || undefined,
         admissionNumber: admissionNumber.trim(),
         name: name.trim(),
         email: email.trim() || undefined,
@@ -131,6 +132,16 @@ export default function NewAdmissionPage() {
         emergencyRelation: emergencyRelation.trim() || undefined,
         admissionDate,
       });
+
+      const studentId = studentResponse.data.id;
+
+      if (selectedRoomId) {
+        await api.post('/hostel/rooms/allocate', {
+          hostelId: property.id,
+          roomId: selectedRoomId,
+          studentId,
+        });
+      }
 
       window.location.href = '/dashboard/hostel/admissions';
     } catch (saveError) {
@@ -202,7 +213,9 @@ export default function NewAdmissionPage() {
       <form
         onSubmit={(event) => void handleSubmit(event)}
         style={{
+          width: '100%',
           maxWidth: 800,
+          boxSizing: 'border-box',
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
           borderRadius: 12,
@@ -211,7 +224,7 @@ export default function NewAdmissionPage() {
       >
         <SectionTitle title="Student Information" />
 
-        <div style={gridStyle}>
+        <div className="admission-form-grid" style={gridStyle}>
           <Field
             label="Admission Number"
             value={admissionNumber}
@@ -270,6 +283,7 @@ export default function NewAdmissionPage() {
               style={{
                 display: 'block',
                 width: '100%',
+                minWidth: 0,
                 marginTop: 8,
                 padding: '11px 12px',
                 border: '1px solid var(--border, #d1d5db)',
@@ -295,7 +309,7 @@ export default function NewAdmissionPage() {
         <div style={{ marginTop: 28 }}>
           <SectionTitle title="Emergency Contact" />
 
-          <div style={gridStyle}>
+          <div className="admission-form-grid" style={gridStyle}>
             <Field
               label="Contact Name"
               value={emergencyName}
@@ -323,6 +337,7 @@ export default function NewAdmissionPage() {
             justifyContent: 'flex-end',
             gap: 12,
             marginTop: 28,
+            flexWrap: 'wrap',
           }}
         >
           <Link
@@ -358,6 +373,13 @@ export default function NewAdmissionPage() {
           </button>
         </div>
       </form>
+      <style jsx>{`
+        @media (max-width: 520px) {
+          .admission-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -410,6 +432,7 @@ function Field({
         style={{
           display: 'block',
           width: '100%',
+          minWidth: 0,
           marginTop: 8,
           padding: '11px 12px',
           border: '1px solid var(--border, #d1d5db)',
@@ -428,4 +451,5 @@ const gridStyle: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: 16,
+  minWidth: 0,
 };

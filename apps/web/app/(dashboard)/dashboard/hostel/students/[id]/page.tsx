@@ -153,10 +153,12 @@ export default function StudentDetailsPage({
       </div>
 
       <div
+        className="student-details-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: 16,
+          minWidth: 0,
         }}
       >
         <InfoCard label="Admission Number" value={student.admissionNumber ?? '—'} />
@@ -252,6 +254,13 @@ export default function StudentDetailsPage({
           ).toLocaleString('en-IN')}`}
         />
       </div>
+      <style jsx>{`
+        @media (max-width: 520px) {
+          .student-details-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -270,6 +279,7 @@ function InfoCard({
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: 12,
         padding: 20,
+        minWidth: 0,
       }}
     >
       <div
