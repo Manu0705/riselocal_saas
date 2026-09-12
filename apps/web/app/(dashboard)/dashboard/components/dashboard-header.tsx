@@ -13,8 +13,11 @@ export default function DashboardHeader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const menuRef = useRef<HTMLDivElement | null>(null);
+
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const isHostelRoute = pathname.startsWith('/dashboard/hostel');
 
   useEffect(() => {
     const theme = dark ? 'dark' : 'light';
@@ -24,6 +27,7 @@ export default function DashboardHeader() {
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
       if (!menuRef.current) return;
+
       if (!menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
@@ -38,13 +42,33 @@ export default function DashboardHeader() {
     };
   }, [menuOpen]);
 
+  /*
+   * Close the normal dashboard dropdown whenever
+   * we enter the Hostel section.
+   */
+  useEffect(() => {
+    if (isHostelRoute) {
+      setMenuOpen(false);
+    }
+  }, [isHostelRoute]);
+
   function toggle() {
     setDark((prev) => !prev);
   }
 
+  const handleMenuClick = () => {
+    if (isHostelRoute) {
+      window.dispatchEvent(new Event('hostel-sidebar-toggle'));
+      return;
+    }
+
+    setMenuOpen((prev) => !prev);
+  };
+
   const goToSettings = () => {
     const tenant = searchParams.get('tenant');
     const query = tenant ? '?tenant=' + tenant : '';
+
     router.push('/dashboard/settings' + query);
     setMenuOpen(false);
   };
@@ -52,6 +76,7 @@ export default function DashboardHeader() {
   const goToCustomize = () => {
     const tenant = searchParams.get('tenant');
     const query = tenant ? '?tenant=' + tenant : '';
+
     router.push('/dashboard/customize' + query);
     setMenuOpen(false);
   };
@@ -59,6 +84,7 @@ export default function DashboardHeader() {
   const goToAnalytics = () => {
     const tenant = searchParams.get('tenant');
     const query = tenant ? '?tenant=' + tenant : '';
+
     router.push('/dashboard/analytics' + query);
     setMenuOpen(false);
   };
@@ -66,6 +92,7 @@ export default function DashboardHeader() {
   const goToHostel = () => {
     const tenant = searchParams.get('tenant');
     const query = tenant ? '?tenant=' + tenant : '';
+
     router.push('/dashboard/hostel' + query);
     setMenuOpen(false);
   };
@@ -79,13 +106,17 @@ export default function DashboardHeader() {
       storedTenantSlug ??
       'default';
 
-    router.push(`/${tenantRouteKey}?view=public`, { scroll: false });
+    router.push(`/${tenantRouteKey}?view=public`, {
+      scroll: false,
+    });
+
     setMenuOpen(false);
   };
 
   const goHome = () => {
     const tenantQuery = searchParams.get('tenant');
     const query = tenantQuery ? `?tenant=${tenantQuery}` : '';
+
     router.push(`/dashboard${query}`);
     setMenuOpen(false);
   };
@@ -93,18 +124,22 @@ export default function DashboardHeader() {
   const goToHelp = () => {
     const tenantQuery = searchParams.get('tenant');
     const query = tenantQuery ? `?tenant=${tenantQuery}` : '';
+
     router.push(`/dashboard/help${query}`);
     setMenuOpen(false);
   };
 
   const handleLogout = () => {
     logout();
+
     const tenant = searchParams.get('tenant');
+
     if (tenant) {
       router.push(`/${tenant}`);
     } else {
       router.push('/default');
     }
+
     setMenuOpen(false);
   };
 
@@ -115,19 +150,55 @@ export default function DashboardHeader() {
     if (pathname.startsWith('/dashboard/hostel')) return 'hostel';
     if (pathname.startsWith('/dashboard/settings')) return 'settings';
     if (pathname.startsWith('/dashboard/help')) return 'help';
+
     return null;
   })();
 
   const menuItems = [
-    { key: 'home', label: 'Home', onPress: goHome },
-    { key: 'lead-view', label: 'Lead View', onPress: goToLeadView },
-    { key: 'customize', label: 'Customize', onPress: goToCustomize },
-    { key: 'analytics', label: 'Analytics', onPress: goToAnalytics },
-    { key: 'hostel', label: 'Hostel', onPress: goToHostel },
-    { key: 'settings', label: 'Settings', onPress: goToSettings },
-    { key: 'help', label: 'Help', onPress: goToHelp },
-    { key: 'logout', label: 'Logout', onPress: handleLogout },
-  ].filter((item) => item.key === 'logout' || item.key !== currentMenuKey);
+    {
+      key: 'home',
+      label: 'Home',
+      onPress: goHome,
+    },
+    {
+      key: 'lead-view',
+      label: 'Lead View',
+      onPress: goToLeadView,
+    },
+    {
+      key: 'customize',
+      label: 'Customize',
+      onPress: goToCustomize,
+    },
+    {
+      key: 'analytics',
+      label: 'Analytics',
+      onPress: goToAnalytics,
+    },
+    {
+      key: 'hostel',
+      label: 'Hostel',
+      onPress: goToHostel,
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      onPress: goToSettings,
+    },
+    {
+      key: 'help',
+      label: 'Help',
+      onPress: goToHelp,
+    },
+    {
+      key: 'logout',
+      label: 'Logout',
+      onPress: handleLogout,
+    },
+  ].filter(
+    (item) =>
+      item.key === 'logout' || item.key !== currentMenuKey,
+  );
 
   useEffect(() => {
     const tenantRouteKey =
@@ -139,7 +210,14 @@ export default function DashboardHeader() {
       'default';
 
     router.prefetch(`/${tenantRouteKey}?view=public`);
-  }, [router, searchParams, tenant?.slug, tenant?.domain, tenant?.id, storedTenantSlug]);
+  }, [
+    router,
+    searchParams,
+    tenant?.slug,
+    tenant?.domain,
+    tenant?.id,
+    storedTenantSlug,
+  ]);
 
   return (
     <div
@@ -161,11 +239,17 @@ export default function DashboardHeader() {
     >
       <div
         ref={menuRef}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          position: 'relative',
+          minWidth: 0,
+        }}
       >
         <button
           type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
+          onClick={handleMenuClick}
           style={{
             border: 'none',
             background: 'transparent',
@@ -176,65 +260,94 @@ export default function DashboardHeader() {
             justifyContent: 'center',
             color: 'var(--text)',
             marginLeft: -10,
+            cursor: 'pointer',
+            flexShrink: 0,
           }}
-          aria-label="Open menu"
+          aria-label={
+            isHostelRoute
+              ? 'Open hostel navigation'
+              : 'Open menu'
+          }
+          aria-expanded={
+            isHostelRoute ? undefined : menuOpen
+          }
         >
           <Menu size={18} />
         </button>
+
         <span
           style={{
             fontWeight: 700,
             fontSize: 'clamp(18px, 2.2vw, 24px)',
             color: 'var(--text)',
             letterSpacing: '-0.4px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
-          Dashboard
+          {isHostelRoute ? 'Hostel' : 'Dashboard'}
         </span>
 
-        {/* Menu Dropdown */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 6px)',
-            left: 0,
-            width: 180,
-            borderRadius: 12,
-            border: '1px solid var(--card-border)',
-            background: 'var(--card)',
-            boxShadow: '0 14px 30px var(--shadow)',
-            padding: 8,
-            opacity: menuOpen ? 1 : 0,
-            transform: menuOpen ? 'translateY(0)' : 'translateY(-6px)',
-            pointerEvents: menuOpen ? 'auto' : 'none',
-            transition: 'opacity 160ms ease, transform 160ms ease',
-            zIndex: 200,
-          }}
-        >
-          {menuItems.map((item) => (
-            <button
-              type="button"
-              key={item.key}
-              onClick={item.onPress}
-              style={{
-                width: '100%',
-                border: 'none',
-                borderRadius: 10,
-                background: 'transparent',
-                color: item.label === 'Logout' ? '#dc2626' : 'var(--text)',
-                padding: '10px 12px',
-                textAlign: 'left',
-                fontSize: 14,
-                fontWeight: 500,
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* Normal Dashboard Menu Dropdown */}
+        {!isHostelRoute && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              width: 180,
+              borderRadius: 12,
+              border: '1px solid var(--card-border)',
+              background: 'var(--card)',
+              boxShadow: '0 14px 30px var(--shadow)',
+              padding: 8,
+              opacity: menuOpen ? 1 : 0,
+              transform: menuOpen
+                ? 'translateY(0)'
+                : 'translateY(-6px)',
+              pointerEvents: menuOpen ? 'auto' : 'none',
+              transition:
+                'opacity 160ms ease, transform 160ms ease',
+              zIndex: 200,
+            }}
+          >
+            {menuItems.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                onClick={item.onPress}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  color:
+                    item.label === 'Logout'
+                      ? '#dc2626'
+                      : 'var(--text)',
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexShrink: 0,
+        }}
+      >
         <button
           type="button"
           onClick={toggle}
@@ -247,6 +360,7 @@ export default function DashboardHeader() {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--text)',
+            cursor: 'pointer',
           }}
           aria-label="Toggle theme"
         >

@@ -153,13 +153,15 @@ export default function HostelPage() {
       try {
         const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
         const [roomResponse, summaryResponse] = await Promise.all([
-          api.get<ApiResponse<HostelRoom[]>>(`/hostel/rooms${query}`),
+          api.get<ApiResponse<{ items: HostelRoom[] }>>(`/hostel/rooms${query}`),
           api.get<ApiResponse<VacancySummary>>(`/hostel/rooms/vacancy-summary${query}`),
         ]);
-        setRooms(roomResponse.data);
+        setRooms(roomResponse.data.items);
         setVacancySummary(summaryResponse.data);
         setSelectedRoom((current) =>
-          current ? (roomResponse.data.find((room) => room.id === current.id) ?? null) : null,
+          current
+            ? (roomResponse.data.items.find((room) => room.id === current.id) ?? null)
+            : null,
         );
       } catch (loadError) {
         toast.error(loadError instanceof Error ? loadError.message : 'Failed to load hostel data');

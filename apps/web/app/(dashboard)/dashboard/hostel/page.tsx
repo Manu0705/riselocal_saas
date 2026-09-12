@@ -164,6 +164,7 @@ function OccupancyOverview({
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: 16,
           marginTop: 20,
+          minWidth: 0,
         }}
       >
         <div>
@@ -273,6 +274,7 @@ function OccupancyOverview({
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: 12,
           marginTop: 20,
+          minWidth: 0,
         }}
       >
         <div
@@ -591,56 +593,57 @@ export default function HostelDashboardPage() {
           return;
         }
 
-        const activityResponse = await api.get<
-          ApiResponse<RecentAllocationActivity[]>
-        >(
-          `/hostel/rooms/recent-activity?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&limit=8`,
-        );
+        const [
+          activityResult,
+          vacancyResult,
+          studentResult,
+          summaryResult,
+        ] = await Promise.allSettled([
+          api.get<ApiResponse<RecentAllocationActivity[]>>(
+            `/hostel/rooms/recent-activity?hostelId=${encodeURIComponent(
+              hostelId,
+            )}&limit=5`,
+          ),
+          api.get<ApiResponse<VacancySummary>>(
+            `/hostel/rooms/vacancy-summary?hostelId=${encodeURIComponent(
+              hostelId,
+            )}`,
+          ),
+          api.get<ApiResponse<StudentPage>>(
+            `/hostel/students?hostelId=${encodeURIComponent(
+              hostelId,
+            )}&page=1&limit=1`,
+          ),
+          api.get<ApiResponse<DashboardSummary>>(
+            `/hostel/dashboard-summary?hostelId=${encodeURIComponent(
+              hostelId,
+            )}`,
+          ),
+        ]);
 
-        setRecentActivity(activityResponse.data);
+        if (activityResult.status === 'fulfilled') {
+          setRecentActivity(activityResult.value.data);
+        } else {
+          setRecentActivity([]);
+        }
 
-        const vacancyResponse = await api.get<
-          ApiResponse<VacancySummary>
-        >(
-          `/hostel/rooms/vacancy-summary?hostelId=${encodeURIComponent(
-            hostelId,
-          )}`,
-        );
+        if (vacancyResult.status === 'fulfilled') {
+          setVacancySummary(vacancyResult.value.data);
+        } else {
+          setVacancySummary(null);
+        }
 
-        setVacancySummary(vacancyResponse.data);
+        if (studentResult.status === 'fulfilled') {
+          setTotalStudents(studentResult.value.data.pagination.total);
+        } else {
+          setTotalStudents(null);
+        }
 
-        const studentResponse = await api.get<
-          ApiResponse<StudentPage>
-        >(
-          `/hostel/students?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&page=1&limit=1`,
-        );
-
-        setTotalStudents(studentResponse.data.pagination.total);
-
-        const summaryResponse = await api.get<
-          ApiResponse<DashboardSummary>
-        >(
-          `/hostel/dashboard-summary?hostelId=${encodeURIComponent(
-            hostelId,
-          )}`,
-        );
-
-        setDashboardSummary(summaryResponse.data);
-
-        const recentActivityResponse = await api.get<
-          ApiResponse<RecentAllocationActivity[]>
-        >(
-          `/hostel/rooms/recent-activity?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&limit=5`,
-        );
-
-        setRecentActivity(recentActivityResponse.data);
-
+        if (summaryResult.status === 'fulfilled') {
+          setDashboardSummary(summaryResult.value.data);
+        } else {
+          setDashboardSummary(null);
+        }
       } catch {
         setTotalStudents(null);
         setVacancySummary(null);
@@ -670,6 +673,7 @@ export default function HostelDashboardPage() {
           alignItems: 'flex-start',
           gap: 16,
           marginBottom: 24,
+          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -744,6 +748,7 @@ export default function HostelDashboardPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               gap: 16,
+              minWidth: 0,
             }}
           >
             <StatCard
@@ -818,6 +823,7 @@ export default function HostelDashboardPage() {
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 16,
               marginTop: 16,
+              minWidth: 0,
             }}
           >
             <ActionCard
@@ -849,6 +855,7 @@ export default function HostelDashboardPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               gap: 16,
+              minWidth: 0,
             }}
           >
             <StatCard
@@ -915,6 +922,7 @@ export default function HostelDashboardPage() {
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 16,
               marginTop: 16,
+              minWidth: 0,
             }}
           >
             <ActionCard
@@ -926,7 +934,7 @@ export default function HostelDashboardPage() {
             <ActionCard
               title="Room Allocation"
               description="Allocate and manage student rooms."
-              href="/dashboard/hostel/room-allocation"
+              href="/dashboard/hostel/rooms/allocate"
             />
 
             <ActionCard
@@ -946,6 +954,7 @@ export default function HostelDashboardPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 16,
+              minWidth: 0,
             }}
           >
             <StatCard
@@ -1006,12 +1015,13 @@ export default function HostelDashboardPage() {
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 16,
               marginTop: 16,
+              minWidth: 0,
             }}
           >
             <ActionCard
               title="Room Allocation"
               description="View and manage room allocations."
-              href="/dashboard/hostel/room-allocation"
+              href="/dashboard/hostel/rooms/allocate"
             />
 
             <ActionCard

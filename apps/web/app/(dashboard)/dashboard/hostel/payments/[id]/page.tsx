@@ -83,7 +83,7 @@ export default function PaymentDetailsPage() {
         setError('');
 
         const response = await api.get<ApiResponse<Payment>>(
-          `/payments/${paymentId}`,
+          `/hostel/payments/${paymentId}`,
         );
 
         setPayment(response.data);
@@ -119,7 +119,7 @@ export default function PaymentDetailsPage() {
       setActionSuccess('Payment verified successfully.');
 
       const response = await api.get<ApiResponse<Payment>>(
-        `/payments/${payment.id}`,
+        `/hostel/payments/${paymentId}`,
       );
 
       setPayment(response.data);
@@ -151,7 +151,7 @@ export default function PaymentDetailsPage() {
       setActionSuccess('Payment rejected successfully.');
 
       const response = await api.get<ApiResponse<Payment>>(
-        `/payments/${payment.id}`,
+        `/hostel/payments/${paymentId}`,
       );
 
       setPayment(response.data);

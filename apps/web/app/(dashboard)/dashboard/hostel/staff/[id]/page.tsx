@@ -68,9 +68,7 @@ export default function HostelStaffDetailsPage() {
 
         const staffResponse = await api.get<
           ApiResponse<StaffAssignment[]>
-        >(
-          `/hostel/staff?hostelId=${encodeURIComponent(hostelId)}`,
-        );
+        >(`/hostel/staff?hostelId=${encodeURIComponent(hostelId)}`);
 
         const assignment = staffResponse.data.find(
           (member) => member.id === staffId,
@@ -179,10 +177,10 @@ export default function HostelStaffDetailsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="w-full min-w-0 space-y-6 p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <Link
             href="/dashboard/hostel/staff"
             className="text-sm font-medium text-gray-500 hover:text-gray-900"
@@ -200,7 +198,7 @@ export default function HostelStaffDetailsPage() {
         </div>
 
         {staff && (
-          <div className="flex gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <button
               type="button"
               onClick={() => {
@@ -215,7 +213,7 @@ export default function HostelStaffDetailsPage() {
                 );
               }}
               disabled={editing || removing || saving}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               Edit
             </button>
@@ -224,7 +222,7 @@ export default function HostelStaffDetailsPage() {
               type="button"
               onClick={handleRemoveStaff}
               disabled={removing || saving}
-              className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {removing ? 'Removing...' : 'Remove Staff'}
             </button>
@@ -234,35 +232,35 @@ export default function HostelStaffDetailsPage() {
 
       {/* Success Message */}
       {saveSuccess && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+        <div className="w-full rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 sm:p-4">
           {saveSuccess}
         </div>
       )}
 
       {/* Save Error */}
       {saveError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4">
           {saveError}
         </div>
       )}
 
       {/* Remove Error */}
       {removeError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4">
           {removeError}
         </div>
       )}
 
       {/* General Error */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4">
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading ? (
-        <div className="rounded-xl border bg-white p-6">
+        <div className="w-full rounded-xl border bg-white p-4 sm:p-6">
           <p className="text-sm text-gray-500">
             Loading staff details...
           </p>
@@ -271,8 +269,8 @@ export default function HostelStaffDetailsPage() {
         <>
           {/* Edit Staff Assignment */}
           {editing && (
-            <div className="rounded-xl border bg-white p-6">
-              <div>
+            <div className="w-full min-w-0 rounded-xl border bg-white p-4 sm:p-6">
+              <div className="min-w-0">
                 <h2 className="text-base font-semibold text-gray-900">
                   Edit Staff Assignment
                 </h2>
@@ -282,7 +280,7 @@ export default function HostelStaffDetailsPage() {
                 </p>
               </div>
 
-              <div className="mt-5 max-w-sm">
+              <div className="mt-5 w-full max-w-sm">
                 <label
                   htmlFor="staff-role"
                   className="block text-sm font-medium text-gray-700"
@@ -299,19 +297,19 @@ export default function HostelStaffDetailsPage() {
                     setSaveSuccess('');
                   }}
                   disabled={saving}
-                  className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500 disabled:cursor-not-allowed disabled:bg-gray-50"
+                  className="mt-2 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 disabled:cursor-not-allowed disabled:bg-gray-50"
                 >
                   <option value="STAFF">Staff</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
-              <div className="mt-5 flex gap-2">
+              <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                 <button
                   type="button"
                   onClick={handleUpdateStaff}
                   disabled={saving}
-                  className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -320,7 +318,7 @@ export default function HostelStaffDetailsPage() {
                   type="button"
                   onClick={handleCancelEdit}
                   disabled={saving}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -329,16 +327,16 @@ export default function HostelStaffDetailsPage() {
           )}
 
           {/* Staff Information */}
-          <div className="rounded-xl border bg-white">
-            <div className="border-b px-6 py-4">
+          <div className="w-full min-w-0 rounded-xl border bg-white">
+            <div className="border-b px-4 py-4 sm:px-6">
               <h2 className="text-base font-semibold text-gray-900">
                 Staff Information
               </h2>
             </div>
 
-            <div className="grid gap-6 p-6 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-5 p-4 sm:grid-cols-2 sm:gap-6 sm:p-6">
               {/* Staff ID */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Staff ID
                 </p>
@@ -349,18 +347,18 @@ export default function HostelStaffDetailsPage() {
               </div>
 
               {/* Name */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Name
                 </p>
 
-                <p className="mt-1 text-sm text-gray-900">
+                <p className="mt-1 break-words text-sm text-gray-900">
                   {staff.user?.name || '—'}
                 </p>
               </div>
 
               {/* Email */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Email
                 </p>
@@ -371,36 +369,38 @@ export default function HostelStaffDetailsPage() {
               </div>
 
               {/* Role */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Role
                 </p>
 
-                <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-700">
+                <span className="mt-1 inline-flex max-w-full rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-700">
                   {staff.user?.role || '—'}
                 </span>
               </div>
 
               {/* Hostel */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Hostel
                 </p>
 
-                <p className="mt-1 text-sm text-gray-900">
+                <p className="mt-1 break-words text-sm text-gray-900">
                   {hostelName}
                 </p>
               </div>
 
               {/* Assigned On */}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Assigned On
                 </p>
 
                 <p className="mt-1 text-sm text-gray-900">
                   {staff.createdAt
-                    ? new Date(staff.createdAt).toLocaleDateString()
+                    ? new Date(
+                        staff.createdAt,
+                      ).toLocaleDateString()
                     : '—'}
                 </p>
               </div>

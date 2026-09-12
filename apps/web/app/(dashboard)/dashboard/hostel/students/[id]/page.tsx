@@ -78,7 +78,7 @@ export default function StudentDetailsPage({
       await api.post('/hostel/rooms/deallocate', {
         studentId: student.id,
         roomId: student.room.id,
-    });
+      });
 
       setStudent((currentStudent) =>
         currentStudent
@@ -87,25 +87,31 @@ export default function StudentDetailsPage({
               room: null,
             }
           : currentStudent,
-        );
+      );
     } catch (deallocateError) {
-        setError(
+      setError(
         deallocateError instanceof Error
-            ? deallocateError.message
-            : 'Failed to deallocate student',
-        );
+          ? deallocateError.message
+          : 'Failed to deallocate student',
+      );
     } finally {
       setDeallocating(false);
     }
   }
+
   if (loading) {
     return <div>Loading student...</div>;
   }
 
   if (error) {
     return (
-      <div>
-        <p style={{ color: '#b91c1c' }}>{error}</p>
+      <div className="w-full min-w-0">
+        <p
+          className="break-words"
+          style={{ color: '#b91c1c' }}
+        >
+          {error}
+        </p>
 
         <Link href="/dashboard/hostel/students">
           ← Back to Students
@@ -116,7 +122,7 @@ export default function StudentDetailsPage({
 
   if (!student) {
     return (
-      <div>
+      <div className="w-full min-w-0">
         <p>Student not found.</p>
 
         <Link href="/dashboard/hostel/students">
@@ -127,23 +133,21 @@ export default function StudentDetailsPage({
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
+    <div className="w-full min-w-0">
+      {/* Header */}
+      <div className="mb-6 min-w-0">
         <Link
           href="/dashboard/hostel/students"
-          style={{
-            fontSize: 13,
-            textDecoration: 'none',
-            color: 'var(--muted, #6b7280)',
-          }}
+          className="text-[13px] text-[var(--muted,#6b7280)] no-underline"
         >
           ← Back to Students
         </Link>
 
         <h1
+          className="break-words"
           style={{
             margin: '12px 0 0',
-            fontSize: 28,
+            fontSize: 'clamp(24px, 5vw, 28px)',
             fontWeight: 700,
             color: 'var(--foreground, #111827)',
           }}
@@ -159,20 +163,41 @@ export default function StudentDetailsPage({
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: 16,
           minWidth: 0,
+          width: '100%',
         }}
       >
-        <InfoCard label="Admission Number" value={student.admissionNumber ?? '—'} />
+        <InfoCard
+          label="Admission Number"
+          value={student.admissionNumber ?? '—'}
+        />
+
         <InfoCard
           label="Admission Date"
           value={
             student.admissionDate
-              ? new Date(student.admissionDate).toLocaleDateString('en-IN')
+              ? new Date(
+                  student.admissionDate,
+                ).toLocaleDateString('en-IN')
               : '—'
           }
         />
-        <InfoCard label="Phone" value={student.phone ?? '—'} />
-        <InfoCard label="Email" value={student.email ?? '—'} />
-        <InfoCard label="Status" value={student.status} />
+
+        <InfoCard
+          label="Phone"
+          value={student.phone ?? '—'}
+        />
+
+        <InfoCard
+          label="Email"
+          value={student.email ?? '—'}
+        />
+
+        <InfoCard
+          label="Status"
+          value={student.status}
+        />
+
+        {/* Room */}
         {student.room ? (
           <div
             style={{
@@ -180,6 +205,8 @@ export default function StudentDetailsPage({
               border: '1px solid var(--border, #e5e7eb)',
               borderRadius: 12,
               padding: 20,
+              minWidth: 0,
+              boxSizing: 'border-box',
             }}
           >
             <div
@@ -195,8 +222,10 @@ export default function StudentDetailsPage({
               href={`/dashboard/hostel/rooms/${encodeURIComponent(
                 student.room.id,
               )}`}
+              className="break-words"
               style={{
                 display: 'inline-block',
+                maxWidth: '100%',
                 marginTop: 8,
                 fontSize: 16,
                 fontWeight: 600,
@@ -213,24 +242,29 @@ export default function StudentDetailsPage({
             value="Not allocated"
           />
         )}
+
+        {/* Deallocate */}
         {student.room && (
-        <div
+          <div
             style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-            background: 'var(--bg, #ffffff)',
-            border: '1px solid var(--border, #e5e7eb)',
-            borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+              background: 'var(--bg, #ffffff)',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: 12,
+              minWidth: 0,
+              boxSizing: 'border-box',
             }}
-        >
+          >
             <button
-            type="button"
-            onClick={() => void handleDeallocate()}
-            disabled={deallocating}
-            style={{
+              type="button"
+              onClick={() => void handleDeallocate()}
+              disabled={deallocating}
+              style={{
                 width: '100%',
+                minWidth: 0,
                 padding: '10px 14px',
                 border: '1px solid #fecaca',
                 borderRadius: 8,
@@ -238,15 +272,24 @@ export default function StudentDetailsPage({
                 color: '#b91c1c',
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: deallocating ? 'not-allowed' : 'pointer',
+                cursor: deallocating
+                  ? 'not-allowed'
+                  : 'pointer',
                 opacity: deallocating ? 0.6 : 1,
-            }}
+              }}
             >
-            {deallocating ? 'Deallocating...' : 'Deallocate Student'}
+              {deallocating
+                ? 'Deallocating...'
+                : 'Deallocate Student'}
             </button>
-        </div>
+          </div>
         )}
-        <InfoCard label="Payment Status" value={student.paymentStatus} />
+
+        <InfoCard
+          label="Payment Status"
+          value={student.paymentStatus}
+        />
+
         <InfoCard
           label="Outstanding Amount"
           value={`₹${Number(
@@ -254,10 +297,12 @@ export default function StudentDetailsPage({
           ).toLocaleString('en-IN')}`}
         />
       </div>
+
       <style jsx>{`
         @media (max-width: 520px) {
           .student-details-grid {
             grid-template-columns: 1fr !important;
+            gap: 12px !important;
           }
         }
       `}</style>
@@ -280,6 +325,8 @@ function InfoCard({
         borderRadius: 12,
         padding: 20,
         minWidth: 0,
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -292,11 +339,13 @@ function InfoCard({
       </div>
 
       <div
+        className="break-words"
         style={{
           marginTop: 8,
           fontSize: 16,
           fontWeight: 600,
           color: 'var(--foreground, #111827)',
+          overflowWrap: 'anywhere',
         }}
       >
         {value}
