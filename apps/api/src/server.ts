@@ -1,9 +1,3 @@
-import dotenv from "dotenv";
-
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
-
 import type {} from './types/express';
 import { prisma } from '@saas/database';
 import express from 'express';
@@ -21,19 +15,33 @@ import { sendSuccess } from './shared/http/api-response';
 const startupAdminPassword = process.env.ADMIN_PASSWORD?.trim();
 
 if (!startupAdminPassword) {
-  console.error('[startup] Missing ADMIN_PASSWORD. Refusing to start API server.');
+  console.error(
+    '[startup] Missing ADMIN_PASSWORD. Refusing to start API server.',
+  );
   process.exit(1);
 }
 
 if (startupAdminPassword.length < 12) {
-  console.error('[startup] ADMIN_PASSWORD must be at least 12 characters. Refusing to start API server.');
+  console.error(
+    '[startup] ADMIN_PASSWORD must be at least 12 characters. Refusing to start API server.',
+  );
   process.exit(1);
 }
 
 const app = express();
 
-const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
-const riseLocalSubdomainPattern = /^https:\/\/([a-z0-9-]+\.)*riselocal\.in$/i;
+const vercelPreviewPattern =
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+
+const riseLocalSubdomainPattern =
+  /^https:\/\/([a-z0-9-]+\.)*riselocal\.in$/i;
+
+const developmentOrigins = [
+  'http://localhost:3000',
+  'https://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://127.0.0.1:3000',
+];
 
 app.use(
   helmet({
@@ -44,7 +52,16 @@ app.use(
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (
+        env.APP_ENV === 'development' &&
+        developmentOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
 
       if (env.FRONTEND_ORIGINS.includes(origin)) {
         return callback(null, true);

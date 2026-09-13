@@ -29,30 +29,6 @@ export default function HostelLayout({
       >
         {children}
       </main>
-
-      <style jsx>{`
-        .hostel-layout {
-          width: 100%;
-          min-width: 0;
-        }
-
-        .hostel-layout-main {
-          min-width: 0;
-        }
-
-        @media (max-width: 900px) {
-          .hostel-layout-main {
-            width: 100%;
-            padding: 16px;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .hostel-layout-main {
-            padding: 12px;
-          }
-        }
-      `}</style>
     </div>
   );
 }

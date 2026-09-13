@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildUpstreamApiUrl, getApiBaseCandidates } from '@/lib/api-endpoint';
+import {
+  buildUpstreamApiUrl,
+  getApiBaseCandidates,
+} from '@/lib/api-endpoint';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +13,11 @@ type RouteContext = {
 };
 
 function getRequestHost(request: NextRequest): string {
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
+  const host =
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    '';
+
   return host.split(',')[0].trim().toLowerCase().split(':')[0];
 }
 
@@ -31,8 +38,15 @@ function getProxyCandidates(request: NextRequest): string[] {
     .sort((left, right) => {
       const rank = (candidate: string) => {
         const host = new URL(candidate).host.toLowerCase();
-        if (host.startsWith('api.')) return 0;
-        if (host.includes('onrender.com')) return 1;
+
+        if (host.startsWith('api.')) {
+          return 0;
+        }
+
+        if (host.includes('onrender.com')) {
+          return 1;
+        }
+
         return 10;
       };
 
@@ -41,20 +55,33 @@ function getProxyCandidates(request: NextRequest): string[] {
 }
 
 function createUpstreamHeaders(request: NextRequest): Headers {
-  const headers = new Headers(request.headers);
+  const headers = new Headers();
 
-  headers.delete('host');
-  headers.delete('connection');
-  headers.delete('content-length');
-  headers.delete('x-forwarded-for');
-  headers.delete('x-forwarded-host');
-  headers.delete('x-forwarded-port');
-  headers.delete('x-forwarded-proto');
+  request.headers.forEach((value, key) => {
+    const normalizedKey = key.toLowerCase();
+
+    if (
+      normalizedKey === 'host' ||
+      normalizedKey === 'connection' ||
+      normalizedKey === 'content-length' ||
+      normalizedKey === 'x-forwarded-for' ||
+      normalizedKey === 'x-forwarded-host' ||
+      normalizedKey === 'x-forwarded-port' ||
+      normalizedKey === 'x-forwarded-proto'
+    ) {
+      return;
+    }
+
+    headers.set(key, value);
+  });
 
   return headers;
 }
 
-function createProxyResponse(response: Response, body: ArrayBuffer): NextResponse {
+function createProxyResponse(
+  response: Response,
+  body: ArrayBuffer,
+): NextResponse {
   const headers = new Headers();
   const contentType = response.headers.get('content-type');
   const cacheControl = response.headers.get('cache-control');
@@ -73,11 +100,22 @@ function createProxyResponse(response: Response, body: ArrayBuffer): NextRespons
   });
 }
 
-async function proxyRequest(request: NextRequest, context: RouteContext): Promise<NextResponse> {
-  const upstreamPath = `/${(context.params.path || []).join('/')}${request.nextUrl.search}`;
+async function proxyRequest(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<NextResponse> {
+  const upstreamPath = `/${(context.params.path || []).join('/')}${
+    request.nextUrl.search
+  }`;
+
   const method = request.method.toUpperCase();
   const headers = createUpstreamHeaders(request);
-  const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer();
+
+  const body =
+    method === 'GET' || method === 'HEAD'
+      ? undefined
+      : await request.arrayBuffer();
+
   const proxyCandidates = getProxyCandidates(request);
 
   if (proxyCandidates.length === 0) {
@@ -98,8 +136,14 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
       const controller = new AbortController();
-      timeoutId = globalThis.setTimeout(() => controller.abort(), 7000);
-      const response = await fetch(buildUpstreamApiUrl(base, upstreamPath), {
+
+      timeoutId = globalThis.setTimeout(() => {
+        controller.abort();
+      }, 7000);
+
+      const upstreamUrl = buildUpstreamApiUrl(base, upstreamPath);
+
+      const response = await fetch(upstreamUrl, {
         method,
         headers,
         body: body && body.byteLength > 0 ? body : undefined,
@@ -107,20 +151,29 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
         redirect: 'manual',
         signal: controller.signal,
       });
-      globalThis.clearTimeout(timeoutId);
 
-      const vercelErrorHeader = response.headers.get('x-vercel-error')?.toUpperCase();
+      globalThis.clearTimeout(timeoutId);
+      timeoutId = null;
+
+      const vercelErrorHeader = response.headers
+        .get('x-vercel-error')
+        ?.toUpperCase();
+
       const shouldFailOver =
         (!isLastCandidate && response.status >= 500) ||
         response.status === 508 ||
         vercelErrorHeader === 'INFINITE_LOOP_DETECTED';
 
       if (shouldFailOver) {
-        lastError = new Error(`Upstream candidate ${base} returned ${response.status}`);
+        lastError = new Error(
+          `Upstream candidate ${base} returned ${response.status}`,
+        );
+
         continue;
       }
 
       const responseBody = await response.arrayBuffer();
+
       return createProxyResponse(response, responseBody);
     } catch (error) {
       lastError = error;
@@ -134,36 +187,60 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
   return NextResponse.json(
     {
       success: false,
-      message: lastError instanceof Error ? lastError.message : 'Unable to reach upstream API',
+      message:
+        lastError instanceof Error
+          ? lastError.message
+          : 'Unable to reach upstream API',
     },
     { status: 502 },
   );
 }
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function POST(request: NextRequest, context: RouteContext) {
+export async function POST(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function PUT(request: NextRequest, context: RouteContext) {
+export async function PUT(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function PATCH(request: NextRequest, context: RouteContext) {
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function OPTIONS(request: NextRequest, context: RouteContext) {
+export async function OPTIONS(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
 
-export async function HEAD(request: NextRequest, context: RouteContext) {
+export async function HEAD(
+  request: NextRequest,
+  context: RouteContext,
+) {
   return proxyRequest(request, context);
 }
