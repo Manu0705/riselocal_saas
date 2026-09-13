@@ -74,7 +74,11 @@ export default function NewAdmissionPage() {
           )}`,
         );
 
-        setRooms(roomsResponse.data ?? []);
+        setRooms(
+          Array.isArray(roomsResponse.data)
+            ? roomsResponse.data
+            : [],
+        );
       } catch (loadError) {
         setError(
           loadError instanceof Error

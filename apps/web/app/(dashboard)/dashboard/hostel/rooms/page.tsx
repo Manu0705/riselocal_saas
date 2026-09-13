@@ -76,9 +76,19 @@ export default function HostelRoomsPage() {
           )}`,
         );
 
-        setRooms(roomResponse.data.items);
-        setTotalPages(roomResponse.data.pagination.totalPages);
-        setTotalRooms(roomResponse.data.pagination.total);
+        setRooms(
+          Array.isArray(roomResponse.data?.items)
+            ? roomResponse.data.items
+            : [],
+        );
+
+        setTotalPages(
+          roomResponse.data?.pagination?.totalPages ?? 1,
+        );
+
+        setTotalRooms(
+          roomResponse.data?.pagination?.total ?? 0,
+        );
       } catch (loadError) {
         setError(
           loadError instanceof Error

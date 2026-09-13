@@ -8,6 +8,12 @@ import { api } from '@/lib/api-client';
 type HostelStudent = {
   id: string;
   name: string;
+
+  hostel?: {
+    id: string;
+    name: string;
+  } | null;
+
   admissionNumber?: string | null;
   admissionDate?: string | null;
   phone?: string | null;
@@ -15,6 +21,7 @@ type HostelStudent = {
   paymentStatus: string;
   status: string;
   outstandingAmount?: string | number | null;
+
   room?: {
     id: string;
     roomNumber?: string | null;
@@ -71,11 +78,17 @@ export default function StudentDetailsPage({
       return;
     }
 
+    if (!student.hostel?.id) {
+      setError('Hostel information is missing for this student.');
+      return;
+    }
+
     try {
       setDeallocating(true);
       setError(null);
 
       await api.post('/hostel/rooms/deallocate', {
+        hostelId: student.hostel.id,
         studentId: student.id,
         roomId: student.room.id,
       });
@@ -175,9 +188,7 @@ export default function StudentDetailsPage({
           label="Admission Date"
           value={
             student.admissionDate
-              ? new Date(
-                  student.admissionDate,
-                ).toLocaleDateString('en-IN')
+              ? new Date(student.admissionDate).toLocaleDateString('en-IN')
               : '—'
           }
         />
@@ -272,9 +283,7 @@ export default function StudentDetailsPage({
                 color: '#b91c1c',
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: deallocating
-                  ? 'not-allowed'
-                  : 'pointer',
+                cursor: deallocating ? 'not-allowed' : 'pointer',
                 opacity: deallocating ? 0.6 : 1,
               }}
             >

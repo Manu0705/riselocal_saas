@@ -10,6 +10,7 @@
     "@types/node": "^25.3.3",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
+    "concurrently": "^10.0.5",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
     "eslint-config-prettier": "^10.1.8",
@@ -36,12 +37,13 @@
     "multer": "2.0.2"
   },
   "scripts": {
-    "dev": "pnpm run dev:web",
+    "dev": "pnpm run dev:all",
     "qa": "pnpm run qa:api",
     "build": "pnpm run build:web && pnpm run build:api",
     "build:admin": "pnpm run build:packages && pnpm --filter @saas/admin build",
     "start": "pnpm run start:web",
     "dev:web": "pnpm --filter @saas/web dev",
+    "dev:all": "concurrently \"pnpm run dev:web\" \"pnpm run dev:api\"",
     "build:web": "pnpm --filter @saas/web build",
     "start:web": "node scripts/run-with-env.cjs production pnpm --filter @saas/web start",
     "dev:api": "node scripts/run-with-env.cjs development ts-node-dev --respawn --transpile-only --project apps/api/tsconfig.json apps/api/src/server.ts",

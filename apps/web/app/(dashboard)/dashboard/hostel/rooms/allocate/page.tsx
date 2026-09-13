@@ -49,6 +49,16 @@ type StudentPage = {
   };
 };
 
+type RoomPage = {
+  items: HostelRoom[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export default function RoomAllocationPage() {
   const [property, setProperty] = useState<HostelProperty | null>(null);
   const [students, setStudents] = useState<HostelStudent[]>([]);
@@ -86,13 +96,17 @@ export default function RoomAllocationPage() {
               firstProperty.id,
             )}&page=1&limit=100`,
           ),
-          api.get<ApiResponse<HostelRoom[]>>(
+          api.get<ApiResponse<RoomPage>>(
             `/hostel/rooms?hostelId=${encodeURIComponent(firstProperty.id)}`,
           ),
         ]);
 
         setStudents(studentsResponse.data.items ?? []);
-        setRooms(roomsResponse.data ?? []);
+        setRooms(
+          Array.isArray(roomsResponse.data?.items)
+          ? roomsResponse.data.items
+          : [],
+        );
       } catch (loadError) {
         setError(
           loadError instanceof Error
@@ -158,11 +172,15 @@ export default function RoomAllocationPage() {
       setSelectedStudentId('');
       setSelectedRoomId('');
 
-      const roomsResponse = await api.get<ApiResponse<HostelRoom[]>>(
+      const roomsResponse = await api.get<ApiResponse<RoomPage>>(
         `/hostel/rooms?hostelId=${encodeURIComponent(property!.id)}`,
       );
 
-      setRooms(roomsResponse.data ?? []);
+      setRooms(
+        Array.isArray(roomsResponse.data?.items)
+        ? roomsResponse.data.items
+        : [],
+      );
     } catch (allocationError) {
       setError(
         allocationError instanceof Error

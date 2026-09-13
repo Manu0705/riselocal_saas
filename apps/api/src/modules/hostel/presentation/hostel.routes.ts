@@ -30,6 +30,10 @@ router.get(
   '/hostel/dashboard-summary',
   controller.hostelDashboardSummary.bind(controller),
 );
+router.get(
+  '/hostel/rooms/recent-activity',
+  controller.recentAllocationActivity.bind(controller),
+);
 router.get('/hostel/rooms/:id', controller.getRoom.bind(controller));
 router.patch(
   '/hostel/rooms/:id',
@@ -50,10 +54,6 @@ router.delete(
   '/hostel/staff/:id',
   roleGuard('owner', 'manager'),
   controller.deleteStaffAssignment.bind(controller),
-);
-router.get(
-  '/hostel/rooms/recent-activity',
-  controller.recentAllocationActivity.bind(controller),
 );
 router.get('/hostel/rooms/:id/history', controller.allocationHistory.bind(controller));
 router.post(

@@ -63,6 +63,16 @@ type StudentPage = {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 };
 
+type RoomPage = {
+  items: HostelRoom[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 type VacancySummary = {
   rooms: number;
   capacity: number;
@@ -153,14 +163,18 @@ export default function HostelPage() {
       try {
         const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
         const [roomResponse, summaryResponse] = await Promise.all([
-          api.get<ApiResponse<{ items: HostelRoom[] }>>(`/hostel/rooms${query}`),
+          api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`),
           api.get<ApiResponse<VacancySummary>>(`/hostel/rooms/vacancy-summary${query}`),
         ]);
-        setRooms(roomResponse.data.items);
+        setRooms(
+          Array.isArray(roomResponse.data?.items)
+            ? roomResponse.data.items
+            : [],
+        );
         setVacancySummary(summaryResponse.data);
         setSelectedRoom((current) =>
           current
-            ? (roomResponse.data.items.find((room) => room.id === current.id) ?? null)
+            ? (roomResponse.data.items?.find((room) => room.id === current.id) ?? null)
             : null,
         );
       } catch (loadError) {
@@ -312,8 +326,15 @@ export default function HostelPage() {
       setAllocationStudentId('');
       toast.success('Student allocated');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<HostelRoom[]>>(`/hostel/rooms${query}`);
-      setRooms(response.data);
+      const response = await api.get<ApiResponse<RoomPage>>(
+        `/hostel/rooms${query}`,
+      );
+
+      setRooms(
+        Array.isArray(response.data?.items)
+          ? response.data.items
+          : [],
+      );
     } catch (allocationError) {
       toast.error(allocationError instanceof Error ? allocationError.message : 'Allocation failed');
     }
@@ -330,8 +351,15 @@ export default function HostelPage() {
       toast.success('Student deallocated');
       setSelectedStudentId('');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<HostelRoom[]>>(`/hostel/rooms${query}`);
-      setRooms(response.data);
+      const response = await api.get<ApiResponse<RoomPage>>(
+        `/hostel/rooms${query}`,
+      );
+
+      setRooms(
+        Array.isArray(response.data?.items)
+          ? response.data.items
+          : [],
+      );
     } catch (deallocationError) {
       toast.error(
         deallocationError instanceof Error ? deallocationError.message : 'Deallocation failed',
@@ -349,8 +377,15 @@ export default function HostelPage() {
       setAllocationStudentId('');
       toast.success('Student auto-assigned');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<HostelRoom[]>>(`/hostel/rooms${query}`);
-      setRooms(response.data);
+      const response = await api.get<ApiResponse<RoomPage>>(
+        `/hostel/rooms${query}`,
+      );
+
+      setRooms(
+        Array.isArray(response.data?.items)
+          ? response.data.items
+          : [],
+      );
     } catch (assignmentError) {
       toast.error(
         assignmentError instanceof Error ? assignmentError.message : 'Auto-assignment failed',
@@ -638,6 +673,8 @@ export default function HostelPage() {
                 inputMode="numeric"
                 style={{
                   width: 100,
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
                   padding: 10,
                   border: '1px solid var(--border)',
                   borderRadius: 8,
@@ -697,7 +734,7 @@ export default function HostelPage() {
                   {selectedRoom.occupancy} of {selectedRoom.capacity} occupied,{' '}
                   {selectedRoom.vacancyStatus.toLowerCase()}.
                 </p>
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', }}>
                   <select
                     aria-label="Student to allocate"
                     value={allocationStudentId}
@@ -881,7 +918,9 @@ export default function HostelPage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  gap: 8,
                   marginTop: 10,
+                  flexWrap: 'wrap',
                 }}
               >
                 <button
@@ -1027,7 +1066,7 @@ export default function HostelPage() {
                     Payment happens outside RiseLocal through your UPI app. It remains pending until
                     a staff member verifies it.
                   </p>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <input
                       aria-label="Payment amount"
                       value={paymentAmount}
