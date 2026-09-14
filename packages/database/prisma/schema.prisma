@@ -11,49 +11,77 @@ datasource db {
 }
 
 model Tenant {
-  id        String     @id @default(uuid())
-  name      String
-  slug      String     @unique
-  domain    String?    @unique
-  theme     String     @default("default")
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  users     TenantUser[]
-  feedbacks Feedback[]
-  followUps FollowUp[]
-  leads     Lead[]
-  leadSessions LeadSession[]
-  leadActivities LeadActivity[]
-  bookings Booking[]
-  googleReviewSummary GoogleReviewSummary?
-  settings  TenantSettings?
-  galleryImages GalleryImage[]
-  socialLinks SocialLink[]
-  services  Service[]
-  menus     Menu[]
-  kitchenStations KitchenStation[]
-  diningTables DiningTable[]
-  diningCarts DiningCart[]
-  diningSessions DiningSession[]
-  diningOrderRounds DiningOrderRound[]
-  diningOrders DiningOrder[]
-  diningOrderItems DiningOrderItem[]
-  diningOrderLocks DiningOrderLock[]
-  diningOrderLockEvents DiningOrderLockEvent[]
+  id                              String                           @id @default(uuid())
+  name                            String
+  slug                            String                           @unique
+  domain                          String?                          @unique
+  theme                           String                           @default("default")
+  createdAt                       DateTime                         @default(now())
+  updatedAt                       DateTime                         @updatedAt
+  users                           TenantUser[]
+  feedbacks                       Feedback[]
+  followUps                       FollowUp[]
+  leads                           Lead[]
+  leadSessions                    LeadSession[]
+  leadActivities                  LeadActivity[]
+  bookings                        Booking[]
+  googleReviewSummary             GoogleReviewSummary?
+  settings                        TenantSettings?
+  galleryImages                   GalleryImage[]
+  socialLinks                     SocialLink[]
+  services                        Service[]
+  menus                           Menu[]
+  kitchenStations                 KitchenStation[]
+  diningTables                    DiningTable[]
+  diningCarts                     DiningCart[]
+  diningSessions                  DiningSession[]
+  diningOrderRounds               DiningOrderRound[]
+  diningOrders                    DiningOrder[]
+  diningOrderItems                DiningOrderItem[]
+  diningOrderLocks                DiningOrderLock[]
+  diningOrderLockEvents           DiningOrderLockEvent[]
   diningOrderModificationRequests DiningOrderModificationRequest[]
-  diningOrderItemAdjustments DiningOrderItemAdjustment[]
-  diningTableGroups DiningTableGroup[]
-  diningTableGroupMembers DiningTableGroupMember[]
-  diningTableMergeRequests DiningTableMergeRequest[]
-  hostels Hostel[]
-  hostelRooms Room[]
-  hostelStudents Student[]
-  hostelStaffAssignments HostelStaffAssignment[]
-  hostelRoomAllocations RoomAllocation[]
-  payments Payment[]
-  paymentReceipts PaymentReceipt[]
+  diningOrderItemAdjustments      DiningOrderItemAdjustment[]
+  diningTableGroups               DiningTableGroup[]
+  diningTableGroupMembers         DiningTableGroupMember[]
+  diningTableMergeRequests        DiningTableMergeRequest[]
+  hostels                         Hostel[]
+  hostelRooms                     Room[]
+  hostelStudents                  Student[]
+  hostelStaffAssignments          HostelStaffAssignment[]
+  hostelRoomAllocations           RoomAllocation[]
+  payments                        Payment[]
+  paymentReceipts                 PaymentReceipt[]
+  hostelFees                      HostelFee[]
+  hostelFeeAssignments            HostelFeeAssignment[]
+  hostelInvoices                  HostelInvoice[]
+  hostelInvoicePayments           HostelInvoicePayment[]
 
   @@index([createdAt])
+}
+
+enum HostelFeeType {
+  MONTHLY
+  ADMISSION
+  SECURITY_DEPOSIT
+  MESS
+  ELECTRICITY
+  MAINTENANCE
+  OTHER
+}
+
+enum HostelFeeAssignmentStatus {
+  ACTIVE
+  WAIVED
+  CANCELLED
+}
+
+enum HostelInvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
 }
 
 enum HostelStatus {
@@ -123,18 +151,21 @@ enum PaymentStatus {
 }
 
 model Hostel {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   tenantId  String
   name      String
   status    HostelStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  rooms Room[]
-  students Student[]
+  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rooms            Room[]
+  students         Student[]
   staffAssignments HostelStaffAssignment[]
-  allocations RoomAllocation[]
+  allocations      RoomAllocation[]
+  fees             HostelFee[]
+  feeAssignments   HostelFeeAssignment[]
+  invoices         HostelInvoice[]
 
   @@unique([tenantId, name])
   @@unique([id, tenantId])
@@ -143,22 +174,22 @@ model Hostel {
 }
 
 model Room {
-  id              String             @id @default(uuid())
-  tenantId        String
-  hostelId        String
-  roomNumber      String
-  capacity        Int
-  occupancy       Int              @default(0)
-  sharingType     RoomSharingType  @default(SINGLE)
-  vacancyStatus   RoomVacancyStatus @default(VACANT)
-  status          RoomStatus       @default(AVAILABLE)
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String            @id @default(uuid())
+  tenantId      String
+  hostelId      String
+  roomNumber    String
+  capacity      Int
+  occupancy     Int               @default(0)
+  sharingType   RoomSharingType   @default(SINGLE)
+  vacancyStatus RoomVacancyStatus @default(VACANT)
+  status        RoomStatus        @default(AVAILABLE)
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  students Student[]
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel            Hostel           @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  students          Student[]
   allocationHistory RoomAllocation[]
 
   @@unique([id, tenantId])
@@ -169,14 +200,14 @@ model Room {
 }
 
 model RoomAllocation {
-  id          String               @id @default(uuid())
-  tenantId    String
-  hostelId    String
-  roomId      String
-  studentId   String
-  action      RoomAllocationAction
-  actorId     String?
-  happenedAt  DateTime             @default(now())
+  id         String               @id @default(uuid())
+  tenantId   String
+  hostelId   String
+  roomId     String
+  studentId  String
+  action     RoomAllocationAction
+  actorId    String?
+  happenedAt DateTime             @default(now())
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   hostel  Hostel  @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
@@ -188,32 +219,34 @@ model RoomAllocation {
 }
 
 model Student {
-  id               String        @id @default(uuid())
-  tenantId         String
-  hostelId         String
-  roomId           String?
-  userId           String?
-  admissionNumber  String
-  name             String
-  email            String?
-  phone            String?
-  dateOfBirth      DateTime?
-  emergencyName    String?
-  emergencyPhone   String?
+  id                String               @id @default(uuid())
+  tenantId          String
+  hostelId          String
+  roomId            String?
+  userId            String?
+  admissionNumber   String
+  name              String
+  email             String?
+  phone             String?
+  dateOfBirth       DateTime?
+  emergencyName     String?
+  emergencyPhone    String?
   emergencyRelation String?
-  admissionDate    DateTime       @default(now())
-  paymentStatus    StudentPaymentStatus @default(DUE)
-  status           StudentStatus @default(ACTIVE)
-  outstandingAmount Decimal       @default(0) @db.Decimal(12, 2)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  admissionDate     DateTime             @default(now())
+  paymentStatus     StudentPaymentStatus @default(DUE)
+  status            StudentStatus        @default(ACTIVE)
+  outstandingAmount Decimal              @default(0) @db.Decimal(12, 2)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  room Room? @relation(fields: [roomId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  user TenantUser? @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  tenant            Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel            Hostel                @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  room              Room?                 @relation(fields: [roomId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  user              TenantUser?           @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Restrict)
   allocationHistory RoomAllocation[]
-  payments Payment[]
+  payments          Payment[]
+  feeAssignments    HostelFeeAssignment[]
+  invoices          HostelInvoice[]
 
   @@unique([tenantId, admissionNumber])
   @@unique([id, tenantId])
@@ -227,49 +260,170 @@ model Student {
 }
 
 model HostelStaffAssignment {
-  id        String         @id @default(uuid())
+  id        String          @id @default(uuid())
   tenantId  String
   hostelId  String
   userId    String
   role      HostelStaffRole
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user TenantUser @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   TenantUser @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  hostel Hostel     @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
 
   @@unique([tenantId, hostelId, userId])
   @@index([tenantId, hostelId, role])
 }
 
-model Payment {
-  id                       String        @id @default(uuid())
-  tenantId                 String
-  studentId                String
-  amount                   Decimal       @db.Decimal(12, 2)
-  currency                 String        @default("INR")
-  method                   PaymentMethod @default(UPI)
-  upiVpa                   String?
-  utr                      String?
-  transactionReferenceId   String?
-  status                   PaymentStatus @default(INITIATED)
-  receiptId                String?
-  proofUrl                 String?
-  initiatedAt              DateTime      @default(now())
-  submittedAt              DateTime?
-  verifiedAt               DateTime?
-  verifiedBy               String?
-  rejectedReason           String?
-  metadata                 Json?
-  submitIdempotencyKey     String?
-  verifyIdempotencyKey     String?
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+model HostelFee {
+  id          String        @id @default(uuid())
+  tenantId    String
+  hostelId    String
+  name        String
+  type        HostelFeeType
+  description String?
+  amount      Decimal       @db.Decimal(12, 2)
+  currency    String        @default("INR")
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student Student @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  receipt PaymentReceipt?
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel      Hostel                @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  assignments HostelFeeAssignment[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, hostelId, name])
+  @@index([tenantId, hostelId, isActive])
+  @@index([tenantId, type])
+}
+
+model HostelFeeAssignment {
+  id          String                    @id @default(uuid())
+  tenantId    String
+  hostelId    String
+  studentId   String
+  feeId       String
+  amount      Decimal                   @db.Decimal(12, 2)
+  assignedAt  DateTime                  @default(now())
+  dueDate     DateTime?
+  periodStart DateTime?
+  periodEnd   DateTime?
+  status      HostelFeeAssignmentStatus @default(ACTIVE)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel       Hostel              @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  student      Student             @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  fee          HostelFee           @relation(fields: [feeId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  invoiceItems HostelInvoiceItem[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, hostelId, studentId])
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, feeId])
+  @@index([tenantId, dueDate])
+}
+
+model HostelInvoice {
+  id            String              @id @default(uuid())
+  tenantId      String
+  hostelId      String
+  studentId     String
+  invoiceNumber String
+  issueDate     DateTime            @default(now())
+  dueDate       DateTime?
+  subtotal      Decimal             @db.Decimal(12, 2)
+  discount      Decimal             @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal             @db.Decimal(12, 2)
+  paidAmount    Decimal             @default(0) @db.Decimal(12, 2)
+  balanceAmount Decimal             @default(0) @db.Decimal(12, 2)
+  status        HostelInvoiceStatus @default(DRAFT)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  tenant   Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel   Hostel                 @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  student  Student                @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  items    HostelInvoiceItem[]
+  payments HostelInvoicePayment[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, invoiceNumber])
+  @@index([tenantId, hostelId, studentId])
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, dueDate])
+}
+
+model HostelInvoiceItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  invoiceId       String
+  feeAssignmentId String?
+  description     String
+  amount          Decimal  @db.Decimal(12, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  invoice       HostelInvoice        @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  feeAssignment HostelFeeAssignment? @relation(fields: [feeAssignmentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, invoiceId])
+  @@index([tenantId, feeAssignmentId])
+}
+
+model HostelInvoicePayment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  invoiceId   String
+  paymentId   String
+  amount      Decimal  @db.Decimal(12, 2)
+  allocatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice HostelInvoice @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payment Payment       @relation(fields: [paymentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, invoiceId, paymentId])
+  @@index([tenantId, invoiceId])
+  @@index([tenantId, paymentId])
+}
+
+model Payment {
+  id                     String        @id @default(uuid())
+  tenantId               String
+  studentId              String
+  amount                 Decimal       @db.Decimal(12, 2)
+  currency               String        @default("INR")
+  method                 PaymentMethod @default(UPI)
+  upiVpa                 String?
+  utr                    String?
+  transactionReferenceId String?
+  status                 PaymentStatus @default(INITIATED)
+  receiptId              String?
+  proofUrl               String?
+  initiatedAt            DateTime      @default(now())
+  submittedAt            DateTime?
+  verifiedAt             DateTime?
+  verifiedBy             String?
+  rejectedReason         String?
+  metadata               Json?
+  submitIdempotencyKey   String?
+  verifyIdempotencyKey   String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  tenant             Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student            Student                @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  receipt            PaymentReceipt?
+  invoiceAllocations HostelInvoicePayment[]
 
   @@unique([tenantId, studentId, submitIdempotencyKey])
   @@unique([tenantId, studentId, verifyIdempotencyKey])
@@ -296,20 +450,20 @@ model PaymentReceipt {
 }
 
 model TenantUser {
-  id           String   @id @default(uuid())
-  tenantId     String
-  name         String
-  email        String
-  passwordHash String
-  role         String   @default("owner")
-  teamId       String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  assignedLeads Lead[]  @relation("LeadAssignee")
+  id                     String                  @id @default(uuid())
+  tenantId               String
+  name                   String
+  email                  String
+  passwordHash           String
+  role                   String                  @default("owner")
+  teamId                 String?
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedLeads          Lead[]                  @relation("LeadAssignee")
   hostelStaffAssignments HostelStaffAssignment[]
-  hostelStudents Student[]
+  hostelStudents         Student[]
 
   @@unique([tenantId, email])
   @@unique([id, tenantId])
@@ -317,48 +471,48 @@ model TenantUser {
 }
 
 model Lead {
-  id        String     @id @default(uuid())
-  tenantId  String
-  name      String
-  email     String?
-  phone     String
-  source    String     @default("ORGANIC")
-  campaignId String?
-  utmSource String?
-  utmMedium String?
+  id          String         @id @default(uuid())
+  tenantId    String
+  name        String
+  email       String?
+  phone       String
+  source      String         @default("ORGANIC")
+  campaignId  String?
+  utmSource   String?
+  utmMedium   String?
   utmCampaign String?
-  location  String?
-  status    String     @default("NEW")
-  notes     String?
-  assignedTo String?
-  teamId    String?
+  location    String?
+  status      String         @default("NEW")
+  notes       String?
+  assignedTo  String?
+  teamId      String?
   convertedAt DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
-  followUps FollowUp[]
-  feedbacks Feedback[]
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  assignee  TenantUser? @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
-  sessions  LeadSession[]
-  activities LeadActivity[]
-  bookings Booking[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+  followUps   FollowUp[]
+  feedbacks   Feedback[]
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  assignee    TenantUser?    @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  sessions    LeadSession[]
+  activities  LeadActivity[]
+  bookings    Booking[]
 
+  @@unique([tenantId, phone])
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
   @@index([tenantId, assignedTo])
   @@index([tenantId, deletedAt])
-  @@unique([tenantId, phone])
 }
 
 model LeadSession {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   tenantId       String
   leadId         String
-  startedAt      DateTime @default(now())
-  lastActivityAt DateTime @default(now())
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
   source         String?
   campaignId     String?
   utmSource      String?
@@ -366,8 +520,8 @@ model LeadSession {
   utmCampaign    String?
   deletedAt      DateTime?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead       Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
   activities LeadActivity[]
 
   @@index([tenantId, leadId, startedAt])
@@ -376,12 +530,12 @@ model LeadSession {
 }
 
 model LeadActivity {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   tenantId   String
   leadId     String
   sessionId  String
   type       String
-  timestamp  DateTime @default(now())
+  timestamp  DateTime  @default(now())
   archivedAt DateTime?
   metadata   Json?
 
@@ -396,24 +550,24 @@ model LeadActivity {
 }
 
 model Booking {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
   leadId           String
   bookingDate      DateTime?
   selectedServices Json?
   selectedTime     String?
-  status           String   @default("PENDING")
+  status           String    @default("PENDING")
   notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, leadId])
   @@index([tenantId, createdAt])
   @@index([tenantId, deletedAt])
-  @@unique([tenantId, leadId])
 }
 
 model GoogleReviewSummary {
@@ -464,24 +618,24 @@ model FollowUp {
 }
 
 model TenantSettings {
-  id              String   @id @default(cuid())
-  tenantId        String   @unique
-  logoUrl         String?
-  bannerUrl       String?
-  logoShape       String   @default("circle")
-  primaryColor    String   @default("#000000")
-  secondaryColor  String   @default("#FFFFFF")
-  sectionOrder    Json?    @default("[\"hero\", \"services\", \"gallery\"]")
-  businessPhone   String?
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  logoUrl          String?
+  bannerUrl        String?
+  logoShape        String   @default("circle")
+  primaryColor     String   @default("#000000")
+  secondaryColor   String   @default("#FFFFFF")
+  sectionOrder     Json?    @default("[\"hero\", \"services\", \"gallery\"]")
+  businessPhone    String?
   businessWhatsApp String?
-  tagline         String?
-  openHour        Int?
-  closeHour       Int?
-  availableHours  Json?
-  upiVpa          String?
-  upiPayeeName    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  tagline          String?
+  openHour         Int?
+  closeHour        Int?
+  availableHours   Json?
+  upiVpa           String?
+  upiPayeeName     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -500,9 +654,9 @@ model GalleryImage {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, url])
   @@index([tenantId])
   @@index([tenantId, category])
-  @@unique([tenantId, url])
 }
 
 model SocialLink {
@@ -516,19 +670,19 @@ model SocialLink {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@unique([tenantId, platform])
+  @@index([tenantId])
 }
 
 model Service {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
   description String?
-  icon      String?
-  position  Int     @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  icon        String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -536,22 +690,22 @@ model Service {
 }
 
 model Menu {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
   locationId  String
   name        String
   description String?
-  status      String   @default("ACTIVE")
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      String    @default("ACTIVE")
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   createdBy   String?
   updatedBy   String?
-  version     Int      @default(0)
+  version     Int       @default(0)
   deletedAt   DateTime?
 
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  categories   MenuCategory[]
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categories MenuCategory[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -560,24 +714,24 @@ model Menu {
 }
 
 model MenuCategory {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
   locationId  String
   menuId      String
   name        String
   description String?
   image       String?
-  sortOrder   Int      @default(0)
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int       @default(0)
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   createdBy   String?
   updatedBy   String?
-  version     Int      @default(0)
+  version     Int       @default(0)
   deletedAt   DateTime?
 
-  menu        Menu        @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  items       MenuItem[]
+  menu  Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items MenuItem[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -586,28 +740,28 @@ model MenuCategory {
 }
 
 model MenuItem {
-  id                String   @id @default(uuid())
-  tenantId          String
-  locationId        String
-  categoryId        String
-  name              String
-  description       String?
-  shortDescription  String?
-  image             String?
-  basePrice         Float?
-  itemType          String   @default("STANDARD")
-  kitchenStationId  String?
-  status            String   @default("ACTIVE")
-  availability      String   @default("AVAILABLE")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-  updatedBy         String?
-  version           Int      @default(0)
-  deletedAt         DateTime?
+  id               String    @id @default(uuid())
+  tenantId         String
+  locationId       String
+  categoryId       String
+  name             String
+  description      String?
+  shortDescription String?
+  image            String?
+  basePrice        Float?
+  itemType         String    @default("STANDARD")
+  kitchenStationId String?
+  status           String    @default("ACTIVE")
+  availability     String    @default("AVAILABLE")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  version          Int       @default(0)
+  deletedAt        DateTime?
 
-  category          MenuCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  kitchenStation    KitchenStation?     @relation(fields: [kitchenStationId], references: [id], onDelete: SetNull)
+  category          MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  kitchenStation    KitchenStation?   @relation(fields: [kitchenStationId], references: [id], onDelete: SetNull)
   variants          ItemVariant[]
   addons            ItemAddon[]
   modifiers         ItemModifier[]
@@ -623,23 +777,23 @@ model MenuItem {
 }
 
 model ItemVariant {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   tenantId        String
   locationId      String
   itemId          String
   name            String
   priceAdjustment Float?
   sku             String?
-  status          String   @default("ACTIVE")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status          String    @default("ACTIVE")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   createdBy       String?
   updatedBy       String?
-  version         Int      @default(0)
+  version         Int       @default(0)
   deletedAt       DateTime?
 
-  item            MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  prices          ItemPrice[]
+  item   MenuItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  prices ItemPrice[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -647,22 +801,22 @@ model ItemVariant {
 }
 
 model ItemAddon {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
   locationId  String
   itemId      String
   name        String
   price       Float?
   maxQuantity Int?
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   createdBy   String?
   updatedBy   String?
-  version     Int      @default(0)
+  version     Int       @default(0)
   deletedAt   DateTime?
 
-  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -670,21 +824,21 @@ model ItemAddon {
 }
 
 model ItemModifier {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  itemId      String
-  name        String
-  type        String   @default("TEXT")
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  version     Int      @default(0)
-  deletedAt   DateTime?
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  itemId     String
+  name       String
+  type       String    @default("TEXT")
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String?
+  updatedBy  String?
+  version    Int       @default(0)
+  deletedAt  DateTime?
 
-  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -692,24 +846,24 @@ model ItemModifier {
 }
 
 model ItemPrice {
-  id              String   @id @default(uuid())
-  tenantId        String
-  locationId      String
-  itemId          String
-  variantId       String?
-  amount          Float?
-  currency        String   @default("INR")
-  effectiveFrom   DateTime?
-  effectiveTo     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  createdBy       String?
-  updatedBy       String?
-  version         Int      @default(0)
-  deletedAt       DateTime?
+  id            String    @id @default(uuid())
+  tenantId      String
+  locationId    String
+  itemId        String
+  variantId     String?
+  amount        Float?
+  currency      String    @default("INR")
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  version       Int       @default(0)
+  deletedAt     DateTime?
 
-  item            MenuItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  variant         ItemVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  item    MenuItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  variant ItemVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -718,19 +872,19 @@ model ItemPrice {
 }
 
 model ItemAvailability {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  itemId      String   @unique
-  status      String   @default("AVAILABLE")
-  reason      String?
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  version     Int      @default(0)
-  deletedAt   DateTime?
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  itemId     String    @unique
+  status     String    @default("AVAILABLE")
+  reason     String?
+  updatedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  version    Int       @default(0)
+  deletedAt  DateTime?
 
-  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -738,20 +892,20 @@ model ItemAvailability {
 }
 
 model KitchenStation {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  name        String
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  version     Int      @default(0)
-  deletedAt   DateTime?
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  name       String
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String?
+  updatedBy  String?
+  version    Int       @default(0)
+  deletedAt  DateTime?
 
-  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  items       MenuItem[]
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  MenuItem[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -759,21 +913,21 @@ model KitchenStation {
 }
 
 model MenuItemImage {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  itemId      String
-  url         String
-  sortOrder   Int      @default(0)
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  version     Int      @default(0)
-  deletedAt   DateTime?
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  itemId     String
+  url        String
+  sortOrder  Int       @default(0)
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String?
+  updatedBy  String?
+  version    Int       @default(0)
+  deletedAt  DateTime?
 
-  item        MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -782,38 +936,38 @@ model MenuItemImage {
 }
 
 model DiningSession {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  tableId     String
-  status      String   @default("CREATED")
-  openedBy    String
-  openedAt    DateTime @default(now())
-  closedBy    String?
-  closedAt    DateTime?
+  id               String    @id @default(uuid())
+  tenantId         String
+  locationId       String
+  tableId          String
+  status           String    @default("CREATED")
+  openedBy         String
+  openedAt         DateTime  @default(now())
+  closedBy         String?
+  closedAt         DateTime?
   assignedWaiterId String?
-  guestCount  Int      @default(0)
-  currentRound Int     @default(1)
-  participantCount Int @default(0)
-  version     Int      @default(0)
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  deletedAt   DateTime?
+  guestCount       Int       @default(0)
+  currentRound     Int       @default(1)
+  participantCount Int       @default(0)
+  version          Int       @default(0)
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  deletedAt        DateTime?
 
-  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  table          DiningTable          @relation(fields: [tableId], references: [id], onDelete: Restrict)
-  carts          DiningCart[]
-  orderRounds    DiningOrderRound[]
-  orders         DiningOrder[]
-  tokens         SessionToken[]
-  participants   SessionParticipant[]
-  tableAssignments DiningTableAssignment[]
+  tenant                Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table                 DiningTable                  @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  carts                 DiningCart[]
+  orderRounds           DiningOrderRound[]
+  orders                DiningOrder[]
+  tokens                SessionToken[]
+  participants          SessionParticipant[]
+  tableAssignments      DiningTableAssignment[]
   tableTransferRequests DiningTableTransferRequest[]
-  tableGroups DiningTableGroup[]
-  tableMergeRequests DiningTableMergeRequest[]
+  tableGroups           DiningTableGroup[]
+  tableMergeRequests    DiningTableMergeRequest[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -823,24 +977,24 @@ model DiningSession {
 }
 
 model DiningCart {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
   locationId  String
   sessionId   String
-  roundNumber  Int      @default(1)
-  status      String   @default("ACTIVE")
-  subtotal    Int      @default(0)
-  total       Int      @default(0)
-  version     Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  roundNumber Int       @default(1)
+  status      String    @default("ACTIVE")
+  subtotal    Int       @default(0)
+  total       Int       @default(0)
+  version     Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   createdBy   String?
   updatedBy   String?
   deletedAt   DateTime?
 
-  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  session    DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  draftRound DiningOrderRound? @relation("DraftRoundCart")
+  tenant     Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session    DiningSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  draftRound DiningOrderRound?    @relation("DraftRoundCart")
   items      DiningCartItem[]
   snapshots  DiningCartSnapshot[]
 
@@ -853,29 +1007,29 @@ model DiningCart {
 }
 
 model DiningOrderRound {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   tenantId       String
   locationId     String
   sessionId      String
-  draftCartId    String?  @unique
+  draftCartId    String?   @unique
   roundNumber    Int
-  status         String   @default("DRAFT")
+  status         String    @default("DRAFT")
   submittedBy    String?
   submittedAt    DateTime?
   cancelledBy    String?
   cancelledAt    DateTime?
   idempotencyKey String?
-  version        Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  version        Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   createdBy      String?
   updatedBy      String?
   deletedAt      DateTime?
 
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  session        DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  draftCart      DiningCart?   @relation("DraftRoundCart", fields: [draftCartId], references: [id], onDelete: SetNull)
-  orders         DiningOrder[]
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session   DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  draftCart DiningCart?   @relation("DraftRoundCart", fields: [draftCartId], references: [id], onDelete: SetNull)
+  orders    DiningOrder[]
 
   @@unique([tenantId, locationId, sessionId, roundNumber])
   @@index([tenantId])
@@ -887,29 +1041,29 @@ model DiningOrderRound {
 }
 
 model DiningOrder {
-  id           String   @id @default(uuid())
-  tenantId     String
-  locationId   String
-  roundId      String
-  sessionId    String
-  status       String   @default("SUBMITTED")
-  totalAmount  Int      @default(0)
-  submittedAt  DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  createdBy    String?
-  updatedBy    String?
-  deletedAt    DateTime?
-  version      Int      @default(0)
+  id          String    @id @default(uuid())
+  tenantId    String
+  locationId  String
+  roundId     String
+  sessionId   String
+  status      String    @default("SUBMITTED")
+  totalAmount Int       @default(0)
+  submittedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  deletedAt   DateTime?
+  version     Int       @default(0)
 
-  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  round        DiningOrderRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  session      DiningSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  items        DiningOrderItem[]
-  locks        DiningOrderLock[]
-  lockEvents   DiningOrderLockEvent[]
+  tenant        Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  round         DiningOrderRound                 @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  session       DiningSession                    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  items         DiningOrderItem[]
+  locks         DiningOrderLock[]
+  lockEvents    DiningOrderLockEvent[]
   modifications DiningOrderModificationRequest[]
-  adjustments  DiningOrderItemAdjustment[]
+  adjustments   DiningOrderItemAdjustment[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -920,30 +1074,30 @@ model DiningOrder {
 }
 
 model DiningOrderItem {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   tenantId      String
   locationId    String
   orderId       String
   menuItemId    String
   itemSnapshot  Json
   priceSnapshot Json
-  quantity      Int      @default(1)
-  unitPrice     Int      @default(0)
-  subtotal      Int      @default(0)
-  kitchenStatus String   @default("PENDING")
-  lockStatus    String   @default("DRAFT")
+  quantity      Int       @default(1)
+  unitPrice     Int       @default(0)
+  subtotal      Int       @default(0)
+  kitchenStatus String    @default("PENDING")
+  lockStatus    String    @default("DRAFT")
   lockedAt      DateTime?
   lockedBy      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   createdBy     String?
   updatedBy     String?
   deletedAt     DateTime?
-  version       Int      @default(0)
+  version       Int       @default(0)
 
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order         DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  adjustments   DiningOrderItemAdjustment[]
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order       DiningOrder                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  adjustments DiningOrderItemAdjustment[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -954,21 +1108,21 @@ model DiningOrderItem {
 }
 
 model DiningOrderLock {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   tenantId       String
   locationId     String
   orderId        String
-  status         String   @default("UNLOCKED")
+  status         String    @default("UNLOCKED")
   lockedBy       String?
   lockedAt       DateTime?
   reason         String?
   idempotencyKey String?
-  version        Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  version        Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order          DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  DiningOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([orderId])
   @@index([tenantId])
@@ -991,8 +1145,8 @@ model DiningOrderLockEvent {
   reason        String?
   createdAt     DateTime @default(now())
 
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order         DiningOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  DiningOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1002,24 +1156,24 @@ model DiningOrderLockEvent {
 }
 
 model DiningOrderModificationRequest {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   tenantId       String
   locationId     String
   orderId        String
   sessionId      String
   requestedBy    String
   reason         String
-  status         String   @default("REQUESTED")
+  status         String    @default("REQUESTED")
   approvedBy     String?
   completedAt    DateTime?
   rejectedReason String?
   idempotencyKey String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order          DiningOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  adjustments    DiningOrderItemAdjustment[]
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order       DiningOrder                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  adjustments DiningOrderItemAdjustment[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1043,10 +1197,10 @@ model DiningOrderItemAdjustment {
   createdBy             String
   createdAt             DateTime @default(now())
 
-  tenant                Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order                 DiningOrder                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderItem             DiningOrderItem                @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  modificationRequest   DiningOrderModificationRequest @relation(fields: [modificationRequestId], references: [id], onDelete: Cascade)
+  tenant              Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order               DiningOrder                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem           DiningOrderItem                @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  modificationRequest DiningOrderModificationRequest @relation(fields: [modificationRequestId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1058,26 +1212,26 @@ model DiningOrderItemAdjustment {
 }
 
 model DiningCartItem {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  cartId      String
-  menuItemId  String
-  variantId   String?
-  quantity    Int      @default(1)
-  notes       String?
-  modifiers   Json?
-  unitPrice   Int      @default(0)
-  subtotal    Int      @default(0)
-  addedBy     String?
-  addedAt     DateTime @default(now())
-  updatedBy   String?
-  updatedAt   DateTime @updatedAt
-  status      String   @default("DRAFT")
-  deletedAt   DateTime?
-  version     Int      @default(0)
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  cartId     String
+  menuItemId String
+  variantId  String?
+  quantity   Int       @default(1)
+  notes      String?
+  modifiers  Json?
+  unitPrice  Int       @default(0)
+  subtotal   Int       @default(0)
+  addedBy    String?
+  addedAt    DateTime  @default(now())
+  updatedBy  String?
+  updatedAt  DateTime  @updatedAt
+  status     String    @default("DRAFT")
+  deletedAt  DateTime?
+  version    Int       @default(0)
 
-  cart        DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1087,15 +1241,15 @@ model DiningCartItem {
 }
 
 model DiningCartSnapshot {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  cartId      String
-  version     Int
-  checksum    String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  tenantId   String
+  locationId String
+  cartId     String
+  version    Int
+  checksum   String
+  createdAt  DateTime @default(now())
 
-  cart        DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart DiningCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, version])
   @@index([tenantId])
@@ -1104,29 +1258,29 @@ model DiningCartSnapshot {
 }
 
 model DiningTable {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   tenantId            String
   locationId          String
   areaId              String
   name                String
-  capacity            Int      @default(0)
-  status              String   @default("AVAILABLE")
+  capacity            Int       @default(0)
+  status              String    @default("AVAILABLE")
   activeSessionId     String?
   currentWaiterId     String?
-  lastStatusChangedAt DateTime @default(now())
-  lastStatusChangedBy  String
-  version             Int      @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  lastStatusChangedAt DateTime  @default(now())
+  lastStatusChangedBy String
+  version             Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   createdBy           String?
   updatedBy           String?
   deletedAt           DateTime?
 
-  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sessions            DiningSession[]
-  tableAssignments    DiningTableAssignment[]
-  transfersFrom       DiningTableTransferRequest[] @relation("TableTransferFrom")
-  transfersTo         DiningTableTransferRequest[] @relation("TableTransferTo")
+  tenant           Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions         DiningSession[]
+  tableAssignments DiningTableAssignment[]
+  transfersFrom    DiningTableTransferRequest[] @relation("TableTransferFrom")
+  transfersTo      DiningTableTransferRequest[] @relation("TableTransferTo")
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1137,20 +1291,20 @@ model DiningTable {
 }
 
 model DiningTableAssignment {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  sessionId   String
-  tableId     String
-  status      String   @default("ACTIVE")
-  assignedAt  DateTime @default(now())
-  releasedAt  DateTime?
-  assignedBy  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  sessionId  String
+  tableId    String
+  status     String    @default("ACTIVE")
+  assignedAt DateTime  @default(now())
+  releasedAt DateTime?
+  assignedBy String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  table       DiningTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  session DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  table   DiningTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1161,24 +1315,24 @@ model DiningTableAssignment {
 }
 
 model DiningTableTransferRequest {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  sessionId   String
-  fromTableId String
-  toTableId   String
-  requestedBy String
-  reason      String
-  status      String   @default("REQUESTED")
-  approvedBy  String?
+  id             String    @id @default(uuid())
+  tenantId       String
+  locationId     String
+  sessionId      String
+  fromTableId    String
+  toTableId      String
+  requestedBy    String
+  reason         String
+  status         String    @default("REQUESTED")
+  approvedBy     String?
   rejectedReason String?
-  createdAt   DateTime @default(now())
-  completedAt DateTime?
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime  @updatedAt
 
-  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  fromTable   DiningTable   @relation("TableTransferFrom", fields: [fromTableId], references: [id], onDelete: Cascade)
-  toTable     DiningTable   @relation("TableTransferTo", fields: [toTableId], references: [id], onDelete: Cascade)
+  session   DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fromTable DiningTable   @relation("TableTransferFrom", fields: [fromTableId], references: [id], onDelete: Cascade)
+  toTable   DiningTable   @relation("TableTransferTo", fields: [toTableId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1190,19 +1344,19 @@ model DiningTableTransferRequest {
 }
 
 model DiningTableGroup {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  sessionId   String
-  status      String   @default("ACTIVE")
-  createdBy   String
-  createdAt   DateTime @default(now())
-  releasedAt  DateTime?
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(uuid())
+  tenantId   String
+  locationId String
+  sessionId  String
+  status     String    @default("ACTIVE")
+  createdBy  String
+  createdAt  DateTime  @default(now())
+  releasedAt DateTime?
+  updatedAt  DateTime  @updatedAt
 
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  session     DiningSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  members     DiningTableGroupMember[]
+  tenant  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session DiningSession            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  members DiningTableGroupMember[]
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1212,17 +1366,17 @@ model DiningTableGroup {
 }
 
 model DiningTableGroupMember {
-  id            String   @id @default(uuid())
-  tenantId      String
-  tableGroupId  String
-  tableId       String
-  joinedAt      DateTime @default(now())
-  releasedAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String    @id @default(uuid())
+  tenantId     String
+  tableGroupId String
+  tableId      String
+  joinedAt     DateTime  @default(now())
+  releasedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tableGroup    DiningTableGroup @relation(fields: [tableGroupId], references: [id], onDelete: Cascade)
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tableGroup DiningTableGroup @relation(fields: [tableGroupId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tableGroupId])
@@ -1242,8 +1396,8 @@ model DiningTableMergeRequest {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tenant  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
@@ -1253,19 +1407,19 @@ model DiningTableMergeRequest {
 }
 
 model SessionToken {
-  id            String   @id @default(uuid())
-  tenantId      String
-  locationId    String
-  sessionId     String
-  token         String
-  status        String   @default("GENERATED")
-  expiresAt     DateTime
-  createdAt     DateTime @default(now())
-  createdBy     String?
+  id             String    @id @default(uuid())
+  tenantId       String
+  locationId     String
+  sessionId      String
+  token          String
+  status         String    @default("GENERATED")
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  createdBy      String?
   lastAccessedAt DateTime?
-  regeneratedAt DateTime?
+  regeneratedAt  DateTime?
 
-  session       DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId])
   @@unique([token])
@@ -1277,25 +1431,25 @@ model SessionToken {
 }
 
 model SessionParticipant {
-  id          String   @id @default(uuid())
-  tenantId    String
-  locationId  String
-  sessionId   String
-  actorId     String?
-  role        String
-  participantType String @default("CUSTOMER")
-  displayName String?
-  deviceId    String
-  status      String   @default("JOINING")
-  permissions Json?
-  joinedBy    String?
-  joinedAt    DateTime @default(now())
-  leftAt      DateTime?
-  lastSeenAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(uuid())
+  tenantId        String
+  locationId      String
+  sessionId       String
+  actorId         String?
+  role            String
+  participantType String    @default("CUSTOMER")
+  displayName     String?
+  deviceId        String
+  status          String    @default("JOINING")
+  permissions     Json?
+  joinedBy        String?
+  joinedAt        DateTime  @default(now())
+  leftAt          DateTime?
+  lastSeenAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  session     DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session DiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, locationId])
