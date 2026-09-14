@@ -12,12 +12,13 @@ const root = path.resolve(__dirname, '..');
 const schema = 'packages/database/prisma/schema.prisma';
 
 const result = spawnSync(
-  'pnpm',
+  process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
   ['exec', 'prisma', 'generate', `--schema=${schema}`],
   {
     cwd: root,
     stdio: 'inherit',
     env: process.env,
+    shell: process.platform === 'win32',
   },
 );
 

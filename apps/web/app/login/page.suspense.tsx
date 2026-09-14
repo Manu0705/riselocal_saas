@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithRetry } from '@/lib/retry';
-import { resolveTenant } from '@/lib/tenant-client';
 
 export const dynamic = 'force-dynamic';
 const LAST_TENANT_KEY = 'riselocal:last-tenant';
@@ -60,12 +59,21 @@ function LoginContent() {
   useEffect(() => {
     if (!tenant && typeof window !== 'undefined') {
       const parts = window.location.hostname.split('.');
-      // hostname like "jai-bhavani-interiors.riselocal.in" → 3+ parts
-      if (parts.length >= 3 && parts[0] !== 'www') {
+
+      const isProductionTenantSubdomain =
+        parts.length >= 3 &&
+        parts[0] !== 'www' &&
+        parts.slice(-2).join('.') === 'riselocal.in';
+
+      const isLocalTenantSubdomain =
+        parts.length === 2 &&
+        parts[1] === 'localhost' &&
+        parts[0] !== 'www';
+
+      if (isProductionTenantSubdomain || isLocalTenantSubdomain) {
         setTenant(parts[0].toLowerCase());
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -117,14 +125,9 @@ function LoginContent() {
       }
 
       loginWithContext(data.token, tenantSlug, userNameFromServer, data?.user?.role);
-
-      const tenantRecord = await resolveTenant(tenantSlug);
       
-      if (tenantRecord?.theme === 'hostel') {
-        router.push('/dashboard/hostel');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
+
     } finally {
       setLoading(false);
     }

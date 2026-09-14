@@ -33,11 +33,6 @@ export const HOSTEL_NAVIGATION: readonly HostelNavItem[] = [
     permission: 'view_rooms',
   },
   {
-    label: 'Room Allocation',
-    href: '/dashboard/hostel/rooms/allocate',
-    permission: 'allocate_rooms',
-  },
-  {
     label: 'Fees & Billing',
     href: '/dashboard/hostel/fees',
     permission: 'manage_fees',

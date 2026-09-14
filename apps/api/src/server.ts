@@ -43,6 +43,9 @@ const developmentOrigins = [
   'https://127.0.0.1:3000',
 ];
 
+const developmentTenantSubdomainPattern =
+  /^https?:\/\/[a-z0-9-]+\.localhost:3000$/i;
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -59,6 +62,13 @@ app.use(
       if (
         env.APP_ENV === 'development' &&
         developmentOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      if (
+        env.APP_ENV === 'development' &&
+        developmentTenantSubdomainPattern.test(origin)
       ) {
         return callback(null, true);
       }

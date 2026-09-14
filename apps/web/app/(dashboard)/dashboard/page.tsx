@@ -11,11 +11,13 @@ import PageErrorState from '@/components/page-error-state';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import { useAuth } from '@/context/AuthContext';
 import { normalizeLeadStatus } from '@saas/domain-core/lead.contract';
+import HostelDashboard from './hostel/HostelDashboard';
 
 export default function DashboardPage() {
   const { userName } = useAuth();
   const { leads, metrics, tenant, loading, error, refresh } = useDashboardData();
   const [showGreeting, setShowGreeting] = useState(true);
+
   const convertedStatus = normalizeLeadStatus('CONVERTED');
   const contactedStatus = normalizeLeadStatus('CONTACTED');
   const qualifiedStatus = normalizeLeadStatus('QUALIFIED');
@@ -28,15 +30,40 @@ export default function DashboardPage() {
     return () => globalThis.clearTimeout(timeout);
   }, []);
 
+  /*
+   * Theme controls which dashboard/module is displayed.
+   *
+   * The tenant is already resolved by DashboardDataContext,
+   * so we use tenant.theme directly here.
+   */
+  const tenantTheme = tenant?.theme?.trim().toLowerCase();
+
+  /*
+   * Hostel tenants use the existing Hostel dashboard.
+   *
+   * We import the shared HostelDashboard component,
+   * NOT the /dashboard/hostel/page.tsx route.
+   */
+  if (!loading && !error && tenantTheme === 'hostel') {
+    return <HostelDashboard />;
+  }
+
   const tenantServices = Array.isArray((tenant as { services?: unknown[] } | null)?.services)
     ? ((tenant as { services?: unknown[] }).services ?? []).length
     : 0;
 
   const totalServices = tenantServices;
+
   const engagedLeads = leads.filter((lead) => {
     const status = normalizeLeadStatus(lead?.status);
-    return status === convertedStatus || status === contactedStatus || status === qualifiedStatus;
+
+    return (
+      status === convertedStatus ||
+      status === contactedStatus ||
+      status === qualifiedStatus
+    );
   }).length;
+
   const convertedLeads = leads.filter(
     (lead) => normalizeLeadStatus(lead?.status) === convertedStatus,
   ).length;
@@ -61,6 +88,7 @@ export default function DashboardPage() {
             Home
           </h2>
         </header>
+
         <PageErrorState
           title="Dashboard data is unavailable"
           message={error}
@@ -85,8 +113,16 @@ export default function DashboardPage() {
         >
           Home
         </h2>
+
         {showGreeting ? (
-          <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--muted)', fontWeight: 400 }}>
+          <p
+            style={{
+              margin: '8px 0 0',
+              fontSize: 14,
+              color: 'var(--muted)',
+              fontWeight: 400,
+            }}
+          >
             {userName ? `Welcome back, ${userName}!` : 'Welcome back!'} Here’s a quick snapshot of
             your business.
           </p>

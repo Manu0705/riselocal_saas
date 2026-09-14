@@ -4,6 +4,7 @@ import DashboardHeader from './components/dashboard-header';
 import RequireAuth from './components/require-auth';
 import { DashboardDataProvider } from '@/context/DashboardDataContext';
 import DashboardTenantFontScope from './components/dashboard-tenant-font-scope';
+import DashboardShell from './components/dashboard-shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,9 @@ export default function DashboardLayout({
               <DashboardDataProvider>
                 <DashboardHeader />
 
-                {children}
+                  <DashboardShell>
+                    {children}
+                  </DashboardShell>
 
                 <BottomNav />
               </DashboardDataProvider>

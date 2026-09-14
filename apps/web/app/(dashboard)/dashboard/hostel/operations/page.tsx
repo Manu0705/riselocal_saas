@@ -651,7 +651,7 @@ export default function HostelPage() {
           ) : null}
           <section style={{ marginTop: 24 }}>
             <h2 style={{ margin: '0 0 10px', color: 'var(--text)', fontSize: 18 }}>Rooms</h2>
-            <form onSubmit={handleRoomSubmit} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <form onSubmit={handleRoomSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               <input
                 aria-label="Room number"
                 value={roomNumber}

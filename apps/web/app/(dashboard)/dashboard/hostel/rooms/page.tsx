@@ -110,27 +110,65 @@ export default function HostelRoomsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div
           style={{
-            margin: 0,
-            fontSize: 28,
-            fontWeight: 700,
-            color: 'var(--foreground, #111827)',
+            minWidth: 0,
+            flex: '1 1 260px',
           }}
         >
-          Rooms
-        </h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 28,
+              fontWeight: 700,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            Rooms
+          </h1>
 
-        <p
+          <p
+            style={{
+              margin: '8px 0 0',
+              fontSize: 14,
+              color: 'var(--muted, #6b7280)',
+            }}
+          >
+            View and manage rooms in your hostel.
+          </p>
+        </div>
+
+        <Link
+          href="/dashboard/hostel/rooms/allocate"
           style={{
-            margin: '8px 0 0',
-            fontSize: 14,
-            color: 'var(--muted, #6b7280)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 40,
+            padding: '0 14px',
+            borderRadius: 8,
+            border: '1px solid var(--primary, #2563eb)',
+            background: 'var(--primary, #2563eb)',
+            color: '#ffffff',
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
-          View and manage rooms in your hostel.
-        </p>
+          + Allocate Room
+        </Link>
       </div>
 
       <div
@@ -162,6 +200,7 @@ export default function HostelRoomsPage() {
             color: 'var(--foreground, #111827)',
             fontSize: 13,
             outline: 'none',
+            boxSizing: 'border-box',
           }}
         />
 
@@ -204,13 +243,13 @@ export default function HostelRoomsPage() {
             No rooms found.
           </div>
         ) : (
-          <div 
+          <div
             style={{
               width: '100%',
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
             }}
-            >
+          >
             <table
               style={{
                 width: '100%',
