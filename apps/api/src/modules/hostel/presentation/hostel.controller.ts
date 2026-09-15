@@ -70,6 +70,193 @@ export class HostelController {
     return respond(req, res, () => service.createHostel(tenantId, req.body?.name), 201);
   }
 
+  listFees(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.listFees(tenantId, {
+        hostelId: getHostelId(req),
+        isActive: req.query.isActive,
+        type: req.query.type,
+        search: req.query.search,
+      }),
+    );
+  }
+
+  createFee(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () => service.createFee(tenantId, req.body ?? {}), 201);
+  }
+
+  getFee(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () => service.getFee(tenantId, req.params.id));
+  }
+
+  updateFee(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.updateFee(tenantId, req.params.id, req.body ?? {}),
+    );
+  }
+
+  deactivateFee(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () => service.deactivateFee(tenantId, req.params.id));
+  }
+
+  listFeeAssignments(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.listFeeAssignments(tenantId, {
+        hostelId: getHostelId(req),
+        studentId: typeof req.query.studentId === 'string' ? req.query.studentId : undefined,
+        feeId: typeof req.query.feeId === 'string' ? req.query.feeId : undefined,
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  createFeeAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(
+      req,
+      res,
+      () => service.createFeeAssignment(tenantId, req.body ?? {}),
+      201,
+    );
+  }
+
+  getFeeAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.getFeeAssignment(tenantId, req.params.id),
+    );
+  }
+
+  updateFeeAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.updateFeeAssignment(tenantId, req.params.id, req.body ?? {}),
+    );
+  }
+
+  cancelFeeAssignment(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.cancelFeeAssignment(tenantId, req.params.id),
+    );
+  }
+
+  listInvoices(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.listInvoices(tenantId, {
+        hostelId: getHostelId(req),
+        studentId: typeof req.query.studentId === 'string' ? req.query.studentId : undefined,
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getInvoice(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () => service.getInvoice(tenantId, req.params.id));
+  }
+
+  createInvoice(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () => service.createInvoice(tenantId, req.body ?? {}), 201);
+  }
+
+  updateInvoice(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.updateInvoice(tenantId, req.params.id, req.body ?? {}),
+    );
+  }
+
+  issueInvoice(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.issueInvoice(tenantId, req.params.id),
+    );
+  }
+
+  cancelInvoice(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+
+    return respond(req, res, () =>
+      service.cancelInvoice(tenantId, req.params.id),
+    );
+  }
+
   listRooms(req: Request, res: Response) {
     const tenantId = getTenantId(req);
 
@@ -189,7 +376,7 @@ export class HostelController {
       return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
     return respond(req, res, () => service.allocationHistory(tenantId, req.params.id));
   }
-  
+
   recentAllocationActivity(req: Request, res: Response) {
     const tenantId = getTenantId(req);
 
@@ -277,7 +464,6 @@ export class HostelController {
     );
   }
 
-
   deleteStaffAssignment(req: Request, res: Response) {
     const tenantId = getTenantId(req);
 
@@ -322,6 +508,7 @@ export class HostelController {
     }
     return respond(req, res, () => service.createStaff(tenantId, req.body ?? {}), 201);
   }
+
   initiatePayment(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId)
@@ -428,6 +615,648 @@ export class HostelController {
         withIdempotencyKey(req),
         getActorId(req) ?? '',
       ),
+    );
+  }
+
+  listReceipts(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId)
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+
+    return respond(req, res, () =>
+      service.listReceipts(tenantId, {
+        studentId: isStudentRole(req)
+          ? undefined
+          : typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+        studentUserId: isStudentRole(req) ? req.user?.id : undefined,
+        paymentId: typeof req.query.paymentId === 'string' ? req.query.paymentId : undefined,
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getReceipt(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId)
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+
+    return respond(req, res, () =>
+      service.getReceipt(
+        tenantId,
+        req.params.id,
+        isStudentRole(req) ? req.user?.id : undefined,
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reports
+  // ---------------------------------------------------------------------------
+
+  getFeeCollectionSummary(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.getFeeCollectionSummary(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        from:
+          typeof req.query.from === 'string'
+            ? req.query.from
+            : undefined,
+
+        to:
+          typeof req.query.to === 'string'
+            ? req.query.to
+            : undefined,
+      }),
+    );
+  }
+
+  listStudentOutstandingReport(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listStudentOutstandingReport(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        page: getPageValue(req.query.page, 1),
+
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  listInvoiceReport(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listInvoiceReport(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        status:
+          typeof req.query.status === 'string'
+            ? req.query.status
+            : undefined,
+
+        from:
+          typeof req.query.from === 'string'
+            ? req.query.from
+            : undefined,
+
+        to:
+          typeof req.query.to === 'string'
+            ? req.query.to
+            : undefined,
+
+        page: getPageValue(req.query.page, 1),
+
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  listPaymentReport(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listPaymentReport(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        status:
+          typeof req.query.status === 'string'
+            ? req.query.status
+            : undefined,
+
+        from:
+          typeof req.query.from === 'string'
+            ? req.query.from
+            : undefined,
+
+        to:
+          typeof req.query.to === 'string'
+            ? req.query.to
+            : undefined,
+
+        page: getPageValue(req.query.page, 1),
+
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  listReceiptReport(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listReceiptReport(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        from:
+          typeof req.query.from === 'string'
+            ? req.query.from
+            : undefined,
+
+        to:
+          typeof req.query.to === 'string'
+            ? req.query.to
+            : undefined,
+
+        page: getPageValue(req.query.page, 1),
+
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reconciliation
+  // ---------------------------------------------------------------------------
+
+  listPaymentReconciliation(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listPaymentReconciliation(tenantId, {
+        hostelId:
+          typeof req.query.hostelId === 'string'
+            ? req.query.hostelId
+            : undefined,
+
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+
+        from:
+          typeof req.query.from === 'string'
+            ? req.query.from
+            : undefined,
+
+        to:
+          typeof req.query.to === 'string'
+            ? req.query.to
+            : undefined,
+
+        page: getPageValue(req.query.page, 1),
+
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Deposits
+  // ---------------------------------------------------------------------------
+
+  listDeposits(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listDeposits(tenantId, {
+        hostelId: getHostelId(req),
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getDeposit(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.getDeposit(tenantId, req.params.id),
+    );
+  }
+
+  createDeposit(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(
+      req,
+      res,
+      () => service.createDeposit(tenantId, req.body ?? {}, getActorId(req)),
+      201,
+    );
+  }
+
+  updateDeposit(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.updateDeposit(
+        tenantId,
+        req.params.id,
+        req.body ?? {},
+      ),
+    );
+  }
+
+  reconcileDeposit(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.reconcileDeposit(tenantId, req.params.id),
+    );
+  }
+
+  cancelDeposit(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.cancelDeposit(tenantId, req.params.id),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ledger
+  // ---------------------------------------------------------------------------
+
+  listLedgerEntries(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listLedgerEntries(tenantId, {
+        hostelId: getHostelId(req),
+        type: req.query.type,
+        direction: req.query.direction,
+        from: req.query.from,
+        to: req.query.to,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getLedgerEntry(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.getLedgerEntry(tenantId, req.params.id),
+    );
+  }
+
+  createLedgerEntry(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(
+      req,
+      res,
+      () =>
+        service.createLedgerEntry(
+          tenantId,
+          req.body ?? {},
+          getActorId(req),
+        ),
+      201,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Complaints
+  // ---------------------------------------------------------------------------
+
+  listComplaints(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listComplaints(tenantId, {
+        hostelId: getHostelId(req),
+        studentId:
+          typeof req.query.studentId === 'string'
+            ? req.query.studentId
+            : undefined,
+        assignedTo:
+          typeof req.query.assignedTo === 'string'
+            ? req.query.assignedTo
+            : undefined,
+        priority: req.query.priority,
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getComplaint(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.getComplaint(tenantId, req.params.id),
+    );
+  }
+
+  createComplaint(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(
+      req,
+      res,
+      () =>
+        service.createComplaint(tenantId, req.body ?? {}),
+      201,
+    );
+  }
+
+  updateComplaint(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.updateComplaint(
+        tenantId,
+        req.params.id,
+        req.body ?? {},
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Announcements
+  // ---------------------------------------------------------------------------
+
+  listAnnouncements(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.listAnnouncements(tenantId, {
+        hostelId: getHostelId(req),
+        audience: req.query.audience,
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 25),
+      }),
+    );
+  }
+
+  getAnnouncement(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.getAnnouncement(tenantId, req.params.id),
+    );
+  }
+
+  createAnnouncement(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(
+      req,
+      res,
+      () =>
+        service.createAnnouncement(
+          tenantId,
+          req.body ?? {},
+          getActorId(req),
+        ),
+      201,
+    );
+  }
+
+  updateAnnouncement(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.updateAnnouncement(
+        tenantId,
+        req.params.id,
+        req.body ?? {},
+      ),
+    );
+  }
+
+  publishAnnouncement(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.publishAnnouncement(tenantId, req.params.id),
+    );
+  }
+
+  archiveAnnouncement(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.archiveAnnouncement(tenantId, req.params.id),
     );
   }
 }

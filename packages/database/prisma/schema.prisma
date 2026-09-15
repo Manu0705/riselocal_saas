@@ -56,6 +56,10 @@ model Tenant {
   hostelFeeAssignments            HostelFeeAssignment[]
   hostelInvoices                  HostelInvoice[]
   hostelInvoicePayments           HostelInvoicePayment[]
+  hostelDeposits                  HostelDeposit[]
+  hostelLedgerEntries             HostelLedgerEntry[]
+  hostelComplaints                HostelComplaint[]
+  hostelAnnouncements             HostelAnnouncement[]
 
   @@index([createdAt])
 }
@@ -150,6 +154,54 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum HostelDepositStatus {
+  PENDING
+  DEPOSITED
+  RECONCILED
+  CANCELLED
+}
+
+enum HostelLedgerEntryType {
+  PAYMENT
+  DEPOSIT
+  REFUND
+  ADJUSTMENT
+  EXPENSE
+  OTHER
+}
+
+enum HostelLedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+enum HostelComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum HostelComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+enum HostelAnnouncementAudience {
+  ALL
+  STUDENTS
+  STAFF
+}
+
+enum HostelAnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model Hostel {
   id        String       @id @default(uuid())
   tenantId  String
@@ -166,6 +218,10 @@ model Hostel {
   fees             HostelFee[]
   feeAssignments   HostelFeeAssignment[]
   invoices         HostelInvoice[]
+  deposits         HostelDeposit[]
+  ledgerEntries    HostelLedgerEntry[]
+  complaints       HostelComplaint[]
+  announcements    HostelAnnouncement[]
 
   @@unique([tenantId, name])
   @@unique([id, tenantId])
@@ -247,6 +303,7 @@ model Student {
   payments          Payment[]
   feeAssignments    HostelFeeAssignment[]
   invoices          HostelInvoice[]
+  complaints        HostelComplaint[]
 
   @@unique([tenantId, admissionNumber])
   @@unique([id, tenantId])
@@ -447,6 +504,109 @@ model PaymentReceipt {
 
   @@unique([tenantId, receiptNumber])
   @@index([tenantId, issuedAt])
+}
+
+model HostelDeposit {
+  id              String              @id @default(uuid())
+  tenantId        String
+  hostelId        String
+  amount          Decimal             @db.Decimal(12, 2)
+  currency        String              @default("INR")
+  depositDate     DateTime            @default(now())
+  referenceNumber String?
+  paymentMethod   PaymentMethod       @default(UPI)
+  status          HostelDepositStatus @default(PENDING)
+  depositedBy     String?
+  reconciledAt    DateTime?
+  reconciledBy    String?
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, hostelId, status])
+  @@index([tenantId, hostelId, depositDate])
+  @@index([tenantId, referenceNumber])
+}
+
+model HostelLedgerEntry {
+  id            String                  @id @default(uuid())
+  tenantId      String
+  hostelId      String
+  entryDate     DateTime                @default(now())
+  type          HostelLedgerEntryType
+  direction     HostelLedgerDirection
+  amount        Decimal                 @db.Decimal(12, 2)
+  currency      String                  @default("INR")
+  referenceType String?
+  referenceId   String?
+  description   String
+  createdBy     String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, hostelId, entryDate])
+  @@index([tenantId, hostelId, type])
+  @@index([tenantId, hostelId, direction])
+  @@index([tenantId, referenceType, referenceId])
+}
+
+model HostelComplaint {
+  id          String                  @id @default(uuid())
+  tenantId    String
+  hostelId    String
+  studentId   String?
+  subject     String
+  description String
+  priority    HostelComplaintPriority @default(MEDIUM)
+  status      HostelComplaintStatus   @default(OPEN)
+  assignedTo  String?
+  resolution  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel  Hostel  @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  student Student? @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: SetNull)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, hostelId, status])
+  @@index([tenantId, hostelId, priority])
+  @@index([tenantId, hostelId, createdAt])
+  @@index([tenantId, studentId])
+  @@index([tenantId, assignedTo])
+}
+
+model HostelAnnouncement {
+  id        String                     @id @default(uuid())
+  tenantId  String
+  hostelId  String
+  title     String
+  message   String
+  audience  HostelAnnouncementAudience @default(ALL)
+  publishAt DateTime?
+  expiresAt DateTime?
+  status    HostelAnnouncementStatus   @default(DRAFT)
+  createdBy String?
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel Hostel @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, hostelId, status])
+  @@index([tenantId, hostelId, audience])
+  @@index([tenantId, hostelId, publishAt])
+  @@index([tenantId, hostelId, expiresAt])
 }
 
 model TenantUser {
