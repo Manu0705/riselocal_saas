@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PrismaTenantRepository } from '../infrastructure/tenant.prisma.repository';
+import { HostelPropertyPrismaRepository } from '../../hostel/infrastructure/hostel-property.prisma.repository';
 import { Tenant } from '../domain/tenant.entity';
 import { authMiddleware } from '../../auth/presentation/auth.middleware';
 import { adminRoleMiddleware } from '../../auth/presentation/admin-role.middleware';
@@ -25,7 +26,7 @@ import { sendError, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 const repository = new PrismaTenantRepository();
-
+const hostelRepository = new HostelPropertyPrismaRepository();
 
 function extractSectionOrderConfig(rawValue: unknown): {
   sectionOrder: string[];
@@ -36,7 +37,9 @@ function extractSectionOrderConfig(rawValue: unknown): {
 } {
   if (Array.isArray(rawValue)) {
     return {
-      sectionOrder: rawValue.filter((entry): entry is string => typeof entry === 'string'),
+      sectionOrder: rawValue.filter(
+        (entry): entry is string => typeof entry === 'string',
+      ),
       actionButtons: getDefaultActionButtons(),
       galleryCategories: ['gallery', 'before-after', 'team', 'workspace'],
       fontFamily: 'Inter',
@@ -46,18 +49,25 @@ function extractSectionOrderConfig(rawValue: unknown): {
 
   if (rawValue && typeof rawValue === 'object') {
     const raw = rawValue as Record<string, unknown>;
+
     const sections = Array.isArray(raw.sections)
-      ? raw.sections.filter((entry): entry is string => typeof entry === 'string')
+      ? raw.sections.filter(
+          (entry): entry is string => typeof entry === 'string',
+        )
       : ['hero', 'services', 'gallery'];
+
     const galleryCategories = Array.isArray(raw.galleryCategories)
-      ? raw.galleryCategories.filter((entry): entry is string => typeof entry === 'string')
+      ? raw.galleryCategories.filter(
+          (entry): entry is string => typeof entry === 'string',
+        )
       : ['gallery', 'before-after', 'team', 'workspace'];
 
     return {
       sectionOrder: sections,
       galleryCategories,
       fontFamily:
-        typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0
+        typeof raw.fontFamily === 'string' &&
+        raw.fontFamily.trim().length > 0
           ? raw.fontFamily.trim()
           : 'Inter',
       themeKey: normalizeTenantThemeKey(raw.themeKey),
@@ -77,7 +87,12 @@ function extractSectionOrderConfig(rawValue: unknown): {
 function buildSectionOrderPayload(
   sectionOrder: string[],
   actionButtons: ActionButtonsConfig,
-  galleryCategories: string[] = ['gallery', 'before-after', 'team', 'workspace'],
+  galleryCategories: string[] = [
+    'gallery',
+    'before-after',
+    'team',
+    'workspace',
+  ],
   fontFamily = 'Inter',
   themeKey: string = 'default',
 ) {
@@ -93,9 +108,14 @@ function buildSectionOrderPayload(
 function getTenantErrorResponse(error: any) {
   const message = String(error?.message || '');
   const code = String(error?.code || '');
-  const target = Array.isArray(error?.meta?.target) ? error.meta.target : [];
+  const target = Array.isArray(error?.meta?.target)
+    ? error.meta.target
+    : [];
 
-  if (code === 'P2021' || message.includes('does not exist in the current database')) {
+  if (
+    code === 'P2021' ||
+    message.includes('does not exist in the current database')
+  ) {
     return {
       status: 500,
       message: 'Database schema is not initialized. Run Prisma migrations.',
@@ -169,250 +189,42 @@ function toSlug(value: string): string {
    POST /tenants
 ========================================= */
 
-router.post('/tenants', authMiddleware, adminRoleMiddleware, async (req, res) => {
-  try {
-    const { name, domain, slug, theme, themeKey } = req.body;
-    const resolvedSlug = toSlug(slug || name || '');
-    const normalizedTheme = resolveThemeInput({ theme, themeKey });
+router.post(
+  '/tenants',
+  authMiddleware,
+  adminRoleMiddleware,
+  async (req, res) => {
+    try {
+      const { name, domain, slug, theme, themeKey } = req.body;
 
-    if (RESERVED_SLUGS.includes(resolvedSlug)) {
-      return sendError(res, 400, `Slug "${resolvedSlug}" is reserved and cannot be used`, {
-        code: 'VALIDATION_ERROR',
-        req,
-      });
-    }
+      const resolvedSlug = toSlug(slug || name || '');
+      const normalizedTheme = resolveThemeInput({ theme, themeKey });
 
-    const tenant = Tenant.create(name, resolvedSlug, domain);
+      if (RESERVED_SLUGS.includes(resolvedSlug)) {
+        return sendError(
+          res,
+          400,
+          `Slug "${resolvedSlug}" is reserved and cannot be used`,
+          {
+            code: 'VALIDATION_ERROR',
+            req,
+          },
+        );
+      }
 
-    await repository.save(tenant);
+      const tenant = Tenant.create(name, resolvedSlug, domain);
 
-    const tenantId = tenant.toJSON().id;
-    const existingSettings = await prisma.tenantSettings.findUnique({
-      where: { tenantId },
-    });
-    const existingConfig = extractSectionOrderConfig(existingSettings?.sectionOrder);
+      await repository.save(tenant);
 
-    await prisma.tenantSettings.upsert({
-      where: { tenantId },
-      create: {
-        tenantId,
-        logoShape: existingSettings?.logoShape || 'circle',
-        primaryColor: existingSettings?.primaryColor || '#000000',
-        secondaryColor: existingSettings?.secondaryColor || '#FFFFFF',
-        businessPhone: existingSettings?.businessPhone,
-        businessWhatsApp: existingSettings?.businessWhatsApp,
-        tagline: existingSettings?.tagline,
-        logoUrl: existingSettings?.logoUrl,
-        bannerUrl: existingSettings?.bannerUrl,
-        sectionOrder: buildSectionOrderPayload(
-          existingConfig.sectionOrder,
-          existingConfig.actionButtons,
-          existingConfig.galleryCategories,
-          existingConfig.fontFamily,
-          normalizedTheme,
-        ),
-      },
-      update: {
-        sectionOrder: buildSectionOrderPayload(
-          existingConfig.sectionOrder,
-          existingConfig.actionButtons,
-          existingConfig.galleryCategories,
-          existingConfig.fontFamily,
-          normalizedTheme,
-        ),
-      },
-    });
-
-    return sendSuccess(
-      res,
-      201,
-      {
-        ...tenant.toJSON(),
-        theme: normalizedTheme,
-        themeKey: normalizedTheme,
-      },
-      req,
-    );
-  } catch (error: any) {
-    const response = getTenantErrorResponse(error);
-
-    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
-  }
-});
-
-/* =========================================
-   GET TENANT BY SLUG
-   GET /tenants/slug/:slug
-========================================= */
-
-router.get('/tenants/slug/:slug', async (req, res) => {
-  try {
-    const slug = String(req.params.slug || '')
-      .trim()
-      .toLowerCase();
-
-    if (!TENANT_SLUG_PATTERN.test(slug) || RESERVED_SLUGS.includes(slug)) {
-      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
-    }
-
-    // Check cache first
-    const cached = getPublicTenantCache(slug) as TenantPublicPayload | null;
-    if (cached) {
-      res.set('Cache-Control', 'no-store').set('X-Cache', 'HIT');
-      return sendSuccess(res, 200, cached, req);
-    }
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug },
-      include: {
-        settings: true,
-        galleryImages: {
-          orderBy: [{ category: 'asc' }, { position: 'asc' }],
-          take: 20,
-        },
-        services: {
-          orderBy: { position: 'asc' },
-        },
-        socialLinks: true,
-      },
-    });
-
-    if (!tenant) {
-      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
-    }
-
-    const sectionConfig = extractSectionOrderConfig(tenant.settings?.sectionOrder);
-    const theme = normalizeTenantThemeKey(sectionConfig.themeKey);
-    const openHour = normalizeHour(tenant.settings?.openHour);
-    const closeHour = normalizeHour(tenant.settings?.closeHour);
-    const availableHours = normalizeAvailableHours(tenant.settings?.availableHours);
-    const customization: TenantCustomization = {
-      logoUrl: tenant.settings?.logoUrl ? optimizeCloudinaryUrl(tenant.settings.logoUrl) : undefined,
-      bannerUrl: tenant.settings?.bannerUrl ? optimizeCloudinaryUrl(tenant.settings.bannerUrl) : undefined,
-      logoShape: tenant.settings?.logoShape ?? 'circle',
-      primaryColor: tenant.settings?.primaryColor ?? '#000000',
-      secondaryColor: tenant.settings?.secondaryColor ?? '#FFFFFF',
-      fontFamily: sectionConfig.fontFamily,
-      theme,
-      sectionOrder: sectionConfig.sectionOrder,
-      galleryCategories: sectionConfig.galleryCategories,
-      actionButtons: sectionConfig.actionButtons,
-      businessPhone: tenant.settings?.businessPhone ?? undefined,
-      businessWhatsApp: tenant.settings?.businessWhatsApp ?? undefined,
-      tagline: tenant.settings?.tagline ?? undefined,
-      ...(openHour !== undefined ? { openHour } : {}),
-      ...(closeHour !== undefined ? { closeHour } : {}),
-      ...(availableHours !== undefined ? { availableHours } : {}),
-    };
-
-    const publicTenant: TenantPublicPayload = {
-      id: tenant.id,
-      name: tenant.name,
-      slug: tenant.slug,
-      domain: tenant.domain,
-      createdAt:
-        tenant.createdAt instanceof Date ? tenant.createdAt.toISOString() : String(tenant.createdAt),
-      updatedAt:
-        tenant.updatedAt instanceof Date ? tenant.updatedAt.toISOString() : String(tenant.updatedAt),
-      theme,
-      customization,
-      galleryImages: tenant.galleryImages.map((image) => ({
-        url: optimizeCloudinaryUrl(image.url),
-        category: image.category,
-        position: image.position,
-        alt: image.alt ?? undefined,
-      })),
-      services: tenant.services.map((service) => ({
-        name: service.name,
-        description: service.description ?? undefined,
-        icon: service.icon ?? undefined,
-        position: service.position,
-      })),
-      socialLinks: tenant.socialLinks.map((link) => ({
-        platform: link.platform,
-        url: link.url,
-        label: link.label ?? undefined,
-      })),
-    };
-
-    setPublicTenantCache(slug, publicTenant);
-
-    res.set('Cache-Control', 'no-store').set('X-Cache', 'MISS');
-    return sendSuccess(res, 200, publicTenant, req);
-  } catch (error: any) {
-    const response = getTenantErrorResponse(error);
-    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
-  }
-});
-
-router.use('/tenants', authMiddleware, adminRoleMiddleware);
-
-/* =========================================
-   LIST ACTIVE TENANTS
-   GET /tenants
-========================================= */
-
-router.get('/tenants', async (req, res) => {
-  try {
-    const tenants = await prisma.tenant.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { settings: true },
-    });
-
-    return sendSuccess(
-      res,
-      200,
-      tenants.map((tenant) => {
-        const theme = normalizeTenantThemeKey(extractSectionOrderConfig(tenant.settings?.sectionOrder).themeKey);
-        return {
-          id: tenant.id,
-          name: tenant.name,
-          slug: tenant.slug,
-          domain: tenant.domain,
-          createdAt: tenant.createdAt,
-          updatedAt: tenant.updatedAt,
-          theme,
-          themeKey: theme,
-        };
-      }),
-      req,
-    );
-  } catch (error: any) {
-    const response = getTenantErrorResponse(error);
-
-    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
-  }
-});
-
-/* =========================================
-   UPDATE TENANT
-   PUT /tenants/:id
-========================================= */
-
-router.put('/tenants/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, slug, domain, theme, themeKey } = req.body;
-    const normalizedTheme = resolveThemeInput({ theme, themeKey });
-
-    const tenant = await repository.findById(id);
-
-    if (!tenant) {
-      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
-    }
-
-    const resolvedSlug = toSlug(slug || name || '');
-    const previousSlug = tenant.toJSON().slug;
-    tenant.update(name, resolvedSlug, domain);
-
-    await repository.update(tenant);
-
-    if (theme !== undefined || themeKey !== undefined) {
       const tenantId = tenant.toJSON().id;
+
       const existingSettings = await prisma.tenantSettings.findUnique({
         where: { tenantId },
       });
-      const existingConfig = extractSectionOrderConfig(existingSettings?.sectionOrder);
+
+      const existingConfig = extractSectionOrderConfig(
+        existingSettings?.sectionOrder,
+      );
 
       await prisma.tenantSettings.upsert({
         where: { tenantId },
@@ -444,10 +256,554 @@ router.put('/tenants/:id', async (req, res) => {
           ),
         },
       });
+
+      return sendSuccess(
+        res,
+        201,
+        {
+          ...tenant.toJSON(),
+          theme: normalizedTheme,
+          themeKey: normalizedTheme,
+        },
+        req,
+      );
+    } catch (error: any) {
+      const response = getTenantErrorResponse(error);
+
+      return sendError(res, response.status, response.message, {
+        code: 'TENANT_ERROR',
+        req,
+      });
+    }
+  },
+);
+
+/* =========================================
+   GET TENANT BY SLUG
+   GET /tenants/slug/:slug
+========================================= */
+
+router.get('/tenants/slug/:slug', async (req, res) => {
+  try {
+    const slug = String(req.params.slug || '')
+      .trim()
+      .toLowerCase();
+
+    if (
+      !TENANT_SLUG_PATTERN.test(slug) ||
+      RESERVED_SLUGS.includes(slug)
+    ) {
+      return sendError(res, 404, 'Tenant not found', {
+        code: 'NOT_FOUND',
+        req,
+      });
     }
 
-    invalidatePublicTenantCacheBySlug(previousSlug);
-    invalidatePublicTenantCacheBySlug(resolvedSlug);
+    // Check cache first
+    const cached = getPublicTenantCache(slug) as TenantPublicPayload | null;
+
+    if (cached) {
+      res.set('Cache-Control', 'no-store').set('X-Cache', 'HIT');
+
+      return sendSuccess(res, 200, cached, req);
+    }
+const tenantBase = await prisma.tenant.findUnique({
+      where: { slug },
+    });
+
+    if (!tenantBase) {
+      return sendError(res, 404, 'Tenant not found', {
+        code: 'NOT_FOUND',
+        req,
+      });
+    }
+const settings = await prisma.tenantSettings.findUnique({
+      where: {
+        tenantId: tenantBase.id,
+      },
+    });
+const galleryImages = await prisma.galleryImage.findMany({
+      where: {
+        tenantId: tenantBase.id,
+      },
+      orderBy: [
+        { category: 'asc' },
+        { position: 'asc' },
+      ],
+      take: 20,
+    });
+const services = await prisma.service.findMany({
+      where: {
+        tenantId: tenantBase.id,
+      },
+      orderBy: {
+        position: 'asc',
+      },
+    });
+const socialLinks = await prisma.socialLink.findMany({
+      where: {
+        tenantId: tenantBase.id,
+      },
+    });
+
+    /*
+     * IMPORTANT:
+     *
+     * The original public tenant response code expects a `tenant`
+     * object containing the tenant record plus its related data.
+     *
+     * The debugging refactor previously renamed the base record to
+     * `tenantBase` but did not recreate this object, which caused:
+     *
+     *     tenant is not defined
+     *
+     * after all Prisma queries had already completed.
+     *
+     * Reconstruct the same shape here so the existing public payload
+     * generation remains unchanged.
+     */
+    const tenant = {
+      ...tenantBase,
+      settings,
+      galleryImages,
+      services,
+      socialLinks,
+    };
+
+    const sectionConfig = extractSectionOrderConfig(
+      tenant.settings?.sectionOrder,
+    );
+
+    const theme = normalizeTenantThemeKey(
+      sectionConfig.themeKey,
+    );
+
+    const openHour = normalizeHour(
+      tenant.settings?.openHour,
+    );
+
+    const closeHour = normalizeHour(
+      tenant.settings?.closeHour,
+    );
+
+    const availableHours = normalizeAvailableHours(
+      tenant.settings?.availableHours,
+    );
+
+    const customization: TenantCustomization = {
+      logoUrl: tenant.settings?.logoUrl
+        ? optimizeCloudinaryUrl(tenant.settings.logoUrl)
+        : undefined,
+
+      bannerUrl: tenant.settings?.bannerUrl
+        ? optimizeCloudinaryUrl(tenant.settings.bannerUrl)
+        : undefined,
+
+      logoShape: tenant.settings?.logoShape ?? 'circle',
+
+      primaryColor:
+        tenant.settings?.primaryColor ?? '#000000',
+
+      secondaryColor:
+        tenant.settings?.secondaryColor ?? '#FFFFFF',
+
+      fontFamily: sectionConfig.fontFamily,
+
+      theme,
+
+      sectionOrder: sectionConfig.sectionOrder,
+
+      galleryCategories:
+        sectionConfig.galleryCategories,
+
+      actionButtons:
+        sectionConfig.actionButtons,
+
+      businessPhone:
+        tenant.settings?.businessPhone ?? undefined,
+
+      businessWhatsApp:
+        tenant.settings?.businessWhatsApp ?? undefined,
+
+      tagline:
+        tenant.settings?.tagline ?? undefined,
+
+      ...(openHour !== undefined
+        ? { openHour }
+        : {}),
+
+      ...(closeHour !== undefined
+        ? { closeHour }
+        : {}),
+
+      ...(availableHours !== undefined
+        ? { availableHours }
+        : {}),
+    };
+
+    const publicTenant: TenantPublicPayload = {
+      id: tenant.id,
+
+      name: tenant.name,
+
+      slug: tenant.slug,
+
+      domain: tenant.domain,
+
+      createdAt:
+        tenant.createdAt instanceof Date
+          ? tenant.createdAt.toISOString()
+          : String(tenant.createdAt),
+
+      updatedAt:
+        tenant.updatedAt instanceof Date
+          ? tenant.updatedAt.toISOString()
+          : String(tenant.updatedAt),
+
+      theme,
+
+      customization,
+
+      galleryImages: tenant.galleryImages.map(
+        (image) => ({
+          url: optimizeCloudinaryUrl(image.url),
+          category: image.category,
+          position: image.position,
+          alt: image.alt ?? undefined,
+        }),
+      ),
+
+      services: tenant.services.map(
+        (service) => ({
+          name: service.name,
+          description:
+            service.description ?? undefined,
+          icon: service.icon ?? undefined,
+          position: service.position,
+        }),
+      ),
+
+      socialLinks: tenant.socialLinks.map(
+        (link) => ({
+          platform: link.platform,
+          url: link.url,
+          label: link.label ?? undefined,
+        }),
+      ),
+    };
+
+    setPublicTenantCache(
+      slug,
+      publicTenant,
+    );
+
+    res
+      .set('Cache-Control', 'no-store')
+      .set('X-Cache', 'MISS');
+
+    return sendSuccess(
+      res,
+      200,
+      publicTenant,
+      req,
+    );
+  } catch (error: any) {
+    const response =
+      getTenantErrorResponse(error);
+
+    return sendError(
+      res,
+      response.status,
+      response.message,
+      {
+        code: 'TENANT_ERROR',
+        req,
+      },
+    );
+  }
+});
+
+/* =========================================
+   GET PUBLIC HOSTEL DATA BY TENANT SLUG
+   GET /tenants/slug/:slug/hostel
+========================================= */
+
+router.get(
+  '/tenants/slug/:slug/hostel',
+  async (req, res) => {
+    try {
+      const slug = String(req.params.slug || '')
+        .trim()
+        .toLowerCase();
+
+      if (
+        !TENANT_SLUG_PATTERN.test(slug) ||
+        RESERVED_SLUGS.includes(slug)
+      ) {
+        return sendError(
+          res,
+          404,
+          'Tenant not found',
+          {
+            code: 'NOT_FOUND',
+            req,
+          },
+        );
+      }
+
+      const hostels =
+        await hostelRepository.findPublicHostelsByTenantSlug(
+          slug,
+        );
+
+      if (hostels.length === 0) {
+        const tenant =
+          await prisma.tenant.findUnique({
+            where: { slug },
+            select: { id: true },
+          });
+
+        if (!tenant) {
+          return sendError(
+            res,
+            404,
+            'Tenant not found',
+            {
+              code: 'NOT_FOUND',
+              req,
+            },
+          );
+        }
+      }
+
+      res.set(
+        'Cache-Control',
+        'no-store',
+      );
+
+      return sendSuccess(
+        res,
+        200,
+        {
+          hostels,
+        },
+        req,
+      );
+    } catch (error: any) {
+      const response =
+        getTenantErrorResponse(error);
+
+      return sendError(
+        res,
+        response.status,
+        response.message,
+        {
+          code: 'TENANT_ERROR',
+          req,
+        },
+      );
+    }
+  },
+);
+
+router.use(
+  '/tenants',
+  authMiddleware,
+  adminRoleMiddleware,
+);
+
+/* =========================================
+   LIST ACTIVE TENANTS
+   GET /tenants
+========================================= */
+
+router.get('/tenants', async (req, res) => {
+  try {
+    const tenants =
+      await prisma.tenant.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          settings: true,
+        },
+      });
+
+    return sendSuccess(
+      res,
+      200,
+      tenants.map((tenant) => {
+        const theme =
+          normalizeTenantThemeKey(
+            extractSectionOrderConfig(
+              tenant.settings?.sectionOrder,
+            ).themeKey,
+          );
+
+        return {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          domain: tenant.domain,
+          createdAt: tenant.createdAt,
+          updatedAt: tenant.updatedAt,
+          theme,
+          themeKey: theme,
+        };
+      }),
+      req,
+    );
+  } catch (error: any) {
+    const response =
+      getTenantErrorResponse(error);
+
+    return sendError(
+      res,
+      response.status,
+      response.message,
+      {
+        code: 'TENANT_ERROR',
+        req,
+      },
+    );
+  }
+});
+
+/* =========================================
+   UPDATE TENANT
+   PUT /tenants/:id
+========================================= */
+
+router.put('/tenants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      name,
+      slug,
+      domain,
+      theme,
+      themeKey,
+    } = req.body;
+
+    const normalizedTheme =
+      resolveThemeInput({
+        theme,
+        themeKey,
+      });
+
+    const tenant =
+      await repository.findById(id);
+
+    if (!tenant) {
+      return sendError(
+        res,
+        404,
+        'Tenant not found',
+        {
+          code: 'NOT_FOUND',
+          req,
+        },
+      );
+    }
+
+    const resolvedSlug = toSlug(
+      slug || name || '',
+    );
+
+    const previousSlug =
+      tenant.toJSON().slug;
+
+    tenant.update(
+      name,
+      resolvedSlug,
+      domain,
+    );
+
+    await repository.update(tenant);
+
+    if (
+      theme !== undefined ||
+      themeKey !== undefined
+    ) {
+      const tenantId =
+        tenant.toJSON().id;
+
+      const existingSettings =
+        await prisma.tenantSettings.findUnique(
+          {
+            where: { tenantId },
+          },
+        );
+
+      const existingConfig =
+        extractSectionOrderConfig(
+          existingSettings?.sectionOrder,
+        );
+
+      await prisma.tenantSettings.upsert({
+        where: { tenantId },
+
+        create: {
+          tenantId,
+
+          logoShape:
+            existingSettings?.logoShape ||
+            'circle',
+
+          primaryColor:
+            existingSettings?.primaryColor ||
+            '#000000',
+
+          secondaryColor:
+            existingSettings?.secondaryColor ||
+            '#FFFFFF',
+
+          businessPhone:
+            existingSettings?.businessPhone,
+
+          businessWhatsApp:
+            existingSettings?.businessWhatsApp,
+
+          tagline:
+            existingSettings?.tagline,
+
+          logoUrl:
+            existingSettings?.logoUrl,
+
+          bannerUrl:
+            existingSettings?.bannerUrl,
+
+          sectionOrder:
+            buildSectionOrderPayload(
+              existingConfig.sectionOrder,
+              existingConfig.actionButtons,
+              existingConfig.galleryCategories,
+              existingConfig.fontFamily,
+              normalizedTheme,
+            ),
+        },
+
+        update: {
+          sectionOrder:
+            buildSectionOrderPayload(
+              existingConfig.sectionOrder,
+              existingConfig.actionButtons,
+              existingConfig.galleryCategories,
+              existingConfig.fontFamily,
+              normalizedTheme,
+            ),
+        },
+      });
+    }
+
+    invalidatePublicTenantCacheBySlug(
+      previousSlug,
+    );
+
+    invalidatePublicTenantCacheBySlug(
+      resolvedSlug,
+    );
 
     return sendSuccess(
       res,
@@ -460,9 +816,18 @@ router.put('/tenants/:id', async (req, res) => {
       req,
     );
   } catch (error: any) {
-    const response = getTenantErrorResponse(error);
+    const response =
+      getTenantErrorResponse(error);
 
-    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
+    return sendError(
+      res,
+      response.status,
+      response.message,
+      {
+        code: 'TENANT_ERROR',
+        req,
+      },
+    );
   }
 });
 
@@ -471,25 +836,57 @@ router.put('/tenants/:id', async (req, res) => {
    DELETE /tenants/:id
 ========================================= */
 
-router.delete('/tenants/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  '/tenants/:id',
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    const tenant = await repository.findById(id);
+      const tenant =
+        await repository.findById(id);
 
-    if (!tenant) {
-      return sendError(res, 404, 'Tenant not found', { code: 'NOT_FOUND', req });
+      if (!tenant) {
+        return sendError(
+          res,
+          404,
+          'Tenant not found',
+          {
+            code: 'NOT_FOUND',
+            req,
+          },
+        );
+      }
+
+      await repository.delete(id);
+
+      invalidatePublicTenantCacheBySlug(
+        tenant.toJSON().slug,
+      );
+
+      return sendSuccess(
+        res,
+        200,
+        {
+          message:
+            'Tenant deleted successfully',
+        },
+        req,
+      );
+    } catch (error: any) {
+      const response =
+        getTenantErrorResponse(error);
+
+      return sendError(
+        res,
+        response.status,
+        response.message,
+        {
+          code: 'TENANT_ERROR',
+          req,
+        },
+      );
     }
-
-    await repository.delete(id);
-    invalidatePublicTenantCacheBySlug(tenant.toJSON().slug);
-
-    return sendSuccess(res, 200, { message: 'Tenant deleted successfully' }, req);
-  } catch (error: any) {
-    const response = getTenantErrorResponse(error);
-
-    return sendError(res, response.status, response.message, { code: 'TENANT_ERROR', req });
-  }
-});
+  },
+);
 
 export default router;

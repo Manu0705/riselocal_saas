@@ -8,8 +8,17 @@ import {
   Star,
   BedDouble,
   WalletCards,
+  type LucideIcon,
 } from 'lucide-react';
 import { useDashboardData } from '@/context/DashboardDataContext';
+
+type BottomNavItem = {
+  label: string;
+  icon: LucideIcon;
+  path: string;
+  primary?: boolean;
+  badge?: boolean;
+};
 
 export default function BottomNav() {
   const router = useRouter();
@@ -103,7 +112,7 @@ export default function BottomNav() {
   /*
    * Default dashboard quick navigation.
    */
-  const defaultItems = [
+  const defaultItems: BottomNavItem[] = [
     {
       label: 'Leads',
       icon: Users,
@@ -129,7 +138,7 @@ export default function BottomNav() {
    * These are intentionally icon-only because the full Hostel
    * navigation is available from the top-left Hostel menu.
    */
-  const hostelItems = [
+  const hostelItems: BottomNavItem[] = [
     {
       label: 'Students',
       icon: Users,
@@ -153,7 +162,7 @@ export default function BottomNav() {
     },
   ];
 
-  const items = isHostelTheme
+  const items: BottomNavItem[] = isHostelTheme
     ? hostelItems
     : defaultItems;
 

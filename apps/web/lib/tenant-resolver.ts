@@ -261,7 +261,7 @@ export const getTenant = cache(async (slug: string): Promise<ResolvedTenant | nu
 
     try {
       const controller = new AbortController();
-      timeoutHandle = globalThis.setTimeout(() => controller.abort(), 5000);
+      timeoutHandle = globalThis.setTimeout(() => controller.abort(), 15000);
 
       const res = await fetchWithRetry(
         buildUpstreamApiUrl(apiBase, `/tenants/slug/${encodeURIComponent(slug)}`),
