@@ -2,6 +2,7 @@ import { prisma, Prisma } from '@saas/database';
 
 export type HostelRepository = {
   findHostels(tenantId: string): Promise<unknown[]>;
+  findPublicHostelsByTenantSlug(slug: string): Promise<unknown[]>;
   createHostel(input: { tenantId: string; name: string }): Promise<unknown>;
     // Fees
   listFees(input: {
@@ -602,6 +603,64 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       where: { tenantId },
       orderBy: { name: 'asc' },
     });
+  }
+
+  async findPublicHostelsByTenantSlug(slug: string) {
+    const tenant = await prisma.tenant.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        hostels: {
+          where: {
+            status: 'ACTIVE',
+          },
+          orderBy: {
+            name: 'asc',
+          },
+          select: {
+            name: true,
+            rooms: {
+              where: {
+                isActive: true,
+                status: {
+                  in: ['AVAILABLE', 'OCCUPIED'],
+                },
+                vacancyStatus: {
+                  not: 'UNAVAILABLE',
+                },
+              },
+              select: {
+                sharingType: true,
+                capacity: true,
+                vacancyStatus: true,
+              },
+              orderBy: {
+                sharingType: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      return [];
+    }
+
+    return tenant.hostels.map((hostel) => ({
+      name: hostel.name,
+      rooms: hostel.rooms.map((room) => ({
+        sharingType: room.sharingType,
+        capacity: room.capacity,
+        availability:
+          room.vacancyStatus === 'VACANT'
+            ? 'AVAILABLE'
+            : room.vacancyStatus === 'PARTIALLY_OCCUPIED'
+              ? 'LIMITED'
+              : 'FULL',
+      })),
+    }));
   }
 
   createHostel(input: { tenantId: string; name: string }) {
