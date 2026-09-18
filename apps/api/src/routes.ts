@@ -20,8 +20,10 @@ import tenantSettingsRoutes from './modules/tenant/presentation/tenant-settings.
 import contentRoutes from './modules/content/presentation/content.routes';
 import hostelRoutes from './modules/hostel/presentation/hostel.routes';
 import { sendError, sendSuccess } from './shared/http/api-response';
+import { HostelController } from './modules/hostel/presentation/hostel.controller';
 
 const router = Router();
+const hostelController = new HostelController();
 
 router.get('/health', async (req, res) => {
   try {
@@ -47,6 +49,11 @@ router.use(leadPublicRoutes);
 router.use(feedbackPublicRoutes);
 router.use(diningPublicRoutes);
 router.use(sessionTokenPublicRoutes);
+
+router.post(
+  '/hostel/student/login',
+  hostelController.studentLogin.bind(hostelController),
+);
 
 /* =========================================
    AUTH PROTECTED ROUTES
