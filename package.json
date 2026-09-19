@@ -64,9 +64,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "prisma": {
-    "schema": "packages/database/prisma/schema.prisma"
-  },
+ "prisma": {
+  "schema": "packages/database/prisma/schema.prisma",
+  "seed": "ts-node packages/database/prisma/seed.ts"
+},
   "pnpm": {
     "overrides": {
       "@types/react": "18.3.12",
