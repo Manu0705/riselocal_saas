@@ -11,7 +11,7 @@ type StudentAccount = {
   phone?: string | null;
 };
 
-export default function StudentMyStayPage() {
+export default function MyStayContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

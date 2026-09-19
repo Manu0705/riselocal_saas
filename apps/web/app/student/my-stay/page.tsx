@@ -1,18 +1,18 @@
 import { Suspense } from 'react';
-import StudentLoginForm from './StudentLoginForm';
+import MyStayContent from './MyStayContent';
 
-export default function StudentLoginPage() {
+export default function MyStayPage() {
   return (
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#FBFAF7]">
           <div className="text-sm text-[#536579]">
-            Loading student login...
+            Loading your stay...
           </div>
         </main>
       }
     >
-      <StudentLoginForm />
+      <MyStayContent />
     </Suspense>
   );
 }
