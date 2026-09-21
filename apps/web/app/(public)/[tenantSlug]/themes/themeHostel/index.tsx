@@ -18,6 +18,7 @@ import type { ResolvedTenant } from '@/lib/tenant-resolver';
 import QuickActions from '../../components/quick-actions';
 import Booking from '../../components/booking';
 import Contact from '../../components/contact';
+import StudentAccountMenu from '../../components/student-account-menu';
 
 import PublicRooms from './public-rooms';
 import HostelServices from './hostel-services';
@@ -209,9 +210,12 @@ export default function ThemeHostel({
             ))}
           </nav>
 
-          {/* Desktop WhatsApp CTA */}
-          <a
-            href={whatsappHref}
+          {/* Desktop student account + WhatsApp */}
+          <div className="hidden items-center gap-3 lg:flex">
+            <StudentAccountMenu tenantSlug={tenantSlug} />
+
+            <a
+              href={whatsappHref}
             target={whatsapp ? '_blank' : undefined}
             rel={whatsapp ? 'noopener noreferrer' : undefined}
             onClick={() => {
@@ -221,13 +225,14 @@ export default function ThemeHostel({
             }}
             className="hidden items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md lg:inline-flex"
             style={{ backgroundColor: secondaryColor }}
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/60 text-[11px]">
-              W
-            </span>
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/60 text-[11px]">
+                W
+              </span>
 
-            Enquire on WhatsApp
-          </a>
+              Enquire on WhatsApp
+            </a>
+          </div>
 
           {/* Mobile menu */}
           <button
@@ -272,6 +277,13 @@ export default function ThemeHostel({
                   <ArrowRight size={16} />
                 </button>
               ))}
+
+              <div className="mt-3">
+                <StudentAccountMenu
+                  tenantSlug={tenantSlug}
+                  className="w-full"
+                />
+              </div>
 
               <a
                 href={whatsappHref}
@@ -423,7 +435,47 @@ export default function ThemeHostel({
                 }}
               />
 
-              <div className="absolute bottom-6 right-6 hidden w-[130px] rounded-[34px] rounded-br-[55px] rounded-tl-[55px] border border-white/30 bg-[#15563A]/95 px-5 py-6 text-center text-white shadow-xl sm:block">
+             {/* <div className="absolute bottom-8 right-6 hidden h-[155px] w-[135px] sm:block"> */}
+             <div className="absolute bottom-8 right-6 block h-[155px] w-[135px]">
+             {/* <div className="absolute bottom-4 right-2 z-30 block h-[155px] w-[135px] sm:bottom-6 sm:right-6"> */}
+  {/* Green leafy background */}
+  <svg
+    className="absolute inset-0 h-full w-full"
+    viewBox="0 0 145 155"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="none"
+  >
+    <path
+      d="M0 72
+         C0 45 22 25 48 22
+         C78 18 103 8 145 0
+         L145 100
+         C145 125 126 143 102 149
+         C72 156 35 155 0 155
+         Z"
+      fill="#15563A"
+    />
+  </svg>
+
+  {/* Content */}
+  <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 pb-3 text-center text-white">
+    <p className="font-serif text-[13px] leading-5">
+      A Home
+      <br />
+      for Better
+      <br />
+      You
+    </p>
+
+    {/* Leaf icon */}
+   <span className="mt-1 block text-sm">
+                  ◆
+                </span>
+  </div>
+</div>
+
+              {/* <div className="absolute bottom-6 right-6 hidden w-[130px] rounded-[34px] rounded-br-[55px] rounded-tl-[55px] border border-white/30 bg-[#15563A]/95 px-5 py-6 text-center text-white shadow-xl sm:block">
                 <p className="text-[13px] font-serif leading-5">
                   A Home
                   <br />
@@ -435,7 +487,7 @@ export default function ThemeHostel({
                 <span className="mt-1 block text-sm">
                   ◆
                 </span>
-              </div>
+              </div> */}
 
               {/* Hero image indicators */}
               <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 lg:left-auto lg:right-8 lg:translate-x-0">

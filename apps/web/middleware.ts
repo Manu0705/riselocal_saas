@@ -97,7 +97,14 @@ export async function middleware(request: NextRequest) {
   // - /login  : tenant is detected client-side from hostname (no hydration mismatch)
   // - /dashboard and all sub-routes: authenticated app, not tenant-scoped paths
   // These must NOT get the /<slug>/... rewrite that public pages receive.
-  if (subdomainSlug && (pathname === '/login' || pathname.startsWith('/dashboard'))) {
+  if
+  (
+    pathname === '/login' ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/student')
+  )
+  //  (subdomainSlug && (pathname === '/login' || pathname.startsWith('/dashboard'))) 
+   {
     return NextResponse.next();
   }
 

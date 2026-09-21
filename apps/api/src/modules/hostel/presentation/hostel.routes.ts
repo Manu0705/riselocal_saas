@@ -10,6 +10,16 @@ const router = Router();
 
 const controller = new HostelController();
 
+// Public student login
+// router.post(
+//   '/hostel/student/login',
+//   hostelController.studentLogin.bind(hostelController),
+// );
+
+/*
+ * Everything below requires authentication
+ */
+
 router.use('/hostel', authMiddleware);
 
 // Hostels / Properties
