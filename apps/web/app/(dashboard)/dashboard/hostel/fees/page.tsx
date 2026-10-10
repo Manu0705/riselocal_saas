@@ -75,6 +75,8 @@ export default function HostelFeesPage() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [properties, setProperties] = useState<HostelProperty[]>([]);
 
+  const [selectedHostelId, setSelectedHostelId] = useState('');
+
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<Pagination | null>(null);
 
@@ -97,13 +99,22 @@ export default function HostelFeesPage() {
         '/hostel/properties',
       );
 
-      setProperties(response.data ?? []);
+      const nextProperties = response.data ?? [];
+
+      setProperties(nextProperties);
+
+      const firstHostelId = nextProperties[0]?.id ?? '';
+
+      if (firstHostelId) {
+        setSelectedHostelId((current) => current || firstHostelId);
+      }
     } catch {
       setProperties([]);
+      setSelectedHostelId('');
     }
   }
 
-  async function loadFees() {
+  async function loadFees(hostelId = selectedHostelId) {
     setLoading(true);
     setError('');
 
@@ -125,8 +136,8 @@ export default function HostelFeesPage() {
         params.set('isActive', 'false');
       }
 
-      if (form.hostelId) {
-        params.set('hostelId', form.hostelId);
+      if (hostelId) {
+        params.set('hostelId', hostelId);
       }
 
       const response = await api.get<ApiResponse<FeeListResponse>>(
@@ -154,17 +165,20 @@ export default function HostelFeesPage() {
   }, []);
 
   useEffect(() => {
-    void loadFees();
-    // Search/filter/page changes intentionally reload the fee list.
+    if (!selectedHostelId) return;
+
+    void loadFees(selectedHostelId);
+
+    // Search/filter/page/hostel changes intentionally reload the fee list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, activeFilter]);
+  }, [page, activeFilter, selectedHostelId]);
 
   function openCreateModal() {
     setEditingFeeId(null);
 
     setForm({
       ...DEFAULT_FORM,
-      hostelId: properties[0]?.id ?? '',
+      hostelId: selectedHostelId,
     });
 
     setError('');
@@ -179,7 +193,7 @@ export default function HostelFeesPage() {
       description: fee.description ?? '',
       amount: String(fee.amount ?? ''),
       frequency: fee.frequency ?? 'MONTHLY',
-      hostelId: properties[0]?.id ?? '',
+      hostelId: selectedHostelId,
     });
 
     setError('');
@@ -241,7 +255,8 @@ export default function HostelFeesPage() {
       }
 
       closeModal();
-      await loadFees();
+
+      await loadFees(selectedHostelId);
     } catch (err) {
       setError(
         err instanceof Error
@@ -268,7 +283,7 @@ export default function HostelFeesPage() {
         {},
       );
 
-      await loadFees();
+      await loadFees(selectedHostelId);
     } catch (err) {
       setError(
         err instanceof Error
@@ -282,7 +297,7 @@ export default function HostelFeesPage() {
     event.preventDefault();
 
     setPage(1);
-    void loadFees();
+    void loadFees(selectedHostelId);
   }
 
   const totalPages = pagination?.totalPages ?? 1;

@@ -119,10 +119,24 @@ export default function HostelCheckinCheckoutPage() {
     setError('');
 
     try {
-      const [studentsResponse, roomsResponse] = await Promise.all([
+      const [studentsResponse, propertiesResponse] = await Promise.all([
         api.get('/hostel/students?page=1&limit=100'),
-        api.get('/hostel/rooms?page=1&limit=100'),
+        api.get('/hostel/properties'),
       ]);
+
+      const properties = getItems(propertiesResponse) as Array<{
+        id?: string;
+      }>;
+
+      const hostelId = properties[0]?.id;
+
+      if (!hostelId) {
+        throw new Error('No hostel property found for this tenant.');
+      }
+
+      const roomsResponse = await api.get(
+        `/hostel/rooms?page=1&limit=100&hostelId=${encodeURIComponent(hostelId)}`,
+      );
 
       const studentItems = getItems(studentsResponse);
       const roomItems = getItems(roomsResponse);
@@ -134,9 +148,9 @@ export default function HostelCheckinCheckoutPage() {
       setRooms(nextRooms);
 
       /*
-       * The existing rooms API is the source of current allocations.
-       * Some versions of the backend return allocations directly on rooms.
-       */
+      * The existing rooms API is the source of current allocations.
+      * Some versions of the backend return allocations directly on rooms.
+      */
       const nextAllocations: Allocation[] = [];
 
       nextRooms.forEach((room) => {

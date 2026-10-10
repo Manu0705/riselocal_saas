@@ -73,7 +73,7 @@ export default function HostelPaymentsPage() {
         }
 
         const response = await api.get<ApiResponse<PaymentPage>>(
-          `/payments?${query.toString()}`,
+          `/hostel/payments?${query.toString()}`,
         );
 
         setPayments(response.data.items);

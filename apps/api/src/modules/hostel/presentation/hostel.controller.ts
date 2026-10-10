@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
 import { sendError, sendSuccess } from '../../../shared/http/api-response';
 import { HostelPropertyService } from '../application/hostel-property.service';
+import { StudentLoginUseCase } from '../application/student/student-login.use-case';
 
 const service = new HostelPropertyService();
+const studentLoginUseCase = new StudentLoginUseCase();
 
 type HostelRequest = Request & {
   tenant?: { id: string };
@@ -54,6 +56,67 @@ async function respond(req: Request, res: Response, action: () => Promise<unknow
 }
 
 export class HostelController {
+
+studentLogin(req: Request, res: Response) {
+  const tenantSlug =
+    typeof req.body?.tenantSlug === 'string'
+      ? req.body.tenantSlug
+      : '';
+
+  const identifier =
+    typeof req.body?.identifier === 'string'
+      ? req.body.identifier
+      : '';
+
+  const passkey =
+    typeof req.body?.passkey === 'string'
+      ? req.body.passkey
+      : '';
+
+  return respond(req, res, () =>
+    studentLoginUseCase.execute({
+      tenantSlug,
+      identifier,
+      passkey,
+    }),
+  );
+}
+
+  // ============================================================
+  // STUDENT CHANGE PASSKEY
+  // ============================================================
+
+  studentChangePasskey(req: Request, res: Response) {
+    const userId =
+      typeof req.user?.id === 'string'
+        ? req.user.id
+        : '';
+
+    const currentPasskey =
+      typeof req.body?.currentPasskey === 'string'
+        ? req.body.currentPasskey
+        : '';
+
+    const newPasskey =
+      typeof req.body?.newPasskey === 'string'
+        ? req.body.newPasskey
+        : '';
+
+    const confirmPasskey =
+      typeof req.body?.confirmPasskey === 'string'
+        ? req.body.confirmPasskey
+        : '';
+
+    return respond(req, res, () =>
+      studentLoginUseCase.changePasskey({
+        userId,
+        currentPasskey,
+        newPasskey,
+        confirmPasskey,
+      }),
+    );
+  }
+
   listHostels(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId) {

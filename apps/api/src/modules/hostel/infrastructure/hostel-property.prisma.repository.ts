@@ -1,4 +1,6 @@
 import { prisma, Prisma } from '@saas/database';
+import { randomBytes } from 'node:crypto';
+import { hashPassword } from '../../auth/infrastructure/password.service';
 
 export type HostelRepository = {
   findHostels(tenantId: string): Promise<unknown[]>;
@@ -233,7 +235,6 @@ export type HostelRepository = {
     tenantId: string;
     hostelId: string;
     roomId?: string;
-    userId?: string;
     admissionNumber: string;
     name: string;
     email?: string;
@@ -250,7 +251,6 @@ export type HostelRepository = {
     tenantId: string;
     id: string;
     roomId?: string | null;
-    userId?: string | null;
     admissionNumber?: string;
     name?: string;
     email?: string | null;
@@ -1930,7 +1930,13 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       ...(input.roomId ? { roomId: input.roomId } : {}),
       ...(input.paymentStatus ? { paymentStatus: input.paymentStatus as never } : {}),
       ...(input.status ? { status: input.status as never } : {}),
-      ...(input.userId ? { userId: input.userId } : {}),
+      ...(input.userId
+        ? {
+            studentAccount: {
+              id: input.userId,
+            },
+          }
+        : {}),
       ...(input.search
         ? {
             OR: [
@@ -2015,7 +2021,13 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       where: {
         id: input.id,
         tenantId: input.tenantId,
-        ...(input.userId ? { userId: input.userId } : {}),
+        ...(input.userId
+          ? {
+              studentAccount: {
+                id: input.userId,
+              },
+            }
+          : {}),
       },
       include: {
         hostel: { select: { id: true, name: true } },
@@ -2024,11 +2036,10 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     });
   }
 
-  createStudent(input: {
+  async createStudent(input: {
     tenantId: string;
     hostelId: string;
     roomId?: string;
-    userId?: string;
     admissionNumber: string;
     name: string;
     email?: string;
@@ -2041,46 +2052,66 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     paymentStatus: 'PAID' | 'PARTIAL' | 'DUE' | 'OVERDUE';
     status: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }) {
-    return prisma.student.create({
-      data: {
-        admissionNumber: input.admissionNumber,
-        name: input.name,
-        email: input.email,
-        phone: input.phone,
-        dateOfBirth: input.dateOfBirth,
-        emergencyName: input.emergencyName,
-        emergencyPhone: input.emergencyPhone,
-        emergencyRelation: input.emergencyRelation,
-        admissionDate: input.admissionDate,
-        paymentStatus: input.paymentStatus,
-        status: input.status,
-        tenant: { connect: { id: input.tenantId } },
-        hostel: {
-          connect: { id_tenantId: { id: input.hostelId, tenantId: input.tenantId } },
+    const temporaryPasskey = randomBytes(6)
+      .toString('base64url')
+      .slice(0, 10);
+
+    const passwordHash = hashPassword(temporaryPasskey);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const student = await tx.student.create({
+        data: {
+          admissionNumber: input.admissionNumber,
+          name: input.name,
+          email: input.email,
+          phone: input.phone,
+          dateOfBirth: input.dateOfBirth,
+          emergencyName: input.emergencyName,
+          emergencyPhone: input.emergencyPhone,
+          emergencyRelation: input.emergencyRelation,
+          admissionDate: input.admissionDate,
+          paymentStatus: input.paymentStatus,
+          status: input.status,
+          tenant: { connect: { id: input.tenantId } },
+          hostel: {
+            connect: {
+              id_tenantId: { id: input.hostelId, tenantId: input.tenantId },
+            },
+          },
+          ...(input.roomId
+            ? {
+                room: {
+                  connect: {
+                    id_tenantId: { id: input.roomId, tenantId: input.tenantId },
+                  },
+                },
+              }
+            : {}),
         },
-        ...(input.roomId
-          ? {
-              room: {
-                connect: { id_tenantId: { id: input.roomId, tenantId: input.tenantId } },
-              },
-            }
-          : {}),
-        ...(input.userId
-          ? {
-              user: {
-                connect: { id_tenantId: { id: input.userId, tenantId: input.tenantId } },
-              },
-            }
-          : {}),
-      },
+      });
+
+      await tx.studentAccount.create({
+        data: {
+          tenantId: input.tenantId,
+          studentId: student.id,
+          passwordHash,
+          isActive: true,
+        },
+      });
+
+      return student;
     });
+
+    return {
+      student: result,
+      temporaryPasskey,
+    };
   }
 
-  updateStudent(input: {
+  async updateStudent(input: {
     tenantId: string;
     id: string;
     roomId?: string | null;
-    userId?: string | null;
     admissionNumber?: string;
     name?: string;
     email?: string | null;
@@ -2098,7 +2129,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       select: { id: true },
     });
 
-    const { tenantId, id, roomId, userId, ...data } = input;
+    const { tenantId, id, roomId, ...data } = input;
 
     return existing.then((found) => {
       if (!found) throw new Error('Student not found');
@@ -2112,11 +2143,6 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             : roomId === null
               ? { room: { disconnect: true } }
               : { room: { connect: { id_tenantId: { id: roomId, tenantId } } } }),
-          ...(userId === undefined
-            ? {}
-            : userId === null
-              ? { user: { disconnect: true } }
-              : { user: { connect: { id_tenantId: { id: userId, tenantId } } } }),
         },
       });
     });
@@ -2216,7 +2242,13 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       where: {
         tenantId: input.tenantId,
         ...(input.studentId ? { id: input.studentId } : {}),
-        ...(input.studentUserId ? { userId: input.studentUserId } : {}),
+        ...(input.studentUserId
+        ? {
+            studentAccount: {
+              id: input.studentUserId,
+            },
+          }
+        : {}),
       },
       select: { id: true, outstandingAmount: true },
     });
@@ -2257,7 +2289,15 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     const where = {
       tenantId: input.tenantId,
       ...(input.studentId ? { studentId: input.studentId } : {}),
-      ...(input.studentUserId ? { student: { userId: input.studentUserId } } : {}),
+      ...(input.studentUserId
+        ? {
+            student: {
+              studentAccount: {
+                id: input.studentUserId,
+              },
+            },
+          }
+        : {}),
       ...(input.status ? { status: input.status as never } : {}),
     };
     const [items, total] = await prisma.$transaction([
@@ -2279,7 +2319,15 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         id: input.id,
         tenantId: input.tenantId,
         ...(input.studentId ? { studentId: input.studentId } : {}),
-        ...(input.studentUserId ? { student: { userId: input.studentUserId } } : {}),
+        ...(input.studentUserId
+        ? {
+            student: {
+              studentAccount: {
+                id: input.studentUserId,
+              },
+            },
+          }
+        : {}),
       },
       include: {
         receipt: true,
@@ -2304,7 +2352,15 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           id: input.id,
           tenantId: input.tenantId,
           ...(input.studentId ? { studentId: input.studentId } : {}),
-          ...(input.studentUserId ? { student: { userId: input.studentUserId } } : {}),
+          ...(input.studentUserId
+        ? {
+            student: {
+              studentAccount: {
+                id: input.studentUserId,
+              },
+            },
+          }
+        : {}),
         },
       });
       if (!payment) throw new Error('Payment not found');
@@ -2538,7 +2594,9 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
               ...(input.studentUserId
                 ? {
                     student: {
-                      userId: input.studentUserId,
+                      studentAccount: {
+                        id: input.studentUserId,
+                      },
                     },
                   }
                 : {}),
@@ -2660,7 +2718,9 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           ? {
               payment: {
                 student: {
-                  userId: input.studentUserId,
+                  studentAccount: {
+                    id: input.studentUserId,
+                  },
                 },
               },
             }

@@ -1,9 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Phone } from 'lucide-react';
+import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
 import { buttonStyles } from '@/lib/ui-constants';
-import { capturePublicCtaLead, getLeadCapturePrefill, type LeadActionType } from '@/lib/public-lead-capture';
+import {
+  capturePublicCtaLead,
+  getLeadCapturePrefill,
+  type LeadActionType,
+} from '@/lib/public-lead-capture';
 import {
   DEFAULT_ACTION_BUTTONS,
   normalizeActionButtons,
@@ -41,7 +45,9 @@ export default function QuickActions({
   } | null>(null);
 
   const phoneNumber = phone || '';
-  const buttons = actionButtons ? normalizeActionButtons(actionButtons) : DEFAULT_ACTION_BUTTONS;
+  const buttons = actionButtons
+    ? normalizeActionButtons(actionButtons)
+    : DEFAULT_ACTION_BUTTONS;
   const prefill = getLeadCapturePrefill(tenantSlug);
 
   const premiumButtonStyles = {
@@ -69,7 +75,11 @@ export default function QuickActions({
     `https://wa.me/${phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`,
     { whatsappMessage },
   );
-  const callHref = resolveActionHref(buttons.call, `tel:${phoneNumber}`);
+
+  const callHref = resolveActionHref(
+    buttons.call,
+    `tel:${phoneNumber}`,
+  );
 
   const openCapture = (action: {
     actionType: LeadActionType;
@@ -81,12 +91,13 @@ export default function QuickActions({
   };
 
   return (
-    <div style={{ padding: '16px 16px 0 16px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="w-full">
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         {buttons.chatWhatsApp.enabled && (
           <a
             onClick={(event) => {
               event.preventDefault();
+
               openCapture({
                 actionType: 'whatsapp_click',
                 source: 'WhatsApp',
@@ -97,16 +108,48 @@ export default function QuickActions({
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={whatsappLabel}
+            className="group inline-flex h-[58px] w-full items-center rounded-full px-6 text-[16px] font-semibold transition-all duration-200 hover:-translate-y-0.5 sm:w-auto sm:min-w-[250px]"
             style={{
               ...styles.whatsapp,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
+              gap: 13,
               marginTop: 0,
+
+              /* Reference design */
+              background:
+                variant === 'premium'
+                  ? premiumButtonStyles.whatsapp.background
+                  : '#C18B27',
+              borderRadius:
+                variant === 'premium'
+                  ? premiumButtonStyles.whatsapp.borderRadius
+                  : 9999,
+              color: '#FFFFFF',
+              minHeight: 58,
+              padding: '0 25px',
+              boxShadow:
+                variant === 'premium'
+                  ? premiumButtonStyles.whatsapp.boxShadow
+                  : '0 8px 22px rgba(193, 139, 39, 0.20)',
+              textDecoration: 'none',
             }}
           >
-            <span>{whatsappLabel}</span>
-            <span>&gt;</span>
+            <MessageCircle
+              className="h-7 w-7 shrink-0"
+              strokeWidth={2}
+            />
+
+            <span className="whitespace-nowrap">
+              {whatsappLabel}
+            </span>
+
+            <ArrowRight
+              className="ml-auto h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+              strokeWidth={2}
+            />
           </a>
         )}
 
@@ -114,6 +157,7 @@ export default function QuickActions({
           <a
             onClick={(event) => {
               event.preventDefault();
+
               openCapture({
                 actionType: 'call_click',
                 source: 'Call',
@@ -122,17 +166,50 @@ export default function QuickActions({
               });
             }}
             href={callHref}
+            aria-label={callLabel}
+            className="group inline-flex h-[58px] w-full items-center justify-center rounded-full px-6 text-[16px] font-semibold transition-all duration-200 hover:-translate-y-0.5 sm:w-auto sm:min-w-[260px]"
             style={{
               ...styles.call,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 14,
               marginTop: 0,
+
+              /* Reference design */
+              background:
+                variant === 'premium'
+                  ? premiumButtonStyles.call.background
+                  : '#FFFFFF',
+              borderRadius:
+                variant === 'premium'
+                  ? premiumButtonStyles.call.borderRadius
+                  : 9999,
+              color:
+                variant === 'premium'
+                  ? '#FFFFFF'
+                  : '#102033',
+              minHeight: 58,
+              padding: '0 28px',
+              border:
+                variant === 'premium'
+                  ? 'none'
+                  : '1px solid rgba(231, 226, 216, 0.45)',
+              boxShadow:
+                variant === 'premium'
+                  ? premiumButtonStyles.call.boxShadow
+                  : '0 8px 22px rgba(0, 0, 0, 0.08)',
+              textDecoration: 'none',
             }}
           >
-            <Phone size={18} />
-            {callLabel}
+            <Phone
+              className="h-7 w-7 shrink-0 text-[#15563A]"
+              strokeWidth={2.5}
+            />
+
+            <span className="whitespace-nowrap">
+              {callLabel}
+            </span>
           </a>
         )}
       </div>
@@ -144,7 +221,11 @@ export default function QuickActions({
         defaultName={prefill?.name}
         defaultPhone={prefill?.phone}
         onClose={() => setPendingAction(null)}
-        onSubmit={async ({ name, phone: submittedPhone, location }) => {
+        onSubmit={async ({
+          name,
+          phone: submittedPhone,
+          location,
+        }) => {
           if (!pendingAction) return;
 
           const response = await capturePublicCtaLead({
@@ -159,17 +240,24 @@ export default function QuickActions({
           });
 
           if (!response.success) {
-            throw new Error(response.message || 'Could not capture lead details');
+            throw new Error(
+              response.message || 'Could not capture lead details',
+            );
           }
 
           const target = pendingAction.redirectUrl;
           setPendingAction(null);
+
           if (pendingAction.actionType === 'call_click') {
             globalThis.location.href = target;
             return;
           }
 
-          globalThis.open(target, '_blank', 'noopener,noreferrer');
+          globalThis.open(
+            target,
+            '_blank',
+            'noopener,noreferrer',
+          );
         }}
       />
     </div>
