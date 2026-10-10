@@ -60,6 +60,13 @@ router.post(
 ========================================= */
 
 router.use(authMiddleware);
+
+// Student Change Passkey
+router.post(
+  '/hostel/student/change-passkey',
+  hostelController.studentChangePasskey.bind(hostelController),
+);
+
 router.use(tenantContextMiddleware);
 router.use(tenantAccessMiddleware);
 

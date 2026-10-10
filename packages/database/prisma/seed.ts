@@ -26,14 +26,18 @@ const DEVELOPMENT_STUDENT = {
   role: 'student' as const,
 };
 
+const FIRST_TENANT_STUDENT = {
+  name: 'Manu',
+  email: 'student0897@first-tenant.local',
+  password: 'Manu@2026',
+  admissionNumber: '0897',
+  role: 'student' as const,
+};
+
 function hashPassword(plainText: string): string {
   const normalized = plainText.trim();
   const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(
-    normalized,
-    salt,
-    SCRYPT_KEYLEN,
-  ).toString('hex');
+  const hash = scryptSync(normalized, salt, SCRYPT_KEYLEN).toString('hex');
 
   return `${salt}:${hash}`;
 }
@@ -71,9 +75,7 @@ async function main() {
   });
 
   if (existingAdmin) {
-    console.log(
-      `✓ User "${DEVELOPMENT_ADMIN.email}" already exists`,
-    );
+    console.log(`✓ User "${DEVELOPMENT_ADMIN.email}" already exists`);
   } else {
     await prisma.tenantUser.create({
       data: {
@@ -86,9 +88,7 @@ async function main() {
       },
     });
 
-    console.log(
-      `✓ Created user "${DEVELOPMENT_ADMIN.email}"`,
-    );
+    console.log(`✓ Created user "${DEVELOPMENT_ADMIN.email}"`);
   }
 
   // ------------------------------------------------------------
@@ -103,58 +103,37 @@ async function main() {
   });
 
   if (!student) {
-    console.log(
-      `⚠ Student "${DEVELOPMENT_STUDENT.admissionNumber}" not found.`,
-    );
+    console.log(`⚠ Student "${DEVELOPMENT_STUDENT.admissionNumber}" not found.`);
 
-    console.log(
-      'Create the student first, then run the seed again.',
-    );
+    console.log('Create the student first, then run the seed again.');
 
     return;
   }
 
-  console.log(
-    `✓ Student "${student.admissionNumber}" found`,
-  );
+  console.log(`✓ Student "${student.admissionNumber}" found`);
 
   // ------------------------------------------------------------
-  // Student login user
+  // Create / update student login account
   // ------------------------------------------------------------
 
-  let studentUser = await prisma.tenantUser.findFirst({
+  const studentAccount = await prisma.studentAccount.upsert({
     where: {
+      studentId_tenantId: {
+        studentId: student.id,
+        tenantId: tenant.id,
+      },
+    },
+    update: {
+      passwordHash: hashPassword(DEVELOPMENT_STUDENT.password),
+      isActive: true,
+    },
+    create: {
       tenantId: tenant.id,
-      email: DEVELOPMENT_STUDENT.email,
+      studentId: student.id,
+      passwordHash: hashPassword(DEVELOPMENT_STUDENT.password),
+      isActive: true,
     },
   });
-
-  if (studentUser) {
-    console.log(
-      `✓ Student user "${DEVELOPMENT_STUDENT.email}" already exists`,
-    );
-  } else {
-    studentUser = await prisma.tenantUser.create({
-      data: {
-        tenantId: tenant.id,
-        name: DEVELOPMENT_STUDENT.name,
-        email: DEVELOPMENT_STUDENT.email,
-        passwordHash: hashPassword(
-          DEVELOPMENT_STUDENT.password,
-        ),
-        role: DEVELOPMENT_STUDENT.role,
-        isActive: true,
-      },
-    });
-
-    console.log(
-      `✓ Created student user "${DEVELOPMENT_STUDENT.email}"`,
-    );
-  }
-
-  // ------------------------------------------------------------
-  // Connect student to student login user
-  // ------------------------------------------------------------
 
   await prisma.student.update({
     where: {
@@ -162,14 +141,13 @@ async function main() {
     },
     data: {
       phone: DEVELOPMENT_STUDENT.phone,
-      userId: studentUser.id,
       status: 'ACTIVE',
     },
   });
 
-  console.log(
-    `✓ Student "${student.name}" connected to student login`,
-  );
+  console.log(`✓ Student account "${studentAccount.id}" ready`);
+
+  console.log(`✓ Student "${student.name}" connected to student login`);
 
   console.log('');
   console.log('========================================');
@@ -181,6 +159,75 @@ async function main() {
   console.log(`Passkey: ${DEVELOPMENT_STUDENT.password}`);
   console.log('========================================');
   console.log('');
+
+  // ------------------------------------------------------------
+  // First Tenant student
+  // ------------------------------------------------------------
+
+  const firstTenant = await prisma.tenant.findFirst({
+    where: {
+      slug: 'first-tenant',
+    },
+  });
+
+  if (!firstTenant) {
+    console.log('⚠ First Tenant not found.');
+  } else {
+    const firstTenantStudent = await prisma.student.findFirst({
+      where: {
+        tenantId: firstTenant.id,
+        admissionNumber: FIRST_TENANT_STUDENT.admissionNumber,
+      },
+    });
+
+    if (!firstTenantStudent) {
+      console.log(`⚠ First Tenant student "${FIRST_TENANT_STUDENT.admissionNumber}" not found.`);
+    } else {
+      console.log(`✓ First Tenant student "${firstTenantStudent.name}" found`);
+
+      const firstTenantStudentAccount = await prisma.studentAccount.upsert({
+        where: {
+          studentId_tenantId: {
+            studentId: firstTenantStudent.id,
+            tenantId: firstTenant.id,
+          },
+        },
+        update: {
+          passwordHash: hashPassword(FIRST_TENANT_STUDENT.password),
+          isActive: true,
+        },
+        create: {
+          tenantId: firstTenant.id,
+          studentId: firstTenantStudent.id,
+          passwordHash: hashPassword(FIRST_TENANT_STUDENT.password),
+          isActive: true,
+        },
+      });
+
+      await prisma.student.update({
+        where: {
+          id: firstTenantStudent.id,
+        },
+        data: {
+          status: 'ACTIVE',
+        },
+      });
+
+      console.log(
+        `✓ First Tenant student "${firstTenantStudent.name}" connected to student account ${firstTenantStudentAccount.id}`,
+      );
+
+      console.log('');
+      console.log('========================================');
+      console.log('First Tenant Student Login');
+      console.log('========================================');
+      console.log('URL: http://first-tenant.localhost:3000/student/login?tenant=first-tenant');
+      console.log(`Student ID: ${FIRST_TENANT_STUDENT.admissionNumber}`);
+      console.log(`Passkey: ${FIRST_TENANT_STUDENT.password}`);
+      console.log('========================================');
+      console.log('');
+    }
+  }
 
   console.log('✅ Seeding complete!');
 }

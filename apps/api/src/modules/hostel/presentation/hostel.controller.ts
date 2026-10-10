@@ -56,30 +56,6 @@ async function respond(req: Request, res: Response, action: () => Promise<unknow
 }
 
 export class HostelController {
-//   studentLogin(req: Request, res: Response) {
-//   const tenantSlug =
-//     typeof req.body?.tenantSlug === 'string'
-//       ? req.body.tenantSlug
-//       : '';
-
-//   const studentIdOrMobile =
-//     typeof req.body?.studentIdOrMobile === 'string'
-//       ? req.body.studentIdOrMobile
-//       : '';
-
-//   const passkey =
-//     typeof req.body?.passkey === 'string'
-//       ? req.body.passkey
-//       : '';
-
-//   return respond(req, res, () =>
-//     studentLoginUseCase.execute({
-//       tenantSlug,
-//       studentIdOrMobile,
-//       passkey,
-//     }),
-//   );
-// }
 
 studentLogin(req: Request, res: Response) {
   const tenantSlug =
@@ -105,6 +81,42 @@ studentLogin(req: Request, res: Response) {
     }),
   );
 }
+
+  // ============================================================
+  // STUDENT CHANGE PASSKEY
+  // ============================================================
+
+  studentChangePasskey(req: Request, res: Response) {
+    const userId =
+      typeof req.user?.id === 'string'
+        ? req.user.id
+        : '';
+
+    const currentPasskey =
+      typeof req.body?.currentPasskey === 'string'
+        ? req.body.currentPasskey
+        : '';
+
+    const newPasskey =
+      typeof req.body?.newPasskey === 'string'
+        ? req.body.newPasskey
+        : '';
+
+    const confirmPasskey =
+      typeof req.body?.confirmPasskey === 'string'
+        ? req.body.confirmPasskey
+        : '';
+
+    return respond(req, res, () =>
+      studentLoginUseCase.changePasskey({
+        userId,
+        currentPasskey,
+        newPasskey,
+        confirmPasskey,
+      }),
+    );
+  }
+
   listHostels(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId) {

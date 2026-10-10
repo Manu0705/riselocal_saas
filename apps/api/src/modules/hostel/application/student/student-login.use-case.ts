@@ -1,7 +1,6 @@
 import { prisma } from '@saas/database';
-import { normalizeAuthRole } from '@saas/domain-core/auth.contract';
 import { JwtService } from '../../../auth/infrastructure/jwt.service';
-import { verifyPassword } from '../../../auth/infrastructure/password.service';
+import { verifyPassword, hashPassword } from '../../../auth/infrastructure/password.service';
 
 export type StudentLoginInput = {
   tenantSlug: string;
@@ -22,12 +21,25 @@ export type StudentLoginResult = {
   };
 };
 
+// ------------------------------------------------------------
+// Change Passkey Input
+// ------------------------------------------------------------
+
+export type StudentChangePasskeyInput = {
+  userId: string;
+  currentPasskey: string;
+  newPasskey: string;
+  confirmPasskey: string;
+};
+
 const jwtService = new JwtService();
 
 export class StudentLoginUseCase {
-  async execute(
-    input: StudentLoginInput,
-  ): Promise<StudentLoginResult> {
+  // ============================================================
+  // STUDENT LOGIN
+  // ============================================================
+
+  async execute(input: StudentLoginInput): Promise<StudentLoginResult> {
     const tenantSlug = input.tenantSlug.trim().toLowerCase();
     const identifier = input.identifier.trim();
     const passkey = input.passkey;
@@ -41,9 +53,7 @@ export class StudentLoginUseCase {
     }
 
     if (!identifier) {
-      throw new Error(
-        'Student ID or registered mobile number is required',
-      );
+      throw new Error('Student ID or registered mobile number is required');
     }
 
     if (!passkey) {
@@ -92,13 +102,10 @@ export class StudentLoginUseCase {
       },
 
       include: {
-        user: {
+        studentAccount: {
           select: {
             id: true,
-            name: true,
-            email: true,
             passwordHash: true,
-            role: true,
             isActive: true,
           },
         },
@@ -106,61 +113,38 @@ export class StudentLoginUseCase {
     });
 
     console.log('STUDENT LOGIN DEBUG', {
-  tenantSlug,
-  identifier,
-  tenantId: tenant.id,
-  studentFound: !!student,
-  studentId: student?.id,
-  studentPhone: student?.phone,
-  studentStatus: student?.status,
-  userId: student?.user?.id,
-  userRole: student?.user?.role,
-  userActive: student?.user?.isActive,
-});
+      tenantSlug,
+      identifier,
+      tenantId: tenant.id,
+      studentFound: !!student,
+      studentId: student?.id,
+      studentPhone: student?.phone,
+      studentStatus: student?.status,
+      studentAccountId: student?.studentAccount?.id,
+      studentAccountActive: student?.studentAccount?.isActive,
+    });
 
     // ------------------------------------------------------------
     // Student account validation
     // ------------------------------------------------------------
 
     if (!student) {
-      throw new Error(
-        'Invalid Student ID or registered mobile number',
-      );
+      throw new Error('Invalid Student ID or registered mobile number');
     }
 
-    if (!student.user) {
-      throw new Error(
-        'Student account is not configured for login',
-      );
+    if (!student.studentAccount) {
+      throw new Error('Student account is not configured for login');
     }
 
-    if (!student.user.isActive) {
+    if (!student.studentAccount.isActive) {
       throw new Error('Student account is inactive');
-    }
-
-    // ------------------------------------------------------------
-    // Make sure this is actually a student account
-    // ------------------------------------------------------------
-
-    const role = normalizeAuthRole(
-      student.user.role,
-      'student',
-    );
-
-    if (role !== 'student') {
-      throw new Error(
-        'This account is not a student account',
-      );
     }
 
     // ------------------------------------------------------------
     // Verify passkey
     // ------------------------------------------------------------
 
-    const passkeyValid = verifyPassword(
-      passkey,
-      student.user.passwordHash,
-    );
+    const passkeyValid = verifyPassword(passkey, student.studentAccount.passwordHash);
 
     if (!passkeyValid) {
       throw new Error('Invalid passkey');
@@ -171,7 +155,7 @@ export class StudentLoginUseCase {
     // ------------------------------------------------------------
 
     const token = jwtService.sign({
-      sub: student.user.id,
+      userId: student.studentAccount.id,
       tenantId: tenant.id,
       role: 'student',
     });
@@ -192,6 +176,108 @@ export class StudentLoginUseCase {
         hostelId: student.hostelId,
         roomId: student.roomId,
       },
+    };
+  }
+
+  // ============================================================
+  // CHANGE STUDENT PASSKEY
+  // ============================================================
+
+  async changePasskey(
+    input: StudentChangePasskeyInput,
+  ): Promise<{ success: boolean; message: string }> {
+    const userId = input.userId.trim();
+    const currentPasskey = input.currentPasskey;
+    const newPasskey = input.newPasskey;
+    const confirmPasskey = input.confirmPasskey;
+
+    // ------------------------------------------------------------
+    // Validation
+    // ------------------------------------------------------------
+
+    if (!userId) {
+      throw new Error('Student authentication is required');
+    }
+
+    if (!currentPasskey) {
+      throw new Error('Current passkey is required');
+    }
+
+    if (!newPasskey) {
+      throw new Error('New passkey is required');
+    }
+
+    if (!confirmPasskey) {
+      throw new Error('Please confirm your new passkey');
+    }
+
+    if (newPasskey !== confirmPasskey) {
+      throw new Error('New passkey and confirm passkey do not match');
+    }
+
+    if (newPasskey.length < 6) {
+      throw new Error('New passkey must be at least 6 characters');
+    }
+
+    if (currentPasskey === newPasskey) {
+      throw new Error('New passkey must be different from the current passkey');
+    }
+
+    // ------------------------------------------------------------
+    // Find student account
+    // ------------------------------------------------------------
+
+    const studentAccount = await prisma.studentAccount.findFirst({
+      where: {
+        id: userId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!studentAccount) {
+      throw new Error('Student account not found or inactive');
+    }
+
+    // ------------------------------------------------------------
+    // Verify current passkey
+    // ------------------------------------------------------------
+
+    const currentPasskeyValid = verifyPassword(currentPasskey, studentAccount.passwordHash);
+
+    if (!currentPasskeyValid) {
+      throw new Error('Current passkey is incorrect');
+    }
+
+    // ------------------------------------------------------------
+    // Hash new passkey
+    // ------------------------------------------------------------
+
+    const newPasswordHash = hashPassword(newPasskey);
+
+    // ------------------------------------------------------------
+    // Update student passkey
+    // ------------------------------------------------------------
+
+    await prisma.studentAccount.update({
+      where: {
+        id: studentAccount.id,
+      },
+      data: {
+        passwordHash: newPasswordHash,
+      },
+    });
+
+    // ------------------------------------------------------------
+    // Success
+    // ------------------------------------------------------------
+
+    return {
+      success: true,
+      message: 'Passkey changed successfully',
     };
   }
 }

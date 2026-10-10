@@ -1,21 +1,40 @@
 // API client for admin panel
-const DEFAULT_API_BASE = 'https://api.riselocal.in';
-const API_BASE =
-  process.env.NEXT_PUBLIC_API || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE;
 
-function getAuthHeaders() {
-  if (globalThis.window === undefined) return {};
+const DEFAULT_API_BASE = 'https://api.riselocal.in';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  DEFAULT_API_BASE;
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
   const token = localStorage.getItem('admin_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
 }
 
-function buildUrl(path: string) {
+function buildUrl(path: string): string {
   const sanitizedPath = path.startsWith('/') ? path : `/${path}`;
+
   const base = API_BASE.replace(/\/+$/, '');
+
   const baseHasApi = base.toLowerCase().endsWith('/api');
   const pathHasApi = sanitizedPath.toLowerCase().startsWith('/api');
+
   const apiPrefix = baseHasApi ? '' : '/api';
-  const normalizedPath = pathHasApi ? sanitizedPath : `${apiPrefix}${sanitizedPath}`;
+
+  const normalizedPath = pathHasApi
+    ? sanitizedPath
+    : `${apiPrefix}${sanitizedPath}`;
+
   return `${base}${normalizedPath}`;
 }
 
@@ -26,8 +45,11 @@ export const adminApi = {
         ...getAuthHeaders(),
       },
     });
+
     const text = await res.text();
+
     let json: any = null;
+
     try {
       json = text.length ? JSON.parse(text) : null;
     } catch {
@@ -35,12 +57,17 @@ export const adminApi = {
     }
 
     if (!res.ok) {
-      const message = json?.message || `Request failed with status ${res.status}`;
+      const message =
+        json?.message ||
+        `Request failed with status ${res.status}`;
+
       throw new Error(message);
     }
 
     if (json === null) {
-      throw new Error('API did not return JSON: ' + text.slice(0, 100));
+      throw new Error(
+        'API did not return JSON: ' + text.slice(0, 100),
+      );
     }
 
     return json;
@@ -55,11 +82,17 @@ export const adminApi = {
       },
       body: JSON.stringify(data),
     });
+
     const json = await res.json().catch(() => null);
+
     if (!res.ok) {
-      const message = json?.message || `Request failed with status ${res.status}`;
+      const message =
+        json?.message ||
+        `Request failed with status ${res.status}`;
+
       throw new Error(message);
     }
+
     return json;
   },
 
@@ -72,11 +105,17 @@ export const adminApi = {
       },
       body: JSON.stringify(data),
     });
+
     const json = await res.json().catch(() => null);
+
     if (!res.ok) {
-      const message = json?.message || `Request failed with status ${res.status}`;
+      const message =
+        json?.message ||
+        `Request failed with status ${res.status}`;
+
       throw new Error(message);
     }
+
     return json;
   },
 
@@ -87,7 +126,13 @@ export const adminApi = {
         ...getAuthHeaders(),
       },
     });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+    if (!res.ok) {
+      throw new Error(
+        `Request failed with status ${res.status}`,
+      );
+    }
+
     return res.json();
   },
 };

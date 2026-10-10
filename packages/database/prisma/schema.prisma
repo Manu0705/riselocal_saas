@@ -58,6 +58,7 @@ model Tenant {
   hostelStudents                  Student[]
   settings                        TenantSettings?
   users                           TenantUser[]
+  studentAccounts                 StudentAccount[]
 
   @@index([createdAt])
 }
@@ -143,7 +144,6 @@ model Student {
   status            StudentStatus         @default(ACTIVE)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
-  userId            String?
   dateOfBirth       DateTime?
   emergencyName     String?
   emergencyPhone    String?
@@ -159,17 +159,33 @@ model Student {
   hostel            Hostel                @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
   room              Room?                 @relation(fields: [roomId, tenantId], references: [id, tenantId])
   tenant            Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user              TenantUser?           @relation(fields: [userId, tenantId], references: [id, tenantId])
+  studentAccount    StudentAccount?
 
   @@unique([tenantId, admissionNumber])
   @@unique([id, tenantId])
-  @@unique([userId, tenantId])
   @@index([tenantId, hostelId, status])
   @@index([tenantId, roomId])
   @@index([tenantId, name])
   @@index([tenantId, phone])
   @@index([tenantId, email])
   @@index([tenantId, paymentStatus])
+}
+
+model StudentAccount {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([studentId, tenantId])
+  @@unique([id, tenantId])
+  @@index([tenantId])
 }
 
 model HostelStaffAssignment {
@@ -466,7 +482,6 @@ model TenantUser {
   updatedAt              DateTime                @updatedAt
   hostelStaffAssignments HostelStaffAssignment[]
   assignedLeads          Lead[]                  @relation("LeadAssignee")
-  hostelStudents         Student?
   tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email])
