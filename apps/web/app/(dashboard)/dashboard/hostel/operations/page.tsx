@@ -6,7 +6,10 @@ import QRCode from 'qrcode';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
+import { useAuth } from '@/context/AuthContext';
+import { hasHostelPermission } from '@/lib/hostel-rbac';
 import MobilePageTitle from '../../components/mobile-page-title';
+import HostelAdmissionFlow from '../components/hostel-admission-flow';
 
 type HostelProperty = {
   id: string;
@@ -90,6 +93,13 @@ type ApiResponse<T> = {
 };
 
 export default function HostelPage() {
+  const { userRole } = useAuth();
+  const normalizedRole = userRole?.trim().toLowerCase();
+  const canCreateAdmission =
+    hasHostelPermission(userRole, 'manage_admissions') ||
+    normalizedRole === 'staff' ||
+    normalizedRole === 'admin' ||
+    normalizedRole === 'super_admin';
   const [properties, setProperties] = useState<HostelProperty[]>([]);
   const [selectedHostelId, setSelectedHostelId] = useState('');
   const [rooms, setRooms] = useState<HostelRoom[]>([]);
@@ -108,10 +118,6 @@ export default function HostelPage() {
   const [name, setName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [capacity, setCapacity] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [studentPhone, setStudentPhone] = useState('');
-  const [studentEmail, setStudentEmail] = useState('');
-  const [studentDateOfBirth, setStudentDateOfBirth] = useState('');
   const [editStudentName, setEditStudentName] = useState('');
   const [editStudentPhone, setEditStudentPhone] = useState('');
   const [editStudentEmail, setEditStudentEmail] = useState('');
@@ -132,6 +138,8 @@ export default function HostelPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [admissionOpen, setAdmissionOpen] = useState(false);
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0);
 
   async function loadProperties() {
     setLoading(true);
@@ -165,11 +173,7 @@ export default function HostelPage() {
           api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`),
           api.get<ApiResponse<VacancySummary>>(`/hostel/rooms/vacancy-summary${query}`),
         ]);
-        setRooms(
-          Array.isArray(roomResponse.data?.items)
-            ? roomResponse.data.items
-            : [],
-        );
+        setRooms(Array.isArray(roomResponse.data?.items) ? roomResponse.data.items : []);
         setVacancySummary(summaryResponse.data);
         setSelectedRoom((current) =>
           current
@@ -182,7 +186,7 @@ export default function HostelPage() {
     }
 
     void loadHostelData();
-  }, [selectedHostelId]);
+  }, [selectedHostelId, workspaceRefresh]);
 
   useEffect(() => {
     if (!selectedHostelId) {
@@ -210,7 +214,7 @@ export default function HostelPage() {
     }
 
     void loadStudents();
-  }, [selectedHostelId, studentPage, studentSearch, paymentFilter]);
+  }, [selectedHostelId, studentPage, studentSearch, paymentFilter, workspaceRefresh]);
 
   useEffect(() => {
     if (!selectedStudentId) {
@@ -325,15 +329,9 @@ export default function HostelPage() {
       setAllocationStudentId('');
       toast.success('Student allocated');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<RoomPage>>(
-        `/hostel/rooms${query}`,
-      );
+      const response = await api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`);
 
-      setRooms(
-        Array.isArray(response.data?.items)
-          ? response.data.items
-          : [],
-      );
+      setRooms(Array.isArray(response.data?.items) ? response.data.items : []);
     } catch (allocationError) {
       toast.error(allocationError instanceof Error ? allocationError.message : 'Allocation failed');
     }
@@ -350,15 +348,9 @@ export default function HostelPage() {
       toast.success('Student deallocated');
       setSelectedStudentId('');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<RoomPage>>(
-        `/hostel/rooms${query}`,
-      );
+      const response = await api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`);
 
-      setRooms(
-        Array.isArray(response.data?.items)
-          ? response.data.items
-          : [],
-      );
+      setRooms(Array.isArray(response.data?.items) ? response.data.items : []);
     } catch (deallocationError) {
       toast.error(
         deallocationError instanceof Error ? deallocationError.message : 'Deallocation failed',
@@ -376,46 +368,13 @@ export default function HostelPage() {
       setAllocationStudentId('');
       toast.success('Student auto-assigned');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
-      const response = await api.get<ApiResponse<RoomPage>>(
-        `/hostel/rooms${query}`,
-      );
+      const response = await api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`);
 
-      setRooms(
-        Array.isArray(response.data?.items)
-          ? response.data.items
-          : [],
-      );
+      setRooms(Array.isArray(response.data?.items) ? response.data.items : []);
     } catch (assignmentError) {
       toast.error(
         assignmentError instanceof Error ? assignmentError.message : 'Auto-assignment failed',
       );
-    }
-  }
-
-  async function handleStudentSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedHostelId || !studentName.trim()) return;
-
-    try {
-      const response = await api.post<ApiResponse<HostelStudent>, Record<string, unknown>>(
-        '/hostel/students',
-        {
-          hostelId: selectedHostelId,
-          name: studentName,
-          phone: studentPhone || undefined,
-          email: studentEmail || undefined,
-          dateOfBirth: studentDateOfBirth || undefined,
-        },
-      );
-      setStudents((current) => [...current, response.data]);
-      setStudentPage(1);
-      setStudentName('');
-      setStudentPhone('');
-      setStudentEmail('');
-      setStudentDateOfBirth('');
-      toast.success('Student added');
-    } catch (submitError) {
-      toast.error(submitError instanceof Error ? submitError.message : 'Failed to add student');
     }
   }
 
@@ -506,6 +465,39 @@ export default function HostelPage() {
       <p style={{ margin: '8px 0 20px', color: 'var(--muted)', fontSize: 14 }}>
         Manage properties, rooms, and students inside the current tenant.
       </p>
+
+      {canCreateAdmission && (
+        <button
+          type="button"
+          onClick={() => setAdmissionOpen((open) => !open)}
+          aria-expanded={admissionOpen}
+          aria-controls="hostel-operations-admission-flow"
+          style={{
+            marginBottom: 16,
+            padding: '11px 16px',
+            border: 0,
+            borderRadius: 9,
+            background: '#2563eb',
+            color: '#fff',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          {admissionOpen ? 'Close admission' : 'New Admission'}
+        </button>
+      )}
+
+      {admissionOpen && canCreateAdmission && (
+        <section id="hostel-operations-admission-flow">
+          <HostelAdmissionFlow
+            embedded
+            initialHostelId={selectedHostelId}
+            onClose={() => setAdmissionOpen(false)}
+            onPropertyChange={setSelectedHostelId}
+            onAdmissionCreated={() => setWorkspaceRefresh((current) => current + 1)}
+          />
+        </section>
+      )}
 
       {properties.length > 0 ? (
         <select
@@ -648,7 +640,10 @@ export default function HostelPage() {
           ) : null}
           <section style={{ marginTop: 24 }}>
             <h2 style={{ margin: '0 0 10px', color: 'var(--text)', fontSize: 18 }}>Rooms</h2>
-            <form onSubmit={handleRoomSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <form
+              onSubmit={handleRoomSubmit}
+              style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}
+            >
               <input
                 aria-label="Room number"
                 value={roomNumber}
@@ -731,7 +726,7 @@ export default function HostelPage() {
                   {selectedRoom.occupancy} of {selectedRoom.capacity} occupied,{' '}
                   {selectedRoom.vacancyStatus.toLowerCase()}.
                 </p>
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   <select
                     aria-label="Student to allocate"
                     value={allocationStudentId}
@@ -830,56 +825,10 @@ export default function HostelPage() {
                 <option value="OVERDUE">Overdue</option>
               </select>
             </div>
-            <form
-              onSubmit={handleStudentSubmit}
-              style={{ display: 'grid', gap: 8, marginBottom: 12 }}
-            >
-              <input
-                aria-label="Student name"
-                value={studentName}
-                onChange={(event) => setStudentName(event.target.value)}
-                placeholder="Student name"
-                style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
-              />
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
-                An admission number is assigned automatically.
-              </p>
-              <input
-                aria-label="Student phone"
-                value={studentPhone}
-                onChange={(event) => setStudentPhone(event.target.value)}
-                placeholder="Phone"
-                style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
-              />
-              <input
-                aria-label="Student email"
-                value={studentEmail}
-                onChange={(event) => setStudentEmail(event.target.value)}
-                placeholder="Email"
-                type="email"
-                style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
-              />
-              <input
-                aria-label="Student date of birth"
-                value={studentDateOfBirth}
-                onChange={(event) => setStudentDateOfBirth(event.target.value)}
-                type="date"
-                style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
-              />
-              <button
-                type="submit"
-                disabled={!studentName.trim()}
-                style={{
-                  padding: 10,
-                  border: 0,
-                  borderRadius: 8,
-                  background: '#2563eb',
-                  color: '#fff',
-                }}
-              >
-                Add student
-              </button>
-            </form>
+            <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 12 }}>
+              New students are created through the New Admission flow so their admission details,
+              room choice, and passkey handoff stay together.
+            </p>
             {students.map((student) => (
               <div
                 key={student.id}

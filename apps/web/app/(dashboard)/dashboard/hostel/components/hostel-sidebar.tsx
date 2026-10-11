@@ -1,47 +1,24 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
-import { getHostelNavigation } from '@/lib/hostel-navigation';
 import { useHostelSidebarState } from '../../components/hostel-sidebar-state';
+import HostelWorkspaceNavigation from './hostel-workspace-navigation';
 
 export default function HostelSidebar() {
-  const pathname = usePathname();
   const { userRole } = useAuth();
   const { isOpen, setIsOpen } = useHostelSidebarState();
 
-  const navigation = getHostelNavigation(userRole);
-
-  const roleLabel = userRole
-    ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`
-    : 'User';
-
-  const activeNavigationItem = navigation
-    .filter(
-      (item) =>
-        pathname === item.href ||
-        (item.href !== '/dashboard/hostel' &&
-          pathname.startsWith(`${item.href}/`)),
-    )
-    .sort((left, right) => right.href.length - left.href.length)[0];
+  const roleLabel = userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : 'User';
 
   return (
-    <aside
-      id="hostel-sidebar"
-      className={`hostel-sidebar ${isOpen ? 'is-open' : 'is-closed'}`}
-    >
+    <aside id="hostel-sidebar" className={`hostel-sidebar ${isOpen ? 'is-open' : 'is-closed'}`}>
       <div className="hostel-sidebar-heading">
         <div>
-          <div className="hostel-sidebar-eyebrow">
-            Hostel Management
-          </div>
+          <div className="hostel-sidebar-eyebrow">Hostel Management</div>
 
-          <div className="hostel-sidebar-role">
-            {roleLabel}
-          </div>
+          <div className="hostel-sidebar-role">{roleLabel}</div>
         </div>
 
         <button
@@ -59,25 +36,7 @@ export default function HostelSidebar() {
         </button>
       </div>
 
-      <nav
-        aria-label="Hostel navigation"
-        className="hostel-sidebar-nav"
-      >
-        {navigation.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`hostel-sidebar-link ${
-              activeNavigationItem?.href === item.href ? 'active' : ''
-            }`}
-            aria-current={
-              activeNavigationItem?.href === item.href ? 'page' : undefined
-            }
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <HostelWorkspaceNavigation idPrefix="hostel-sidebar-navigation" />
 
       <style jsx>{`
         .hostel-sidebar {
@@ -138,48 +97,13 @@ export default function HostelSidebar() {
           color: var(--foreground, #111827);
         }
 
-        .hostel-sidebar-nav {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 0;
-        }
-
-        .hostel-sidebar-link {
-          display: flex;
-          align-items: center;
-          min-height: 42px;
-          min-width: 0;
-          padding: 0 12px;
-          border-radius: 8px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--foreground, #374151);
-          transition:
-            background 0.15s ease,
-            color 0.15s ease;
-          box-sizing: border-box;
-        }
-
-        .hostel-sidebar-link:hover {
-          background: var(--primary-soft, #eff6ff);
-          color: var(--primary, #2563eb);
-        }
-
-        .hostel-sidebar-link.active {
-          font-weight: 600;
-          color: var(--primary, #2563eb);
-          background: var(--primary-soft, #eff6ff);
-        }
-
         /*
          * The Hostel sidebar is intentionally desktop-only.
          *
          * On mobile/tablet, DashboardHeader provides the Hostel
          * dropdown navigation instead.
          */
-        @media (max-width: 900px) {
+        @media (max-width: 1023px) {
           .hostel-sidebar {
             display: none;
           }

@@ -1,21 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboardData } from '@/context/DashboardDataContext';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Moon, Sun, Menu } from 'lucide-react';
-import {
-  getHostelNavigation,
-  type HostelNavItem,
-} from '@/lib/hostel-navigation';
+import { Moon, Sun, Menu, UserRound, ChevronDown } from 'lucide-react';
 import { useHostelSidebarState } from './hostel-sidebar-state';
+import HostelWorkspaceNavigation from '../hostel/components/hostel-workspace-navigation';
 
-const MOBILE_BREAKPOINT = 900;
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function DashboardHeader() {
-  const { logout, tenantSlug: storedTenantSlug, userRole } = useAuth();
+  const {
+    logout,
+    tenantSlug: storedTenantSlug,
+    userName,
+    userRole,
+  } = useAuth();
   const { tenant } = useDashboardData();
   const { isOpen: hostelSidebarOpen, setIsOpen: setHostelSidebarOpen } =
     useHostelSidebarState();
@@ -24,9 +25,12 @@ export default function DashboardHeader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const profileButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   /*
@@ -43,46 +47,6 @@ export default function DashboardHeader() {
 
   const isHostelDashboard = isHostelTheme || isHostelRoute;
 
-  /*
-   * Hostel navigation comes from the existing RBAC source of truth.
-   *
-   * Students, Rooms and Payments are already represented in the
-   * mobile/tablet BottomNav, so they are intentionally excluded
-   * from this dropdown to avoid duplicate navigation.
-   */
-  const hostelNavigation = useMemo<readonly HostelNavItem[]>(() => {
-    if (!isHostelDashboard) return [];
-
-    const navigation = getHostelNavigation(userRole);
-
-    const quickNavigationPaths = new Set([
-      '/dashboard/hostel/students',
-      '/dashboard/hostel/rooms',
-      '/dashboard/hostel/payments',
-    ]);
-
-    const activeItem = navigation
-      .filter(
-        (item) =>
-          pathname === item.href ||
-          (item.href !== '/dashboard/hostel' &&
-            pathname.startsWith(`${item.href}/`)),
-      )
-      .sort((left, right) => right.href.length - left.href.length)[0];
-
-    return navigation.filter((item) => {
-      if (quickNavigationPaths.has(item.href)) {
-        return false;
-      }
-
-      if (pathname === '/dashboard' && item.href === '/dashboard/hostel') {
-        return false;
-      }
-
-      return item.href !== activeItem?.href;
-    });
-  }, [isHostelDashboard, userRole, pathname]);
-
   useEffect(() => {
     const theme = dark ? 'dark' : 'light';
     document.documentElement.dataset.theme = theme;
@@ -93,21 +57,33 @@ export default function DashboardHeader() {
    */
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
-      if (!menuRef.current) return;
+      const target = event.target as Node;
 
-      if (!menuRef.current.contains(event.target as Node)) {
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setMenuOpen(false);
+      }
+
+      if (
+        profileOpen &&
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(target)
+      ) {
+        setProfileOpen(false);
       }
     }
 
-    if (menuOpen) {
+    if (menuOpen || profileOpen) {
       document.addEventListener('mousedown', handleOutsideClick);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
-  }, [menuOpen]);
+  }, [menuOpen, profileOpen]);
 
   /*
    * Hostel mobile/tablet navigation uses the same dropdown
@@ -137,7 +113,7 @@ export default function DashboardHeader() {
     if (!isHostelDashboard) return;
 
     const handleResize = () => {
-      if (window.innerWidth > MOBILE_BREAKPOINT) {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT) {
         setMenuOpen(false);
       }
     };
@@ -157,6 +133,7 @@ export default function DashboardHeader() {
   useEffect(() => {
     if (
       !menuOpen &&
+      !profileOpen &&
       !(isHostelDashboard && isDesktopViewport && hostelSidebarOpen)
     ) {
       return;
@@ -165,6 +142,11 @@ export default function DashboardHeader() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMenuOpen(false);
+        if (profileOpen) {
+          setProfileOpen(false);
+          profileButtonRef.current?.focus();
+          return;
+        }
         if (isHostelDashboard && isDesktopViewport) {
           setHostelSidebarOpen(false);
           document.getElementById('hostel-sidebar-toggle')?.focus();
@@ -181,6 +163,7 @@ export default function DashboardHeader() {
     isDesktopViewport,
     isHostelDashboard,
     menuOpen,
+    profileOpen,
     hostelSidebarOpen,
     setHostelSidebarOpen,
   ]);
@@ -200,10 +183,7 @@ export default function DashboardHeader() {
         return;
       }
 
-      if (window.innerWidth <= MOBILE_BREAKPOINT) {
-        setMenuOpen((prev) => !prev);
-      }
-
+      setMenuOpen((prev) => !prev);
       return;
     }
 
@@ -216,6 +196,7 @@ export default function DashboardHeader() {
 
     router.push('/dashboard/settings' + query);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goToCustomize = () => {
@@ -224,6 +205,7 @@ export default function DashboardHeader() {
 
     router.push('/dashboard/customize' + query);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goToAnalytics = () => {
@@ -232,6 +214,7 @@ export default function DashboardHeader() {
 
     router.push('/dashboard/analytics' + query);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goToHostel = () => {
@@ -240,6 +223,7 @@ export default function DashboardHeader() {
 
     router.push('/dashboard/hostel' + query);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goToLeadView = () => {
@@ -256,6 +240,7 @@ export default function DashboardHeader() {
     });
 
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goHome = () => {
@@ -264,6 +249,7 @@ export default function DashboardHeader() {
 
     router.push(`/dashboard${query}`);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const goToHelp = () => {
@@ -272,6 +258,7 @@ export default function DashboardHeader() {
 
     router.push(`/dashboard/help${query}`);
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
   const handleLogout = () => {
@@ -286,25 +273,10 @@ export default function DashboardHeader() {
     }
 
     setMenuOpen(false);
+    setProfileOpen(false);
   };
 
-  /*
-   * Determine which section is currently active.
-   */
-  const currentMenuKey = (() => {
-    if (isHostelDashboard) return 'hostel';
-
-    if (pathname === '/dashboard') return 'home';
-    if (pathname.startsWith('/dashboard/customize')) return 'customize';
-    if (pathname.startsWith('/dashboard/analytics')) return 'analytics';
-    if (pathname.startsWith('/dashboard/hostel')) return 'hostel';
-    if (pathname.startsWith('/dashboard/settings')) return 'settings';
-    if (pathname.startsWith('/dashboard/help')) return 'help';
-
-    return null;
-  })();
-
-  const menuItems = [
+  const globalNavigationItems = [
     {
       key: 'home',
       label: 'Home',
@@ -326,11 +298,6 @@ export default function DashboardHeader() {
       onPress: goToAnalytics,
     },
     {
-      key: 'hostel',
-      label: 'Hostel',
-      onPress: goToHostel,
-    },
-    {
       key: 'settings',
       label: 'Settings',
       onPress: goToSettings,
@@ -340,14 +307,23 @@ export default function DashboardHeader() {
       label: 'Help',
       onPress: goToHelp,
     },
+  ];
+
+  const dashboardNavigationItems = [
+    ...globalNavigationItems,
     {
-      key: 'logout',
-      label: 'Logout',
-      onPress: handleLogout,
+      key: 'hostel',
+      label: 'Hostel',
+      onPress: goToHostel,
     },
-  ].filter(
-    (item) => item.key === 'logout' || item.key !== currentMenuKey,
-  );
+  ];
+
+  const isGlobalItemActive = (key: string) =>
+    (key === 'home' && pathname === '/dashboard') ||
+    (key === 'customize' && pathname.startsWith('/dashboard/customize')) ||
+    (key === 'analytics' && pathname.startsWith('/dashboard/analytics')) ||
+    (key === 'settings' && pathname.startsWith('/dashboard/settings')) ||
+    (key === 'help' && pathname.startsWith('/dashboard/help'));
 
   /*
    * Prefetch the public tenant page for the Lead View action.
@@ -477,25 +453,28 @@ export default function DashboardHeader() {
                   ? 'translateY(0)'
                   : 'translateY(-6px)',
                 pointerEvents: menuOpen ? 'auto' : 'none',
+                visibility: menuOpen ? 'visible' : 'hidden',
                 transition:
                   'opacity 160ms ease, transform 160ms ease',
                 zIndex: 200,
               }}
             >
-              {menuItems.map((item) => (
+              {dashboardNavigationItems.map((item) => (
                 <button
                   type="button"
                   key={item.key}
                   onClick={item.onPress}
+                  aria-current={
+                    isGlobalItemActive(item.key) ? 'page' : undefined
+                  }
                   style={{
                     width: '100%',
                     border: 'none',
                     borderRadius: 10,
-                    background: 'transparent',
-                    color:
-                      item.label === 'Logout'
-                        ? '#dc2626'
-                        : 'var(--text)',
+                    background: isGlobalItemActive(item.key)
+                      ? 'var(--primary-soft, #eff6ff)'
+                      : 'transparent',
+                    color: 'var(--text)',
                     padding: '10px 12px',
                     textAlign: 'left',
                     fontSize: 14,
@@ -531,84 +510,181 @@ export default function DashboardHeader() {
                   ? 'translateY(0)'
                   : 'translateY(-6px)',
                 pointerEvents: menuOpen ? 'auto' : 'none',
+                visibility: menuOpen ? 'visible' : 'hidden',
                 transition:
                   'opacity 160ms ease, transform 160ms ease',
                 zIndex: 200,
               }}
             >
-              {hostelNavigation.map((item) => {
-                const tenantQuery = searchParams.get('tenant');
-                const query = tenantQuery
-                  ? `?tenant=${tenantQuery}`
-                  : '';
-
-                const href = `${item.href}${query}`;
-
-                const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
-
-                return (
+              <div className="hostel-global-mobile-links">
+                <div className="hostel-navigation-group-title">
+                  Dashboard
+                </div>
+                {globalNavigationItems.map((item) => (
                   <button
                     type="button"
-                    key={item.href}
-                    onClick={() => {
-                      router.push(href);
-                      setMenuOpen(false);
-                    }}
+                    key={item.key}
+                    onClick={item.onPress}
+                    aria-current={
+                      isGlobalItemActive(item.key) ? 'page' : undefined
+                    }
                     style={{
                       width: '100%',
                       border: 'none',
                       borderRadius: 10,
-                      background: isActive
+                      background: isGlobalItemActive(item.key)
                         ? 'var(--primary-soft)'
                         : 'transparent',
                       color: 'var(--text)',
                       padding: '10px 12px',
                       textAlign: 'left',
                       fontSize: 14,
-                      fontWeight: isActive ? 600 : 500,
+                      fontWeight: isGlobalItemActive(item.key) ? 600 : 500,
                       cursor: 'pointer',
-                      transition: 'background 140ms ease',
                     }}
                   >
                     {item.label}
                   </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={handleLogout}
+                ))}
+              </div>
+              <div
+                aria-hidden="true"
                 style={{
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: 10,
-                  background: 'transparent',
-                  color: '#dc2626',
-                  padding: '10px 12px',
-                  textAlign: 'left',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  marginTop: 4,
-                  borderTop: '1px solid var(--card-border)',
+                  height: 1,
+                  margin: '6px 4px',
+                  background: 'var(--card-border)',
                 }}
-              >
-                Logout
-              </button>
+              />
+              <div className="hostel-navigation-group-title">
+                Hostel Workspace
+              </div>
+              <HostelWorkspaceNavigation
+                idPrefix="hostel-mobile-navigation"
+                onNavigate={() => setMenuOpen(false)}
+              />
             </div>
           )}
         </div>
+
+        <nav
+          aria-label="Global navigation"
+          className="dashboard-global-navigation"
+        >
+          {globalNavigationItems.map((item) => (
+            <button
+              type="button"
+              key={item.key}
+              onClick={item.onPress}
+              aria-current={isGlobalItemActive(item.key) ? 'page' : undefined}
+              className={
+                isGlobalItemActive(item.key) ? 'global-navigation-active' : ''
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 4,
             flexShrink: 0,
           }}
         >
+          <div
+            ref={profileMenuRef}
+            className="dashboard-profile-menu"
+            style={{ position: 'relative' }}
+          >
+            <button
+              ref={profileButtonRef}
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                setProfileOpen((previous) => !previous);
+              }}
+              aria-label="Open user profile menu"
+              aria-haspopup="true"
+              aria-expanded={profileOpen}
+              aria-controls="dashboard-profile-navigation"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '8px 10px',
+                border: '1px solid transparent',
+                borderRadius: 10,
+                background: profileOpen
+                  ? 'var(--primary-soft, #eff6ff)'
+                  : 'transparent',
+                color: 'var(--text)',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <UserRound size={18} aria-hidden="true" />
+              <span className="dashboard-profile-name">
+                {userName?.trim() || 'Profile'}
+              </span>
+              <ChevronDown size={15} aria-hidden="true" />
+            </button>
+            <div
+              id="dashboard-profile-navigation"
+              role="group"
+              aria-label="User profile"
+              aria-hidden={!profileOpen}
+              className={`dashboard-profile-dropdown ${
+                profileOpen ? 'is-open' : ''
+              }`}
+            >
+              <div
+                role="presentation"
+                style={{
+                  padding: '10px 12px',
+                  borderBottom: '1px solid var(--card-border)',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700 }}>
+                  User Profile
+                </div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: 'var(--muted)',
+                    fontSize: 12,
+                  }}
+                >
+                  {userName?.trim() || 'Signed-in user'}
+                  {userRole ? ` · ${userRole}` : ''}
+                </div>
+              </div>
+              <button
+                type="button"
+                tabIndex={profileOpen ? 0 : -1}
+                onClick={goToSettings}
+              >
+                Account Settings
+              </button>
+              <button
+                type="button"
+                tabIndex={profileOpen ? 0 : -1}
+                onClick={goToHelp}
+              >
+                Help
+              </button>
+              <button
+                type="button"
+                tabIndex={profileOpen ? 0 : -1}
+                className="dashboard-profile-logout"
+                onClick={handleLogout}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             onClick={toggle}
@@ -631,12 +707,109 @@ export default function DashboardHeader() {
       </div>
 
       <style jsx>{`
+        .dashboard-global-navigation {
+          display: none;
+        }
+
+        .dashboard-global-navigation button {
+          border: 0;
+          border-radius: 8px;
+          padding: 9px 10px;
+          background: transparent;
+          color: var(--text);
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .dashboard-global-navigation button:hover,
+        .dashboard-global-navigation button.global-navigation-active {
+          background: var(--primary-soft, #eff6ff);
+          color: var(--primary, #2563eb);
+        }
+
+        .hostel-navigation-group-title {
+          padding: 8px 12px 5px;
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .dashboard-profile-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          z-index: 300;
+          width: 220px;
+          padding: 6px;
+          border: 1px solid var(--card-border);
+          border-radius: 12px;
+          background: var(--card);
+          box-shadow: 0 14px 30px var(--shadow);
+          opacity: 0;
+          transform: translateY(-6px);
+          visibility: hidden;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
+        }
+
+        .dashboard-profile-dropdown.is-open {
+          opacity: 1;
+          transform: translateY(0);
+          visibility: visible;
+          pointer-events: auto;
+        }
+
+        .dashboard-profile-dropdown button {
+          width: 100%;
+          border: 0;
+          border-radius: 8px;
+          padding: 10px 12px;
+          background: transparent;
+          color: var(--text);
+          text-align: left;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .dashboard-profile-dropdown button:hover,
+        .dashboard-profile-dropdown button:focus-visible {
+          background: var(--primary-soft, #eff6ff);
+        }
+
+        .dashboard-profile-dropdown button.dashboard-profile-logout {
+          margin-top: 4px;
+          border-top: 1px solid var(--card-border);
+          border-radius: 0 0 8px 8px;
+          color: #dc2626;
+        }
+
         .hostel-mobile-navigation {
           display: block;
         }
 
-        @media (min-width: ${MOBILE_BREAKPOINT + 1}px) {
+        @media (min-width: ${DESKTOP_BREAKPOINT}px) {
           .hostel-mobile-navigation {
+            display: none;
+          }
+        }
+
+        @media (min-width: ${DESKTOP_BREAKPOINT}px) {
+          .dashboard-global-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(2px, 0.7vw, 10px);
+            flex: 1;
+            min-width: 0;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .dashboard-profile-name {
             display: none;
           }
         }
