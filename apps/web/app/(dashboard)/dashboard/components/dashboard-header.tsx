@@ -9,12 +9,16 @@ import {
   getHostelNavigation,
   type HostelNavItem,
 } from '@/lib/hostel-navigation';
+import { useHostelSidebarState } from './hostel-sidebar-state';
 
 const MOBILE_BREAKPOINT = 900;
+const DESKTOP_BREAKPOINT = 1024;
 
 export default function DashboardHeader() {
   const { logout, tenantSlug: storedTenantSlug, userRole } = useAuth();
   const { tenant } = useDashboardData();
+  const { isOpen: hostelSidebarOpen, setIsOpen: setHostelSidebarOpen } =
+    useHostelSidebarState();
 
   const router = useRouter();
   const pathname = usePathname();
@@ -23,6 +27,7 @@ export default function DashboardHeader() {
 
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   /*
    * A tenant using the Hostel theme should get Hostel navigation
@@ -108,6 +113,23 @@ export default function DashboardHeader() {
   useEffect(() => {
     if (!isHostelDashboard) return;
 
+    const mediaQuery = window.matchMedia(
+      `(min-width: ${DESKTOP_BREAKPOINT}px)`,
+    );
+    const updateDesktopViewport = () =>
+      setIsDesktopViewport(mediaQuery.matches);
+
+    updateDesktopViewport();
+    mediaQuery.addEventListener('change', updateDesktopViewport);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateDesktopViewport);
+    };
+  }, [isHostelDashboard]);
+
+  useEffect(() => {
+    if (!isHostelDashboard) return;
+
     const handleResize = () => {
       if (window.innerWidth > MOBILE_BREAKPOINT) {
         setMenuOpen(false);
@@ -127,11 +149,20 @@ export default function DashboardHeader() {
    * Escape closes the mobile/tablet dropdown.
    */
   useEffect(() => {
-    if (!menuOpen) return;
+    if (
+      !menuOpen &&
+      !(isHostelDashboard && isDesktopViewport && hostelSidebarOpen)
+    ) {
+      return;
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMenuOpen(false);
+        if (isHostelDashboard && isDesktopViewport) {
+          setHostelSidebarOpen(false);
+          document.getElementById('hostel-sidebar-toggle')?.focus();
+        }
       }
     };
 
@@ -140,7 +171,13 @@ export default function DashboardHeader() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [menuOpen]);
+  }, [
+    isDesktopViewport,
+    isHostelDashboard,
+    menuOpen,
+    hostelSidebarOpen,
+    setHostelSidebarOpen,
+  ]);
 
   function toggle() {
     setDark((prev) => !prev);
@@ -150,11 +187,16 @@ export default function DashboardHeader() {
    * Default dashboard and Hostel dashboard both use the same
    * top-left menu button on mobile/tablet.
    *
-   * For Hostel desktop, the button does nothing because the
-   * permanent Hostel sidebar is already visible.
+   * Hostel desktop toggles the dedicated sidebar; the existing
+   * mobile/tablet dropdown behavior remains unchanged.
    */
   const handleMenuClick = () => {
     if (isHostelDashboard) {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT) {
+        setHostelSidebarOpen((prev) => !prev);
+        return;
+      }
+
       if (window.innerWidth <= MOBILE_BREAKPOINT) {
         setMenuOpen((prev) => !prev);
       }
@@ -356,6 +398,7 @@ export default function DashboardHeader() {
           }}
         >
           <button
+            id={isHostelDashboard ? 'hostel-sidebar-toggle' : undefined}
             type="button"
             onClick={handleMenuClick}
             style={{
@@ -373,13 +416,25 @@ export default function DashboardHeader() {
             }}
             aria-label={
               isHostelDashboard
-                ? 'Open hostel navigation'
+                ? isDesktopViewport
+                  ? hostelSidebarOpen
+                    ? 'Close hostel sidebar'
+                    : 'Open hostel sidebar'
+                  : menuOpen
+                    ? 'Close hostel navigation'
+                    : 'Open hostel navigation'
                 : 'Open menu'
             }
-            aria-expanded={menuOpen}
+            aria-expanded={
+              isHostelDashboard && isDesktopViewport
+                ? hostelSidebarOpen
+                : menuOpen
+            }
             aria-controls={
               isHostelDashboard
-                ? 'hostel-mobile-navigation'
+                ? isDesktopViewport
+                  ? 'hostel-sidebar'
+                  : 'hostel-mobile-navigation'
                 : 'dashboard-navigation'
             }
           >

@@ -2,13 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { X } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { getHostelNavigation } from '@/lib/hostel-navigation';
+import { useHostelSidebarState } from '../../components/hostel-sidebar-state';
 
 export default function HostelSidebar() {
   const pathname = usePathname();
   const { userRole } = useAuth();
+  const { isOpen, setIsOpen } = useHostelSidebarState();
 
   const navigation = getHostelNavigation(userRole);
 
@@ -22,15 +25,34 @@ export default function HostelSidebar() {
       pathname.startsWith(`${href}/`));
 
   return (
-    <aside className="hostel-sidebar">
+    <aside
+      id="hostel-sidebar"
+      className={`hostel-sidebar ${isOpen ? 'is-open' : 'is-closed'}`}
+    >
       <div className="hostel-sidebar-heading">
-        <div className="hostel-sidebar-eyebrow">
-          Hostel Management
+        <div>
+          <div className="hostel-sidebar-eyebrow">
+            Hostel Management
+          </div>
+
+          <div className="hostel-sidebar-role">
+            {roleLabel}
+          </div>
         </div>
 
-        <div className="hostel-sidebar-role">
-          {roleLabel}
-        </div>
+        <button
+          type="button"
+          className="hostel-sidebar-close"
+          onClick={() => {
+            setIsOpen(false);
+            document.getElementById('hostel-sidebar-toggle')?.focus();
+          }}
+          aria-label="Close hostel sidebar"
+          aria-expanded={isOpen}
+          aria-controls="hostel-sidebar"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
       </div>
 
       <nav
@@ -72,6 +94,26 @@ export default function HostelSidebar() {
           padding: 0 12px 16px;
           border-bottom: 1px solid var(--border, #e5e7eb);
           margin-bottom: 12px;
+        }
+
+        .hostel-sidebar-close {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          flex: 0 0 32px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted, #6b7280);
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .hostel-sidebar-close:hover {
+          background: var(--primary-soft, #eff6ff);
+          color: var(--primary, #2563eb);
         }
 
         .hostel-sidebar-eyebrow {
@@ -132,6 +174,23 @@ export default function HostelSidebar() {
          */
         @media (max-width: 900px) {
           .hostel-sidebar {
+            display: none;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .hostel-sidebar-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+          }
+
+          .hostel-sidebar-close {
+            display: inline-flex;
+          }
+
+          .hostel-sidebar.is-closed {
             display: none;
           }
         }

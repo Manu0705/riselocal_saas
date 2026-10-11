@@ -37,6 +37,9 @@ export default function BottomNav() {
   const isHostelTheme =
     tenant?.theme?.trim().toLowerCase() === 'hostel';
 
+  const isHostelDashboard =
+    isHostelTheme || pathname.startsWith('/dashboard/hostel');
+
   const tenantKey =
     tenantSlug ??
     tenant?.slug ??
@@ -175,7 +178,9 @@ export default function BottomNav() {
   return (
     <>
       <div
-        className="dashboard-bottom-nav"
+        className={`dashboard-bottom-nav ${
+          isHostelDashboard ? 'hostel-dashboard-bottom-nav' : ''
+        }`}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -189,7 +194,7 @@ export default function BottomNav() {
           borderTopRightRadius: 18,
           background: 'var(--card)',
           boxShadow: '0 -8px 22px var(--shadow)',
-          display: 'flex',
+          display: isHostelDashboard ? undefined : 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
           paddingBottom: 'max(4px, env(safe-area-inset-bottom))',
@@ -283,16 +288,12 @@ export default function BottomNav() {
       </div>
 
       <style jsx>{`
-        /*
-         * Bottom navigation is a tablet/mobile navigation layer.
-         * Desktop uses the normal sidebar/menu instead.
-         */
         .dashboard-bottom-nav {
           display: flex;
         }
 
-        @media (min-width: 901px) {
-          .dashboard-bottom-nav {
+        @media (min-width: 1024px) {
+          .hostel-dashboard-bottom-nav {
             display: none;
           }
         }

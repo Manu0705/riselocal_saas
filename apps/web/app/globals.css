@@ -34,6 +34,34 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dashboard-layout-viewport {
+  justify-content: center;
+  padding-left: var(--app-edge);
+  padding-right: var(--app-edge);
+}
+
+.dashboard-layout-panel {
+  width: min(100%, var(--app-max-width));
+  padding-bottom: 100px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout-viewport:has(.hostel-layout),
+  .dashboard-layout-viewport:has(.dashboard-hostel-shell) {
+    justify-content: stretch;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .dashboard-layout-viewport:has(.hostel-layout) > .dashboard-layout-panel,
+  .dashboard-layout-viewport:has(.dashboard-hostel-shell)
+    > .dashboard-layout-panel {
+    width: 100%;
+    max-width: none;
+    padding-bottom: 0;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
