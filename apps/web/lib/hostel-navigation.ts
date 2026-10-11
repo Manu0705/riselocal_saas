@@ -1,5 +1,3 @@
-import type { TenantUserRole } from '@saas/domain-core/auth.contract';
-
 import {
   hasHostelPermission,
   type HostelPermission,
@@ -31,6 +29,11 @@ export const HOSTEL_NAVIGATION: readonly HostelNavItem[] = [
     label: 'Rooms',
     href: '/dashboard/hostel/rooms',
     permission: 'view_rooms',
+  },
+  {
+    label: 'Room Allocation',
+    href: '/dashboard/hostel/rooms/allocate',
+    permission: 'allocate_rooms',
   },
   {
     label: 'Fees & Billing',

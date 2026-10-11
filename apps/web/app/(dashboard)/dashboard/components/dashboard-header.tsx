@@ -61,6 +61,15 @@ export default function DashboardHeader() {
       '/dashboard/hostel/payments',
     ]);
 
+    const activeItem = navigation
+      .filter(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== '/dashboard/hostel' &&
+            pathname.startsWith(`${item.href}/`)),
+      )
+      .sort((left, right) => right.href.length - left.href.length)[0];
+
     return navigation.filter((item) => {
       if (quickNavigationPaths.has(item.href)) {
         return false;
@@ -70,10 +79,7 @@ export default function DashboardHeader() {
         return false;
       }
 
-      return !(
-        pathname === item.href ||
-        pathname.startsWith(`${item.href}/`)
-      );
+      return item.href !== activeItem?.href;
     });
   }, [isHostelDashboard, userRole, pathname]);
 
@@ -184,11 +190,8 @@ export default function DashboardHeader() {
   }
 
   /*
-   * Default dashboard and Hostel dashboard both use the same
-   * top-left menu button on mobile/tablet.
-   *
-   * Hostel desktop toggles the dedicated sidebar; the existing
-   * mobile/tablet dropdown behavior remains unchanged.
+   * The Hostel menu is a dropdown below desktop width and toggles
+   * the dedicated sidebar at desktop width.
    */
   const handleMenuClick = () => {
     if (isHostelDashboard) {

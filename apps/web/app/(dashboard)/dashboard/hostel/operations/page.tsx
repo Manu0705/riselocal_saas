@@ -109,7 +109,6 @@ export default function HostelPage() {
   const [roomNumber, setRoomNumber] = useState('');
   const [capacity, setCapacity] = useState('');
   const [studentName, setStudentName] = useState('');
-  const [admissionNumber, setAdmissionNumber] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
   const [studentDateOfBirth, setStudentDateOfBirth] = useState('');
@@ -395,7 +394,7 @@ export default function HostelPage() {
 
   async function handleStudentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedHostelId || !studentName.trim() || !admissionNumber.trim()) return;
+    if (!selectedHostelId || !studentName.trim()) return;
 
     try {
       const response = await api.post<ApiResponse<HostelStudent>, Record<string, unknown>>(
@@ -403,7 +402,6 @@ export default function HostelPage() {
         {
           hostelId: selectedHostelId,
           name: studentName,
-          admissionNumber,
           phone: studentPhone || undefined,
           email: studentEmail || undefined,
           dateOfBirth: studentDateOfBirth || undefined,
@@ -412,7 +410,6 @@ export default function HostelPage() {
       setStudents((current) => [...current, response.data]);
       setStudentPage(1);
       setStudentName('');
-      setAdmissionNumber('');
       setStudentPhone('');
       setStudentEmail('');
       setStudentDateOfBirth('');
@@ -844,13 +841,9 @@ export default function HostelPage() {
                 placeholder="Student name"
                 style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
               />
-              <input
-                aria-label="Admission number"
-                value={admissionNumber}
-                onChange={(event) => setAdmissionNumber(event.target.value)}
-                placeholder="Admission number"
-                style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}
-              />
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
+                An admission number is assigned automatically.
+              </p>
               <input
                 aria-label="Student phone"
                 value={studentPhone}
@@ -875,7 +868,7 @@ export default function HostelPage() {
               />
               <button
                 type="submit"
-                disabled={!studentName.trim() || !admissionNumber.trim()}
+                disabled={!studentName.trim()}
                 style={{
                   padding: 10,
                   border: 0,

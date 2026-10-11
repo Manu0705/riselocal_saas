@@ -691,7 +691,6 @@ export class HostelPropertyService {
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
       roomId: input.roomId === undefined ? undefined : requiredText(input.roomId, 'roomId'),
-      admissionNumber: requiredText(input.admissionNumber, 'Admission number', 80),
       name: requiredText(input.name, 'Student name'),
       email,
       phone,
@@ -724,10 +723,6 @@ export class HostelPropertyService {
           : input.roomId === null
             ? null
             : requiredText(input.roomId, 'roomId'),
-      admissionNumber:
-        input.admissionNumber === undefined
-          ? undefined
-          : requiredText(input.admissionNumber, 'Admission number', 80),
       name: input.name === undefined ? undefined : requiredText(input.name, 'Student name'),
       email:
         input.email === undefined

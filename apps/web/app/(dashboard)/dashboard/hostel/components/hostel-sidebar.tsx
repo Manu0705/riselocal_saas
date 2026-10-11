@@ -19,10 +19,14 @@ export default function HostelSidebar() {
     ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`
     : 'User';
 
-  const isActive = (href: string) =>
-    pathname === href ||
-    (href !== '/dashboard/hostel' &&
-      pathname.startsWith(`${href}/`));
+  const activeNavigationItem = navigation
+    .filter(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== '/dashboard/hostel' &&
+          pathname.startsWith(`${item.href}/`)),
+    )
+    .sort((left, right) => right.href.length - left.href.length)[0];
 
   return (
     <aside
@@ -64,8 +68,11 @@ export default function HostelSidebar() {
             key={item.href}
             href={item.href}
             className={`hostel-sidebar-link ${
-              isActive(item.href) ? 'active' : ''
+              activeNavigationItem?.href === item.href ? 'active' : ''
             }`}
+            aria-current={
+              activeNavigationItem?.href === item.href ? 'page' : undefined
+            }
           >
             {item.label}
           </Link>

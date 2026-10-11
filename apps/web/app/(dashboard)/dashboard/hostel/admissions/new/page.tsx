@@ -47,7 +47,6 @@ export default function NewAdmissionPage() {
   const [rooms, setRooms] = useState<HostelRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
 
-  const [admissionNumber, setAdmissionNumber] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -116,10 +115,6 @@ export default function NewAdmissionPage() {
       setError('Hostel property is not available.');
       return;
     }
-    if (!admissionNumber.trim()) {
-      setError('Admission number is required.');
-      return;
-    }
     if (!name.trim()) {
       setError('Student name is required.');
       return;
@@ -164,7 +159,6 @@ export default function NewAdmissionPage() {
         ApiResponse<CreateStudentResult>
       >('/hostel/students', {
         hostelId: property.id,
-        admissionNumber: admissionNumber.trim(),
         name: name.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -233,7 +227,7 @@ export default function NewAdmissionPage() {
         ? `Hello ${createdStudent.name}, your hostel admission is confirmed.`
         : 'Hello Admin, a new hostel admission has been created.',
       '',
-      `Admission Number: ${createdStudent.admissionNumber || admissionNumber.trim()}`,
+      `Admission Number: ${createdStudent.admissionNumber}`,
       `Student Name: ${createdStudent.name}`,
       `Admission Date: ${dateText}`,
       `Temporary Passkey: ${temporaryPasskey}`,
@@ -309,9 +303,17 @@ export default function NewAdmissionPage() {
         }}
       >
         <SectionTitle title="Student Information" />
+        <p
+          style={{
+            margin: '-8px 0 16px',
+            fontSize: 13,
+            color: 'var(--muted, #6b7280)',
+          }}
+        >
+          An admission number is assigned automatically when the admission is created.
+        </p>
 
         <div className="admission-form-grid" style={gridStyle}>
-          <Field label="Admission Number" value={admissionNumber} onChange={setAdmissionNumber} required />
           <Field label="Student Name" value={name} onChange={setName} required />
           <Field label="Phone" value={phone} onChange={setPhone} type="tel" />
           <Field label="Email" value={email} onChange={setEmail} type="email" />
@@ -414,7 +416,10 @@ export default function NewAdmissionPage() {
             {modalStep === 'recipients' ? (
               <>
                 <div style={summaryStyle}>
-                  <SummaryRow label="Admission Number" value={admissionNumber.trim()} />
+                  <SummaryRow
+                    label="Admission Number"
+                    value="Assigned when admission is created"
+                  />
                   <SummaryRow label="Student Name" value={name.trim()} />
                   <SummaryRow label="Admission Date" value={formatDate(admissionDate)} />
                 </div>
@@ -465,7 +470,10 @@ export default function NewAdmissionPage() {
             ) : (
               <>
                 <div style={summaryStyle}>
-                  <SummaryRow label="Admission Number" value={createdStudent?.admissionNumber || admissionNumber} />
+                  <SummaryRow
+                    label="Admission Number"
+                    value={createdStudent?.admissionNumber ?? '—'}
+                  />
                   <SummaryRow label="Student Name" value={createdStudent?.name || name} />
                   <SummaryRow label="Admission Date" value={formatDate(createdStudent?.admissionDate ?? admissionDate)} />
                   <SummaryRow label="Student WhatsApp" value={studentWhatsApp} />
