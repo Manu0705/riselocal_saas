@@ -2,16 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  BedDouble,
-  LogOut,
   MessageSquareWarning,
   Send,
   RefreshCw,
-  CreditCard,
-  ReceiptText,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import StudentPortalHeader from '../StudentPortalHeader';
 
 type StudentComplaint = {
   id: string;
@@ -53,7 +49,6 @@ export default function ComplaintsContent() {
 
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-        // Replace this path with your actual complaints API endpoint.
         const response = await fetch(
           `${API_BASE_URL}/api/hostel/student/complaints`,
           {
@@ -70,7 +65,6 @@ export default function ComplaintsContent() {
 
         const result = await response.json();
 
-        // Adapt this mapping to your actual API response.
         const items = Array.isArray(result)
           ? result
           : Array.isArray(result?.complaints)
@@ -89,7 +83,9 @@ export default function ComplaintsContent() {
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -103,12 +99,15 @@ export default function ComplaintsContent() {
   const logout = () => {
     sessionStorage.removeItem('student_token');
     sessionStorage.removeItem('student_account');
+
     router.replace(
       `/student/login?tenant=${encodeURIComponent(tenantSlug)}`
     );
   };
 
-  const submitComplaint = async (event: FormEvent<HTMLFormElement>) => {
+  const submitComplaint = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
     setError('');
     setMessage('');
@@ -121,7 +120,10 @@ export default function ComplaintsContent() {
       return;
     }
 
-    if (cleanSubject.length > 150 || cleanDescription.length > 5000) {
+    if (
+      cleanSubject.length > 150 ||
+      cleanDescription.length > 5000
+    ) {
       setError(
         'Subject must be at most 150 characters and details at most 5000 characters.'
       );
@@ -142,7 +144,6 @@ export default function ComplaintsContent() {
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-      // Replace this path and request fields with your actual API contract.
       const response = await fetch(
         `${API_BASE_URL}/api/hostel/student/complaints`,
         {
@@ -173,7 +174,7 @@ export default function ComplaintsContent() {
       setSubject('');
       setDescription('');
 
-      // Refresh the list after successful submission.
+      // Refresh complaint history after successful submission.
       const listResponse = await fetch(
         `${API_BASE_URL}/api/hostel/student/complaints`,
         {
@@ -218,75 +219,10 @@ export default function ComplaintsContent() {
 
   return (
     <main className="min-h-screen bg-[#FBFAF7]">
-      <header className="border-b border-[#E7E2D8] bg-white">
-        {/* <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8"> */}
-               <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#15563A] text-white">
-              <BedDouble size={21} />
-            </div>
-            <div>
-              <p className="text-sm font-black text-[#102033]">
-                Student Portal
-              </p>
-              <p className="text-[11px] text-[#7A8794]">
-                {tenantSlug}
-              </p>
-            </div>
-          </div>
-
-          {/* <button
-            type="button"
-            onClick={logout}
-            className="flex items-center gap-2 rounded-xl border border-[#DCE2E5] px-3 py-2 text-xs font-bold text-[#536579] hover:bg-[#F7F3E9]"
-          >
-            <LogOut size={15} />
-            Logout
-          </button> */}
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-  {/* Student navigation menu */}
-  <nav
-    aria-label="Student navigation"
-    className="flex items-center gap-2 overflow-x-auto sm:gap-3"
-  >
-    <Link
-      href={`/student/payments?tenant=${encodeURIComponent(tenantSlug)}`}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
-    >
-      <CreditCard size={16} />
-      Payments
-    </Link>
-
-    <Link
-      href={`/student/receipts?tenant=${encodeURIComponent(tenantSlug)}`}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
-    >
-      <ReceiptText size={16} />
-      Receipts
-    </Link>
-
-    <Link
-      href={`/student/complaints?tenant=${encodeURIComponent(tenantSlug)}`}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
-    >
-      <MessageSquareWarning size={16} />
-      Complaints
-    </Link>
-  </nav>
-
-  {/* Logout button */}
-  <button
-    type="button"
-    onClick={logout}
-    className="flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#DCE2E5] bg-white px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F7F3E9] lg:self-auto"
-  >
-    <LogOut size={15} />
-    Logout
-  </button>
-</div>
-        </div>
-      </header>
+      <StudentPortalHeader
+        tenantSlug={tenantSlug}
+        onLogout={logout}
+      />
 
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B27A17]">
@@ -307,6 +243,7 @@ export default function ComplaintsContent() {
             className="mt-6 rounded-xl border border-[#F1D1CE] bg-[#FFF5F3] p-4 text-sm text-[#A33A32]"
           >
             {error}
+
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -333,6 +270,7 @@ export default function ComplaintsContent() {
               size={22}
               className="text-[#15563A]"
             />
+
             <h2 className="text-lg font-bold text-[#102033]">
               Submit a Complaint
             </h2>
@@ -346,6 +284,7 @@ export default function ComplaintsContent() {
               >
                 Subject
               </label>
+
               <input
                 id="complaint-subject"
                 type="text"
@@ -365,6 +304,7 @@ export default function ComplaintsContent() {
               >
                 Complaint Details
               </label>
+
               <textarea
                 id="complaint-description"
                 rows={5}
@@ -375,6 +315,7 @@ export default function ComplaintsContent() {
                 placeholder="Describe your issue..."
                 className="w-full rounded-xl border border-[#DCE2E5] bg-[#FCFCFB] px-4 py-3 text-sm text-[#102033] outline-none focus:border-[#1F6B48] focus:ring-4 focus:ring-[#1F6B48]/10"
               />
+
               <p className="mt-1 text-right text-xs text-[#7A8794]">
                 {description.length}/5000
               </p>
@@ -424,9 +365,9 @@ export default function ComplaintsContent() {
                   <p className="mt-3 text-xs text-[#7A8794]">
                     Submitted:{' '}
                     {complaint.createdAt
-                      ? new Date(complaint.createdAt).toLocaleDateString(
-                          'en-IN'
-                        )
+                      ? new Date(
+                          complaint.createdAt
+                        ).toLocaleDateString('en-IN')
                       : 'Date not available'}
                   </p>
                 </article>
