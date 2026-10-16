@@ -1,7 +1,8 @@
  'use client';
 
 import { useEffect, useState } from 'react';
-import { BedDouble, LogOut, CreditCard, RefreshCw } from 'lucide-react';
+import { BedDouble, LogOut, CreditCard, RefreshCw, ReceiptText, MessageSquareWarning, } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type Payment = {
@@ -115,7 +116,8 @@ export default function PaymentsContent() {
   return (
     <main className="min-h-screen bg-[#FBFAF7]">
       <header className="border-b border-[#E7E2D8] bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+        {/* <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8"> */}
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#15563A] text-white">
               <BedDouble size={21} />
@@ -128,16 +130,49 @@ export default function PaymentsContent() {
                 {tenantSlug}
               </p>
             </div>
-          </div>
+</div>
 
-          <button
-            type="button"
-            onClick={logout}
-            className="flex items-center gap-2 rounded-xl border border-[#DCE2E5] px-3 py-2 text-xs font-bold text-[#536579] hover:bg-[#F7F3E9]"
-          >
-            <LogOut size={15} />
-            Logout
-          </button>
+<div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+  {/* Student navigation menu */}
+<nav
+    aria-label="Student navigation"
+    className="flex items-center gap-2 overflow-x-auto sm:gap-3"
+  >
+    <Link
+      href={`/student/payments?tenant=${encodeURIComponent(tenantSlug)}`}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
+    >
+      <CreditCard size={16} />
+      Payments
+    </Link>
+
+    <Link
+      href={`/student/receipts?tenant=${encodeURIComponent(tenantSlug)}`}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
+    >
+      <ReceiptText size={16} />
+      Receipts
+    </Link>
+
+    <Link
+      href={`/student/complaints?tenant=${encodeURIComponent(tenantSlug)}`}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F0F5F1] hover:text-[#15563A] sm:text-sm"
+    >
+      <MessageSquareWarning size={16} />
+      Complaints
+    </Link>
+  </nav>
+
+  {/* Logout button */}
+  <button
+    type="button"
+    onClick={logout}
+    className="flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#DCE2E5] bg-white px-3 py-2 text-xs font-bold text-[#536579] transition hover:bg-[#F7F3E9] lg:self-auto"
+  >
+    <LogOut size={15} />
+    Logout
+  </button>
+</div>
         </div>
       </header>
 
