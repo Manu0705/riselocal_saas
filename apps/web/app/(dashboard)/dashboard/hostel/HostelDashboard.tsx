@@ -5,6 +5,19 @@ import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api-client';
+import { getHostelNavigation } from '@/lib/hostel-navigation';
+
+const WORKSPACE_SHORTCUTS: Readonly<Record<string, string>> = {
+  '/dashboard/hostel/admissions': 'Review and create student admissions.',
+  '/dashboard/hostel/students': 'View and manage hostel students.',
+  '/dashboard/hostel/rooms': 'Review rooms, occupancy, and vacancies.',
+  '/dashboard/hostel/rooms/allocate': 'Allocate students to available rooms.',
+  '/dashboard/hostel/fees': 'Manage fee plans and outstanding balances.',
+  '/dashboard/hostel/payments': 'Review collections and payment activity.',
+  '/dashboard/hostel/complaints': 'Review and resolve hostel complaints.',
+  '/dashboard/hostel/reports': 'View hostel reports and business insights.',
+  '/dashboard/hostel/settings': 'Manage hostel operational settings.',
+};
 
 type StatCardProps = {
   label: string;
@@ -662,6 +675,12 @@ export default function HostelDashboard() {
   const isOwner = userRole === 'owner';
   const isManager = userRole === 'manager';
   const isStaff = userRole === 'staff';
+  const workspaceShortcuts = getHostelNavigation(userRole).filter(
+    (item) => Object.hasOwn(WORKSPACE_SHORTCUTS, item.href),
+  );
+  const canViewRooms = getHostelNavigation(userRole).some(
+    (item) => item.href === '/dashboard/hostel/rooms',
+  );
 
   return (
     <div>
@@ -817,33 +836,6 @@ export default function HostelDashboard() {
             </p>
           </section>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 16,
-              marginTop: 16,
-              minWidth: 0,
-            }}
-          >
-            <ActionCard
-              title="Students"
-              description="View and manage hostel students."
-              href="/dashboard/hostel/students"
-            />
-
-            <ActionCard
-              title="Payments"
-              description="Review collections and payment activity."
-              href="/dashboard/hostel/payments"
-            />
-
-            <ActionCard
-              title="Reports"
-              description="View hostel reports and business insights."
-              href="/dashboard/hostel/reports"
-            />
-          </div>
         </>
       )}
 
@@ -911,38 +903,11 @@ export default function HostelDashboard() {
                 color: 'var(--muted, #6b7280)',
               }}
             >
-              Admissions, student management, room allocation, fees and
-              complaints will appear here.
+              Admissions, students, room allocation, fees and complaints are
+              available in the Hostel Workspace below.
             </p>
           </section>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 16,
-              marginTop: 16,
-              minWidth: 0,
-            }}
-          >
-            <ActionCard
-              title="Admissions"
-              description="Manage new hostel admissions."
-              href="/dashboard/hostel/admissions"
-            />
-
-            <ActionCard
-              title="Room Allocation"
-              description="Allocate and manage student rooms."
-              href="/dashboard/hostel/rooms/allocate"
-            />
-
-            <ActionCard
-              title="Fees & Billing"
-              description="Manage student fees and outstanding balances."
-              href="/dashboard/hostel/fees"
-            />
-          </div>
         </>
       )}
 
@@ -994,7 +959,7 @@ export default function HostelDashboard() {
             }}
           >
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 650 }}>
-              Today's Operations
+              Today&apos;s Operations
             </h2>
 
             <p
@@ -1005,38 +970,47 @@ export default function HostelDashboard() {
               }}
             >
               Check-ins, check-outs, room allocation, collections and
-              complaints will appear here.
+              complaints are available through the Hostel Workspace and navigation.
             </p>
           </section>
 
+        </>
+      )}
+
+      {workspaceShortcuts.length > 0 && (
+        <section style={{ marginTop: 24 }}>
+          <h2
+            style={{
+              margin: '0 0 12px',
+              fontSize: 18,
+              fontWeight: 650,
+              color: 'var(--foreground, #111827)',
+            }}
+          >
+            Hostel Workspace
+          </h2>
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 16,
-              marginTop: 16,
               minWidth: 0,
             }}
           >
-            <ActionCard
-              title="Room Allocation"
-              description="View and manage room allocations."
-              href="/dashboard/hostel/rooms/allocate"
-            />
-
-            <ActionCard
-              title="Payments"
-              description="Collect and manage student payments."
-              href="/dashboard/hostel/payments"
-            />
-
-            <ActionCard
-              title="Complaints"
-              description="View and manage student complaints."
-              href="/dashboard/hostel/complaints"
-            />
+            {workspaceShortcuts.map((item) => (
+              <ActionCard
+                key={item.href}
+                title={item.label}
+                description={WORKSPACE_SHORTCUTS[item.href]}
+                href={item.href}
+              />
+            ))}
           </div>
-        </>
+        </section>
+      )}
+
+      {canViewRooms && (
+        <RecentRoomActivity activities={recentActivity} />
       )}
 
       {/* Fallback */}

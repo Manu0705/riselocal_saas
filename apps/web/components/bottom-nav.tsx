@@ -11,11 +11,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useDashboardData } from '@/context/DashboardDataContext';
+import { useAuth } from '@/context/AuthContext';
+import { hasHostelPermission, type HostelPermission } from '@/lib/hostel-rbac';
 
 type BottomNavItem = {
   label: string;
   icon: LucideIcon;
   path: string;
+  permission?: HostelPermission;
   primary?: boolean;
   badge?: boolean;
 };
@@ -31,11 +34,15 @@ export default function BottomNav() {
     tenant,
     tenantSlug,
   } = useDashboardData();
+  const { userRole } = useAuth();
 
   const [lastSeenTs, setLastSeenTs] = useState(0);
 
   const isHostelTheme =
     tenant?.theme?.trim().toLowerCase() === 'hostel';
+
+  const isHostelDashboard =
+    isHostelTheme || pathname.startsWith('/dashboard/hostel');
 
   const tenantKey =
     tenantSlug ??
@@ -138,22 +145,33 @@ export default function BottomNav() {
    * These are intentionally icon-only because the full Hostel
    * navigation is available from the top-left Hostel menu.
    */
-  const hostelItems: BottomNavItem[] = [
+  const hostelQuickItems: BottomNavItem[] = [
     {
       label: 'Students',
       icon: Users,
       path: '/dashboard/hostel/students',
+      permission: 'view_students',
     },
     {
       label: 'Rooms',
       icon: BedDouble,
       path: '/dashboard/hostel/rooms',
+      permission: 'view_rooms',
     },
     {
       label: 'Payments',
       icon: WalletCards,
       path: '/dashboard/hostel/payments',
+      permission: 'collect_payments',
     },
+  ];
+
+  const hostelItems: BottomNavItem[] = [
+    ...hostelQuickItems.filter(
+      (item) =>
+        item.permission &&
+        hasHostelPermission(userRole, item.permission),
+    ),
     {
       label: 'Notifications',
       icon: Bell,
@@ -162,7 +180,7 @@ export default function BottomNav() {
     },
   ];
 
-  const items: BottomNavItem[] = isHostelTheme
+  const items: BottomNavItem[] = isHostelDashboard
     ? hostelItems
     : defaultItems;
 
@@ -175,7 +193,9 @@ export default function BottomNav() {
   return (
     <>
       <div
-        className="dashboard-bottom-nav"
+        className={`dashboard-bottom-nav ${
+          isHostelDashboard ? 'hostel-dashboard-bottom-nav' : ''
+        }`}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -189,7 +209,7 @@ export default function BottomNav() {
           borderTopRightRadius: 18,
           background: 'var(--card)',
           boxShadow: '0 -8px 22px var(--shadow)',
-          display: 'flex',
+          display: isHostelDashboard ? undefined : 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
           paddingBottom: 'max(4px, env(safe-area-inset-bottom))',
@@ -226,16 +246,16 @@ export default function BottomNav() {
                 color: active
                   ? 'var(--primary, #2563eb)'
                   : 'var(--muted)',
-                width: isHostelTheme ? 52 : undefined,
-                height: isHostelTheme ? 44 : undefined,
-                minWidth: isHostelTheme ? 52 : 72,
+                width: isHostelDashboard ? 52 : undefined,
+                height: isHostelDashboard ? 44 : undefined,
+                minWidth: isHostelDashboard ? 52 : 72,
                 borderRadius: 14,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 12,
-                gap: isHostelTheme ? 0 : 2,
+                gap: isHostelDashboard ? 0 : 2,
                 cursor: 'pointer',
                 transition:
                   'background 140ms ease, color 140ms ease, transform 140ms ease',
@@ -243,7 +263,7 @@ export default function BottomNav() {
             >
               <Icon
                 size={
-                  isHostelTheme
+                  isHostelDashboard
                     ? 22
                     : item.primary
                       ? 22
@@ -252,7 +272,7 @@ export default function BottomNav() {
                 strokeWidth={active ? 2.4 : 2}
               />
 
-              {!isHostelTheme && (
+              {!isHostelDashboard && (
                 <span
                   style={{
                     fontWeight: active ? 700 : 500,
@@ -266,8 +286,8 @@ export default function BottomNav() {
                 <span
                   style={{
                     position: 'absolute',
-                    top: isHostelTheme ? 5 : 0,
-                    right: isHostelTheme ? 5 : 10,
+                    top: isHostelDashboard ? 5 : 0,
+                    right: isHostelDashboard ? 5 : 10,
                     width: 8,
                     height: 8,
                     borderRadius: 999,
@@ -283,16 +303,12 @@ export default function BottomNav() {
       </div>
 
       <style jsx>{`
-        /*
-         * Bottom navigation is a tablet/mobile navigation layer.
-         * Desktop uses the normal sidebar/menu instead.
-         */
         .dashboard-bottom-nav {
           display: flex;
         }
 
-        @media (min-width: 901px) {
-          .dashboard-bottom-nav {
+        @media (min-width: 1024px) {
+          .hostel-dashboard-bottom-nav {
             display: none;
           }
         }

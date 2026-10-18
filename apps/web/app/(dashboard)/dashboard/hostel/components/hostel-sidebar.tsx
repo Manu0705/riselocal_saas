@@ -1,54 +1,42 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { X } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
-import { getHostelNavigation } from '@/lib/hostel-navigation';
+import { useHostelSidebarState } from '../../components/hostel-sidebar-state';
+import HostelWorkspaceNavigation from './hostel-workspace-navigation';
 
 export default function HostelSidebar() {
-  const pathname = usePathname();
   const { userRole } = useAuth();
+  const { isOpen, setIsOpen } = useHostelSidebarState();
 
-  const navigation = getHostelNavigation(userRole);
-
-  const roleLabel = userRole
-    ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`
-    : 'User';
-
-  const isActive = (href: string) =>
-    pathname === href ||
-    (href !== '/dashboard/hostel' &&
-      pathname.startsWith(`${href}/`));
+  const roleLabel = userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : 'User';
 
   return (
-    <aside className="hostel-sidebar">
+    <aside id="hostel-sidebar" className={`hostel-sidebar ${isOpen ? 'is-open' : 'is-closed'}`}>
       <div className="hostel-sidebar-heading">
-        <div className="hostel-sidebar-eyebrow">
-          Hostel Management
+        <div>
+          <div className="hostel-sidebar-eyebrow">Hostel Management</div>
+
+          <div className="hostel-sidebar-role">{roleLabel}</div>
         </div>
 
-        <div className="hostel-sidebar-role">
-          {roleLabel}
-        </div>
+        <button
+          type="button"
+          className="hostel-sidebar-close"
+          onClick={() => {
+            setIsOpen(false);
+            document.getElementById('hostel-sidebar-toggle')?.focus();
+          }}
+          aria-label="Close hostel sidebar"
+          aria-expanded={isOpen}
+          aria-controls="hostel-sidebar"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
       </div>
 
-      <nav
-        aria-label="Hostel navigation"
-        className="hostel-sidebar-nav"
-      >
-        {navigation.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`hostel-sidebar-link ${
-              isActive(item.href) ? 'active' : ''
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <HostelWorkspaceNavigation idPrefix="hostel-sidebar-navigation" />
 
       <style jsx>{`
         .hostel-sidebar {
@@ -74,6 +62,26 @@ export default function HostelSidebar() {
           margin-bottom: 12px;
         }
 
+        .hostel-sidebar-close {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          flex: 0 0 32px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted, #6b7280);
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .hostel-sidebar-close:hover {
+          background: var(--primary-soft, #eff6ff);
+          color: var(--primary, #2563eb);
+        }
+
         .hostel-sidebar-eyebrow {
           font-size: 12px;
           font-weight: 600;
@@ -89,49 +97,31 @@ export default function HostelSidebar() {
           color: var(--foreground, #111827);
         }
 
-        .hostel-sidebar-nav {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 0;
-        }
-
-        .hostel-sidebar-link {
-          display: flex;
-          align-items: center;
-          min-height: 42px;
-          min-width: 0;
-          padding: 0 12px;
-          border-radius: 8px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--foreground, #374151);
-          transition:
-            background 0.15s ease,
-            color 0.15s ease;
-          box-sizing: border-box;
-        }
-
-        .hostel-sidebar-link:hover {
-          background: var(--primary-soft, #eff6ff);
-          color: var(--primary, #2563eb);
-        }
-
-        .hostel-sidebar-link.active {
-          font-weight: 600;
-          color: var(--primary, #2563eb);
-          background: var(--primary-soft, #eff6ff);
-        }
-
         /*
          * The Hostel sidebar is intentionally desktop-only.
          *
          * On mobile/tablet, DashboardHeader provides the Hostel
          * dropdown navigation instead.
          */
-        @media (max-width: 900px) {
+        @media (max-width: 1023px) {
           .hostel-sidebar {
+            display: none;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .hostel-sidebar-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+          }
+
+          .hostel-sidebar-close {
+            display: inline-flex;
+          }
+
+          .hostel-sidebar.is-closed {
             display: none;
           }
         }

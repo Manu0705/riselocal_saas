@@ -56,6 +56,7 @@ model Tenant {
   services                        Service[]
   socialLinks                     SocialLink[]
   hostelStudents                  Student[]
+  hostelAdmissionNumberCounters   HostelAdmissionNumberCounter[]
   settings                        TenantSettings?
   users                           TenantUser[]
   studentAccounts                 StudentAccount[]
@@ -169,6 +170,15 @@ model Student {
   @@index([tenantId, phone])
   @@index([tenantId, email])
   @@index([tenantId, paymentStatus])
+}
+
+model HostelAdmissionNumberCounter {
+  tenantId      String
+  admissionYear Int
+  lastValue     Int    @default(0)
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, admissionYear])
 }
 
 model StudentAccount {

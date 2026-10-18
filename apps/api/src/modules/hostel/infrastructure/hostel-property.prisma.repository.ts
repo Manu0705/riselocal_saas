@@ -235,7 +235,6 @@ export type HostelRepository = {
     tenantId: string;
     hostelId: string;
     roomId?: string;
-    admissionNumber: string;
     name: string;
     email?: string;
     phone?: string;
@@ -251,7 +250,6 @@ export type HostelRepository = {
     tenantId: string;
     id: string;
     roomId?: string | null;
-    admissionNumber?: string;
     name?: string;
     email?: string | null;
     phone?: string | null;
@@ -2040,7 +2038,6 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tenantId: string;
     hostelId: string;
     roomId?: string;
-    admissionNumber: string;
     name: string;
     email?: string;
     phone?: string;
@@ -2058,10 +2055,29 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
 
     const passwordHash = hashPassword(temporaryPasskey);
 
+    const admissionDate = input.admissionDate ?? new Date();
+    const admissionYear = admissionDate.getUTCFullYear();
+
     const result = await prisma.$transaction(async (tx) => {
+      const [counter] = await tx.$queryRaw<Array<{ lastValue: number }>>`
+        INSERT INTO "HostelAdmissionNumberCounter"
+          ("tenantId", "admissionYear", "lastValue")
+        VALUES (${input.tenantId}, ${admissionYear}, 1)
+        ON CONFLICT ("tenantId", "admissionYear")
+        DO UPDATE SET "lastValue" = "HostelAdmissionNumberCounter"."lastValue" + 1
+        RETURNING "lastValue"
+      `;
+
+      if (!counter) {
+        throw new Error('Failed to allocate an admission number.');
+      }
+
+      const admissionNumber =
+        `ADM-${admissionYear}-${String(counter.lastValue).padStart(5, '0')}`;
+
       const student = await tx.student.create({
         data: {
-          admissionNumber: input.admissionNumber,
+          admissionNumber,
           name: input.name,
           email: input.email,
           phone: input.phone,
@@ -2069,7 +2085,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           emergencyName: input.emergencyName,
           emergencyPhone: input.emergencyPhone,
           emergencyRelation: input.emergencyRelation,
-          admissionDate: input.admissionDate,
+          admissionDate,
           paymentStatus: input.paymentStatus,
           status: input.status,
           tenant: { connect: { id: input.tenantId } },
@@ -2112,7 +2128,6 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tenantId: string;
     id: string;
     roomId?: string | null;
-    admissionNumber?: string;
     name?: string;
     email?: string | null;
     phone?: string | null;
