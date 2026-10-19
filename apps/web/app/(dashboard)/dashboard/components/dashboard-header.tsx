@@ -17,7 +17,7 @@ export default function DashboardHeader() {
     userName,
     userRole,
   } = useAuth();
-  const { tenant } = useDashboardData();
+  const { tenant, tenantResolved } = useDashboardData();
   const { isOpen: hostelSidebarOpen, setIsOpen: setHostelSidebarOpen } =
     useHostelSidebarState();
 
@@ -32,6 +32,7 @@ export default function DashboardHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [businessToolsOpen, setBusinessToolsOpen] = useState(false);
 
   /*
    * A tenant using the Hostel theme should get Hostel navigation
@@ -41,7 +42,7 @@ export default function DashboardHeader() {
    * existing /dashboard/hostel/* URLs continue to work.
    */
   const isHostelTheme =
-    tenant?.theme?.trim().toLowerCase() === 'hostel';
+    tenantResolved && tenant?.theme?.trim().toLowerCase() === 'hostel';
 
   const isHostelRoute = pathname.startsWith('/dashboard/hostel');
 
@@ -297,16 +298,6 @@ export default function DashboardHeader() {
       label: 'Analytics',
       onPress: goToAnalytics,
     },
-    {
-      key: 'settings',
-      label: 'Settings',
-      onPress: goToSettings,
-    },
-    {
-      key: 'help',
-      label: 'Help',
-      onPress: goToHelp,
-    },
   ];
 
   const dashboardNavigationItems = [
@@ -516,37 +507,18 @@ export default function DashboardHeader() {
                 zIndex: 200,
               }}
             >
-              <div className="hostel-global-mobile-links">
-                <div className="hostel-navigation-group-title">
-                  Dashboard
-                </div>
-                {globalNavigationItems.map((item) => (
-                  <button
-                    type="button"
-                    key={item.key}
-                    onClick={item.onPress}
-                    aria-current={
-                      isGlobalItemActive(item.key) ? 'page' : undefined
-                    }
-                    style={{
-                      width: '100%',
-                      border: 'none',
-                      borderRadius: 10,
-                      background: isGlobalItemActive(item.key)
-                        ? 'var(--primary-soft)'
-                        : 'transparent',
-                      color: 'var(--text)',
-                      padding: '10px 12px',
-                      textAlign: 'left',
-                      fontSize: 14,
-                      fontWeight: isGlobalItemActive(item.key) ? 600 : 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              {/* Hostel Workspace heading */}
+              <div className="hostel-navigation-group-title">
+                Hostel Workspace
               </div>
+
+              {/* Existing Hostel links and permissions remain unchanged */}
+              <HostelWorkspaceNavigation
+                idPrefix="hostel-mobile-navigation"
+                onNavigate={() => setMenuOpen(false)}
+              />
+
+              {/* Separator before less frequently used tools */}
               <div
                 aria-hidden="true"
                 style={{
@@ -555,13 +527,97 @@ export default function DashboardHeader() {
                   background: 'var(--card-border)',
                 }}
               />
-              <div className="hostel-navigation-group-title">
-                Hostel Workspace
-              </div>
-              <HostelWorkspaceNavigation
-                idPrefix="hostel-mobile-navigation"
-                onNavigate={() => setMenuOpen(false)}
-              />
+
+              {/* Expandable Business Tools menu */}
+              <button
+                type="button"
+                aria-expanded={businessToolsOpen}
+                aria-controls="hostel-business-tools-submenu"
+                onClick={() =>
+                  setBusinessToolsOpen((previous) => !previous)
+                }
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  border: 'none',
+                  borderRadius: 10,
+                  background: businessToolsOpen
+                    ? 'var(--primary-soft, #eff6ff)'
+                    : 'transparent',
+                  color: 'var(--text)',
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>Business Tools</span>
+
+                <ChevronDown
+                  size={16}
+                  aria-hidden="true"
+                  style={{
+                    transform: businessToolsOpen
+                      ? 'rotate(180deg)'
+                      : 'rotate(0deg)',
+                    transition: 'transform 160ms ease',
+                    flexShrink: 0,
+                  }}
+                />
+              </button>
+
+              {/* Lead View, Customize and Analytics */}
+              {businessToolsOpen && (
+                <div
+                  id="hostel-business-tools-submenu"
+                  style={{
+                    paddingLeft: 12,
+                  }}
+                >
+                  {globalNavigationItems
+                    .filter((item) =>
+                      ['lead-view', 'customize', 'analytics'].includes(
+                        item.key,
+                      ),
+                    )
+                    .map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={item.onPress}
+                        aria-current={
+                          isGlobalItemActive(item.key)
+                            ? 'page'
+                            : undefined
+                        }
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          border: 'none',
+                          borderRadius: 10,
+                          background: isGlobalItemActive(item.key)
+                            ? 'var(--primary-soft, #eff6ff)'
+                            : 'transparent',
+                          color: 'var(--text)',
+                          padding: '10px 12px',
+                          textAlign: 'left',
+                          fontSize: 14,
+                          fontWeight: isGlobalItemActive(item.key)
+                            ? 600
+                            : 500,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -626,9 +682,6 @@ export default function DashboardHeader() {
               }}
             >
               <UserRound size={18} aria-hidden="true" />
-              <span className="dashboard-profile-name">
-                {userName?.trim() || 'Profile'}
-              </span>
               <ChevronDown size={15} aria-hidden="true" />
             </button>
             <div
@@ -666,7 +719,7 @@ export default function DashboardHeader() {
                 tabIndex={profileOpen ? 0 : -1}
                 onClick={goToSettings}
               >
-                Account Settings
+                Settings
               </button>
               <button
                 type="button"

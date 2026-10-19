@@ -1,11 +1,8 @@
 import { Suspense } from 'react';
-import BottomNav from '@/components/bottom-nav';
-import DashboardHeader from './components/dashboard-header';
 import RequireAuth from './components/require-auth';
 import { DashboardDataProvider } from '@/context/DashboardDataContext';
 import DashboardTenantFontScope from './components/dashboard-tenant-font-scope';
-import DashboardShell from './components/dashboard-shell';
-import { HostelSidebarStateProvider } from './components/hostel-sidebar-state';
+import DashboardLayoutContent from './components/dashboard-layout-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,15 +32,9 @@ export default function DashboardLayout({
           <RequireAuth>
             <DashboardTenantFontScope>
               <DashboardDataProvider>
-                <HostelSidebarStateProvider>
-                  <DashboardHeader />
-
-                  <DashboardShell>
-                    {children}
-                  </DashboardShell>
-
-                  <BottomNav />
-                </HostelSidebarStateProvider>
+                <DashboardLayoutContent>
+                  {children}
+                </DashboardLayoutContent>
               </DashboardDataProvider>
             </DashboardTenantFontScope>
           </RequireAuth>
