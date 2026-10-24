@@ -590,6 +590,8 @@ export default function HostelDashboard() {
   >([]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadDashboardData() {
       try {
         const propertyResponse = await api.get<
@@ -599,10 +601,12 @@ export default function HostelDashboard() {
         const hostelId = propertyResponse.data[0]?.id;
 
         if (!hostelId) {
-          setTotalStudents(0);
-          setVacancySummary(null);
-          setDashboardSummary(null);
-          setRecentActivity([]);
+          if (!cancelled) {
+            setTotalStudents(0);
+            setVacancySummary(null);
+            setDashboardSummary(null);
+            setRecentActivity([]);
+          }
           return;
         }
 
@@ -634,38 +638,48 @@ export default function HostelDashboard() {
           ),
         ]);
 
-        if (activityResult.status === 'fulfilled') {
-          setRecentActivity(activityResult.value.data);
-        } else {
-          setRecentActivity([]);
-        }
+        if (!cancelled) {
+          if (activityResult.status === 'fulfilled') {
+            setRecentActivity(activityResult.value.data);
+          } else {
+            setRecentActivity([]);
+          }
 
-        if (vacancyResult.status === 'fulfilled') {
-          setVacancySummary(vacancyResult.value.data);
-        } else {
-          setVacancySummary(null);
-        }
+          if (vacancyResult.status === 'fulfilled') {
+            setVacancySummary(vacancyResult.value.data);
+          } else {
+            setVacancySummary(null);
+          }
 
-        if (studentResult.status === 'fulfilled') {
-          setTotalStudents(studentResult.value.data.pagination.total);
-        } else {
-          setTotalStudents(null);
-        }
+          if (studentResult.status === 'fulfilled') {
+            setTotalStudents(studentResult.value.data.pagination.total);
+          } else {
+            setTotalStudents(null);
+          }
 
-        if (summaryResult.status === 'fulfilled') {
-          setDashboardSummary(summaryResult.value.data);
-        } else {
-          setDashboardSummary(null);
+          if (summaryResult.status === 'fulfilled') {
+            setDashboardSummary(summaryResult.value.data);
+          } else {
+            setDashboardSummary(null);
+          }
         }
       } catch {
-        setTotalStudents(null);
-        setVacancySummary(null);
-        setDashboardSummary(null);
-        setRecentActivity([]);
+        if (!cancelled) {
+          setTotalStudents(null);
+          setVacancySummary(null);
+          setDashboardSummary(null);
+          setRecentActivity([]);
+        }
       }
     }
 
     void loadDashboardData();
+    window.addEventListener('hostel:admission-created', loadDashboardData);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('hostel:admission-created', loadDashboardData);
+    };
   }, []);
 
   const roleLabel = userRole

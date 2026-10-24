@@ -18,6 +18,13 @@ type Room = {
   occupied?: number;
   occupancy?: number;
   status?: string;
+  beds?: Array<{
+    id: string;
+    bedNumber: string;
+    status: 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'INACTIVE';
+    studentId?: string | null;
+    student?: Student;
+  }>;
   hostelId?: string;
   hostel?: {
     id?: string;
@@ -29,18 +36,19 @@ type Allocation = {
   id?: string;
   studentId?: string;
   roomId?: string;
+  bedId?: string;
+  bedNumber?: string;
   status?: string;
-  checkInDate?: string;
-  checkOutDate?: string;
-  allocatedAt?: string;
-  createdAt?: string;
+  checkedInAt?: string;
+  checkedOutAt?: string | null;
+  bed?: { id: string; bedNumber: string };
   student?: Student;
   room?: Room;
 };
 
 type ApiResponse = {
   items?: unknown[];
-  data?: unknown[];
+  data?: unknown;
   total?: number;
 };
 
@@ -58,6 +66,14 @@ function getItems(response: unknown): unknown[] {
 
     if (Array.isArray(value.data)) {
       return value.data;
+    }
+
+    if (value.data && typeof value.data === 'object') {
+      const data = value.data as { items?: unknown[] };
+
+      if (Array.isArray(data.items)) {
+        return data.items;
+      }
     }
   }
 
@@ -97,12 +113,14 @@ function getRoomName(room?: Room) {
 }
 
 export default function HostelCheckinCheckoutPage() {
+  const [hostelId, setHostelId] = useState('');
   const [students, setStudents] = useState<Student[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
 
   const [studentId, setStudentId] = useState('');
   const [roomId, setRoomId] = useState('');
+  const [bedId, setBedId] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -119,10 +137,7 @@ export default function HostelCheckinCheckoutPage() {
     setError('');
 
     try {
-      const [studentsResponse, propertiesResponse] = await Promise.all([
-        api.get('/hostel/students?page=1&limit=100'),
-        api.get('/hostel/properties'),
-      ]);
+      const propertiesResponse = await api.get('/hostel/properties');
 
       const properties = getItems(propertiesResponse) as Array<{
         id?: string;
@@ -134,9 +149,19 @@ export default function HostelCheckinCheckoutPage() {
         throw new Error('No hostel property found for this tenant.');
       }
 
-      const roomsResponse = await api.get(
-        `/hostel/rooms?page=1&limit=100&hostelId=${encodeURIComponent(hostelId)}`,
-      );
+      setHostelId(hostelId);
+
+      const [studentsResponse, roomsResponse, staysResponse] = await Promise.all([
+        api.get(
+          `/hostel/students?hostelId=${encodeURIComponent(hostelId)}&page=1&limit=100`,
+        ),
+        api.get(
+          `/hostel/rooms?page=1&limit=100&hostelId=${encodeURIComponent(hostelId)}`,
+        ),
+        api.get(
+          `/hostel/stays?hostelId=${encodeURIComponent(hostelId)}&status=ALL&page=1&limit=100`,
+        ),
+      ]);
 
       const studentItems = getItems(studentsResponse);
       const roomItems = getItems(roomsResponse);
@@ -147,44 +172,7 @@ export default function HostelCheckinCheckoutPage() {
       setStudents(nextStudents);
       setRooms(nextRooms);
 
-      /*
-      * The existing rooms API is the source of current allocations.
-      * Some versions of the backend return allocations directly on rooms.
-      */
-      const nextAllocations: Allocation[] = [];
-
-      nextRooms.forEach((room) => {
-        const roomWithAllocations = room as Room & {
-          allocations?: Allocation[];
-          students?: Student[];
-        };
-
-        if (Array.isArray(roomWithAllocations.allocations)) {
-          roomWithAllocations.allocations.forEach((allocation) => {
-            nextAllocations.push({
-              ...allocation,
-              room: allocation.room || room,
-            });
-          });
-        }
-
-        if (
-          Array.isArray(roomWithAllocations.students) &&
-          roomWithAllocations.students.length > 0
-        ) {
-          roomWithAllocations.students.forEach((student) => {
-            nextAllocations.push({
-              studentId: student.id,
-              roomId: room.id,
-              student,
-              room,
-              status: 'ACTIVE',
-            });
-          });
-        }
-      });
-
-      setAllocations(nextAllocations);
+      setAllocations(getItems(staysResponse) as Allocation[]);
     } catch (err) {
       console.error('Failed to load check-in/check-out data:', err);
 
@@ -207,12 +195,7 @@ export default function HostelCheckinCheckoutPage() {
       allocations.filter((allocation) => {
         const status = String(allocation.status || '').toUpperCase();
 
-        return (
-          status === 'ACTIVE' ||
-          status === 'ALLOCATED' ||
-          status === 'CHECKED_IN' ||
-          !status
-        );
+        return status === 'ACTIVE';
       }),
     [allocations],
   );
@@ -261,25 +244,20 @@ export default function HostelCheckinCheckoutPage() {
           return false;
         }
 
-        const capacity = Number(room.capacity || 0);
-        const occupied = Number(
-          room.occupied ?? room.occupancy ?? 0,
-        );
-
-        if (capacity > 0 && occupied >= capacity) {
-          return false;
-        }
-
-        return true;
+        return room.beds?.some(
+          (bed) =>
+            bed.status === 'AVAILABLE' ||
+            (bed.status === 'RESERVED' && bed.studentId === studentId),
+        ) ?? false;
       }),
-    [rooms],
+    [rooms, studentId],
   );
 
   async function handleCheckIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!studentId || !roomId) {
-      setError('Please select both a student and a room.');
+    if (!studentId || !roomId || !bedId) {
+      setError('Please select a student, room, and available bed.');
       return;
     }
 
@@ -289,13 +267,16 @@ export default function HostelCheckinCheckoutPage() {
 
     try {
       await api.post('/hostel/rooms/allocate', {
+        hostelId,
         studentId,
         roomId,
+        bedId,
       });
 
-      setSuccess('Student checked in and room allocated successfully.');
+      setSuccess('Student checked in; the stay and check-in time were recorded.');
       setStudentId('');
       setRoomId('');
+      setBedId('');
 
       await loadData();
     } catch (err) {
@@ -312,8 +293,8 @@ export default function HostelCheckinCheckoutPage() {
   }
 
   async function handleCheckout(allocation: Allocation) {
-    if (!allocation.studentId || !allocation.roomId) {
-      setError('Unable to identify the student or room for checkout.');
+    if (!allocation.studentId || !allocation.roomId || !allocation.bedId) {
+      setError('Unable to identify the student, room, or bed for checkout.');
       return;
     }
 
@@ -333,11 +314,13 @@ export default function HostelCheckinCheckoutPage() {
 
     try {
       await api.post('/hostel/rooms/deallocate', {
+        hostelId,
         studentId: allocation.studentId,
         roomId: allocation.roomId,
+        bedId: allocation.bedId,
       });
 
-      setSuccess('Student checked out successfully.');
+      setSuccess('Student checked out; the stay was closed and the bed released.');
 
       await loadData();
     } catch (err) {
@@ -777,12 +760,20 @@ export default function HostelCheckinCheckoutPage() {
                 id="student"
                 className="select"
                 value={studentId}
-                onChange={(event) => setStudentId(event.target.value)}
+                onChange={(event) => {
+                  setStudentId(event.target.value);
+                  setBedId('');
+                }}
                 disabled={loading || submitting}
               >
                 <option value="">Select student</option>
 
-                {students.map((student) => (
+                {students
+                  .filter(
+                    (student) =>
+                      !activeAllocations.some((stay) => stay.studentId === student.id),
+                  )
+                  .map((student) => (
                   <option key={student.id} value={student.id}>
                     {getStudentName(student)}
                     {student.admissionNumber
@@ -802,7 +793,10 @@ export default function HostelCheckinCheckoutPage() {
                 id="room"
                 className="select"
                 value={roomId}
-                onChange={(event) => setRoomId(event.target.value)}
+                onChange={(event) => {
+                  setRoomId(event.target.value);
+                  setBedId('');
+                }}
                 disabled={loading || submitting}
               >
                 <option value="">Select available room</option>
@@ -815,6 +809,26 @@ export default function HostelCheckinCheckoutPage() {
                       : ''}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="bed">Bed</label>
+              <select
+                id="bed"
+                className="select"
+                value={bedId}
+                onChange={(event) => setBedId(event.target.value)}
+                disabled={loading || submitting || !roomId}
+              >
+                <option value="">Select available bed</option>
+                {(rooms.find((room) => room.id === roomId)?.beds ?? [])
+                  .filter(
+                    (bed) =>
+                      bed.status === 'AVAILABLE' ||
+                      (bed.status === 'RESERVED' && bed.studentId === studentId),
+                  )
+                  .map((bed) => <option key={bed.id} value={bed.id}>{bed.bedNumber}</option>)}
               </select>
             </div>
 
@@ -877,8 +891,10 @@ export default function HostelCheckinCheckoutPage() {
                     <tr>
                       <th>Student</th>
                       <th>Room</th>
+                      <th>Bed</th>
                       <th>Status</th>
                       <th>Check-in</th>
+                      <th>Check-out</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -905,6 +921,8 @@ export default function HostelCheckinCheckoutPage() {
 
                         <td>{getRoomName(allocation.room)}</td>
 
+                        <td>{allocation.bed?.bedNumber ?? allocation.bedNumber ?? '—'}</td>
+
                         <td>
                           <span className="status">
                             {allocation.status || 'ACTIVE'}
@@ -912,12 +930,10 @@ export default function HostelCheckinCheckoutPage() {
                         </td>
 
                         <td>
-                          {formatDate(
-                            allocation.checkInDate ||
-                              allocation.allocatedAt ||
-                              allocation.createdAt,
-                          )}
+                          {formatDate(allocation.checkedInAt)}
                         </td>
+
+                        <td>{formatDate(allocation.checkedOutAt ?? undefined)}</td>
 
                         <td>
                           {activeTab === 'active' ? (
@@ -972,6 +988,13 @@ export default function HostelCheckinCheckoutPage() {
                     </div>
 
                     <div className="mobile-row">
+                      <span className="mobile-label">Bed</span>
+                      <span className="mobile-value">
+                        {allocation.bed?.bedNumber ?? allocation.bedNumber ?? '—'}
+                      </span>
+                    </div>
+
+                    <div className="mobile-row">
                       <span className="mobile-label">Status</span>
                       <span className="mobile-value">
                         {allocation.status || 'ACTIVE'}
@@ -981,11 +1004,14 @@ export default function HostelCheckinCheckoutPage() {
                     <div className="mobile-row">
                       <span className="mobile-label">Check-in</span>
                       <span className="mobile-value">
-                        {formatDate(
-                          allocation.checkInDate ||
-                            allocation.allocatedAt ||
-                            allocation.createdAt,
-                        )}
+                        {formatDate(allocation.checkedInAt)}
+                      </span>
+                    </div>
+
+                    <div className="mobile-row">
+                      <span className="mobile-label">Check-out</span>
+                      <span className="mobile-value">
+                        {formatDate(allocation.checkedOutAt ?? undefined)}
                       </span>
                     </div>
 

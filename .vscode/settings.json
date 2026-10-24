@@ -25,6 +25,19 @@
         "source.fixAll.eslint": "explicit"
     },
     "chat.tools.terminal.autoApprove": {
-        "pnpm": true
+        "pnpm": true,
+        "/^cmd\\.exe /c ver$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^set DATABASE_URL=postgresql://local:local@localhost:5432/local&& pnpm --filter @saas/database exec prisma validate --schema prisma/schema\\.prisma$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "set": true,
+        "/^cmd\\.exe /c \"set DATABASE_URL=postgresql://local:local@localhost:5432/local&& pnpm --filter @saas/database exec prisma validate --schema prisma/schema\\.prisma\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

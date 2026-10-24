@@ -2,8 +2,10 @@ import {
   HostelPropertyPrismaRepository,
   type HostelRepository,
 } from '../infrastructure/hostel-property.prisma.repository';
+import { LeadLifecycleService } from '../../lead/infrastructure/lead-lifecycle.service';
 
 const defaultRepository = new HostelPropertyPrismaRepository();
+const leadLifecycleService = new LeadLifecycleService();
 
 function requiredText(value: unknown, label: string, maxLength = 120): string {
   if (typeof value !== 'string' || !value.trim()) {
@@ -61,16 +63,23 @@ const ROOM_STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'INACTIVE'] as co
 const FEE_TYPES = [
   'MONTHLY',
   'ADMISSION',
-  'SECURITY_DEPOSIT',
   'MESS',
   'ELECTRICITY',
   'MAINTENANCE',
   'OTHER',
 ] as const;
+const FEE_FREQUENCIES = [
+  'MONTHLY',
+  'QUARTERLY',
+  'HALF_YEARLY',
+  'YEARLY',
+  'ONE_TIME',
+] as const;
 const FEE_ASSIGNMENT_STATUSES = ['ACTIVE', 'WAIVED', 'CANCELLED'] as const;
 const INVOICE_STATUSES = ['DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'] as const;
 
 const DEPOSIT_STATUSES = ['PENDING', 'DEPOSITED', 'RECONCILED', 'CANCELLED'] as const;
+const DEPOSIT_TYPES = ['SECURITY_DEPOSIT', 'ADVANCE_RENT', 'OTHER'] as const;
 const PAYMENT_METHODS = ['UPI'] as const;
 
 const LEDGER_ENTRY_TYPES = [
@@ -167,6 +176,12 @@ export class HostelPropertyService {
       hostelId: requiredText(input.hostelId, 'hostelId'),
       name: requiredText(input.name, 'Fee name'),
       type: enumValue(input.type, FEE_TYPES, 'Fee type', 'OTHER'),
+      billingFrequency: enumValue(
+        input.billingFrequency ?? input.frequency,
+        FEE_FREQUENCIES,
+        'Billing frequency',
+        'MONTHLY',
+      ),
       description:
         input.description === undefined
           ? undefined
@@ -197,6 +212,15 @@ export class HostelPropertyService {
         input.type === undefined
           ? undefined
           : enumValue(input.type, FEE_TYPES, 'Fee type', 'OTHER'),
+      billingFrequency:
+        input.billingFrequency === undefined && input.frequency === undefined
+          ? undefined
+          : enumValue(
+              input.billingFrequency ?? input.frequency,
+              FEE_FREQUENCIES,
+              'Billing frequency',
+              'MONTHLY',
+            ),
       description:
         input.description === undefined
           ? undefined
@@ -569,11 +593,23 @@ export class HostelPropertyService {
     });
   }
 
+  async reserveStudent(tenantId: string, input: Record<string, unknown>, actorId?: string) {
+    return this.repository.reserveStudent({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(input.hostelId, 'hostelId'),
+      roomId: requiredText(input.roomId, 'roomId'),
+      bedId: requiredText(input.bedId, 'bedId'),
+      studentId: requiredText(input.studentId, 'studentId'),
+      actorId,
+    });
+  }
+
   async allocateStudent(tenantId: string, input: Record<string, unknown>, actorId?: string) {
     return this.repository.allocateStudent({
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
       roomId: requiredText(input.roomId, 'roomId'),
+      bedId: requiredText(input.bedId, 'bedId'),
       studentId: requiredText(input.studentId, 'studentId'),
       actorId,
     });
@@ -584,6 +620,7 @@ export class HostelPropertyService {
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
       roomId: requiredText(input.roomId, 'roomId'),
+      bedId: requiredText(input.bedId, 'bedId'),
       studentId: requiredText(input.studentId, 'studentId'),
       actorId,
     });
@@ -596,6 +633,34 @@ export class HostelPropertyService {
       studentId: requiredText(input.studentId, 'studentId'),
       actorId,
     });
+  }
+
+  async listStays(
+    tenantId: string,
+    input: { hostelId?: unknown; status?: unknown; page: number; limit: number },
+  ) {
+    const page = Math.max(1, input.page);
+    const limit = Math.min(100, Math.max(1, input.limit));
+    const status =
+      input.status === undefined || input.status === null || input.status === '' || input.status === 'ALL'
+        ? undefined
+        : enumValue(input.status, ['ACTIVE', 'CHECKED_OUT'] as const, 'Stay status', 'ACTIVE');
+    const result = await this.repository.listStays({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(input.hostelId, 'hostelId'),
+      status,
+      page,
+      limit,
+    });
+    return {
+      items: result.items,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.max(1, Math.ceil(result.total / limit)),
+      },
+    };
   }
 
   async allocationHistory(tenantId: string, roomId: unknown) {
@@ -683,14 +748,89 @@ export class HostelPropertyService {
     });
   }
 
-  async createStudent(tenantId: string, input: Record<string, unknown>) {
+  async createHostelEnquiry(
+    tenantId: string,
+    input: Record<string, unknown>,
+    actorUserId?: string,
+  ) {
+    return leadLifecycleService.upsertLead({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(input.hostelId, 'hostelId'),
+      actorUserId,
+      name: requiredText(input.name, 'Name'),
+      phone: requiredText(input.phone, 'Phone', 40),
+      email: input.email === undefined ? undefined : requiredText(input.email, 'Email', 160),
+      location: input.location === undefined ? undefined : requiredText(input.location, 'Location'),
+      notes: input.notes === undefined ? undefined : requiredText(input.notes, 'Notes', 1000),
+      source: 'HOSTEL_ENQUIRY',
+      actionType: 'enquiry_click',
+      metadata: { source: 'hostel_admission' },
+    });
+  }
+
+  async listHostelEnquiries(tenantId: string, hostelId: unknown) {
+    return this.repository.listHostelEnquiries({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(hostelId, 'hostelId'),
+    });
+  }
+
+  async convertHostelEnquiry(
+    tenantId: string,
+    leadId: unknown,
+    input: Record<string, unknown>,
+    actorId?: string,
+  ) {
+    const roomId = input.roomId ? requiredText(input.roomId, 'roomId') : undefined;
+    const bedId = input.bedId ? requiredText(input.bedId, 'bedId') : undefined;
+    if (Boolean(roomId) !== Boolean(bedId)) {
+      throw new Error('roomId and bedId must be provided together');
+    }
+
+    return this.repository.convertHostelEnquiry({
+      tenantId: tenantIdValue(tenantId),
+      hostelId: requiredText(input.hostelId, 'hostelId'),
+      leadId: requiredText(leadId, 'leadId'),
+      name: requiredText(input.name, 'Student name'),
+      email: input.email === undefined || input.email === '' ? undefined : requiredText(input.email, 'Email', 160),
+      phone: requiredText(input.phone, 'Phone', 40),
+      dateOfBirth: optionalDate(input.dateOfBirth, 'Date of birth'),
+      emergencyName:
+        input.emergencyName === undefined || input.emergencyName === ''
+          ? undefined
+          : requiredText(input.emergencyName, 'Emergency contact name'),
+      emergencyPhone:
+        input.emergencyPhone === undefined || input.emergencyPhone === ''
+          ? undefined
+          : requiredText(input.emergencyPhone, 'Emergency contact phone', 40),
+      emergencyRelation:
+        input.emergencyRelation === undefined || input.emergencyRelation === ''
+          ? undefined
+          : requiredText(input.emergencyRelation, 'Emergency contact relation', 60),
+      admissionDate: requiredDate(input.admissionDate, 'Admission date'),
+      roomId,
+      bedId,
+      actorId,
+    });
+  }
+
+  async createStudent(tenantId: string, input: Record<string, unknown>, actorId?: string) {
+    const roomId = input.roomId ? requiredText(input.roomId, 'roomId') : undefined;
+    const bedId = input.bedId ? requiredText(input.bedId, 'bedId') : undefined;
+    if (Boolean(roomId) !== Boolean(bedId)) {
+      throw new Error('roomId and bedId must be provided together');
+    }
+
     const email = input.email === undefined ? undefined : requiredText(input.email, 'Email', 160);
     const phone = input.phone === undefined ? undefined : requiredText(input.phone, 'Phone', 40);
 
     return this.repository.createStudent({
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
-      roomId: input.roomId === undefined ? undefined : requiredText(input.roomId, 'roomId'),
+      admissionRequestId: requiredText(input.admissionRequestId, 'admissionRequestId', 100),
+      roomId,
+      bedId,
+      actorId,
       name: requiredText(input.name, 'Student name'),
       email,
       phone,
@@ -714,15 +854,13 @@ export class HostelPropertyService {
   }
 
   async updateStudent(tenantId: string, id: unknown, input: Record<string, unknown>) {
+    if (input.roomId !== undefined) {
+      throw new Error('Use the room allocation endpoint to change a bed assignment');
+    }
+
     return this.repository.updateStudent({
       tenantId: tenantIdValue(tenantId),
       id: requiredText(id, 'studentId'),
-      roomId:
-        input.roomId === undefined
-          ? undefined
-          : input.roomId === null
-            ? null
-            : requiredText(input.roomId, 'roomId'),
       name: input.name === undefined ? undefined : requiredText(input.name, 'Student name'),
       email:
         input.email === undefined
@@ -1413,10 +1551,26 @@ export class HostelPropertyService {
       'Payment method',
       'UPI',
     );
+    const depositType = enumValue(
+      input.depositType,
+      DEPOSIT_TYPES,
+      'Deposit type',
+      'OTHER',
+    );
+    const studentId =
+      input.studentId === undefined || input.studentId === null || input.studentId === ''
+        ? undefined
+        : requiredText(input.studentId, 'studentId');
+
+    if (depositType === 'SECURITY_DEPOSIT' && !studentId) {
+      throw new Error('A student is required for a security deposit');
+    }
 
     return this.repository.createDeposit({
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
+      depositType,
+      studentId,
       amount: Math.round(amount * 100) / 100,
       currency:
         input.currency === undefined
@@ -1425,9 +1579,15 @@ export class HostelPropertyService {
       depositDate,
       paymentMethod,
       reference:
-        input.reference === undefined
+        input.referenceNumber === undefined && input.reference === undefined
           ? undefined
-          : requiredText(input.reference, 'Reference number', 160),
+          : requiredText(
+              input.referenceNumber === undefined
+                ? input.reference
+                : input.referenceNumber,
+              'Reference number',
+              160,
+            ),
       depositedBy:
         input.depositedBy === undefined
           ? actorId
@@ -1457,9 +1617,21 @@ export class HostelPropertyService {
         ? undefined
         : requiredDate(input.depositDate, 'Deposit date');
 
+    const studentId =
+      input.studentId === undefined
+        ? undefined
+        : input.studentId === null || input.studentId === ''
+          ? null
+          : requiredText(input.studentId, 'studentId');
+
     return this.repository.updateDeposit({
       tenantId: tenantIdValue(tenantId),
       id: requiredText(id, 'depositId'),
+      depositType:
+        input.depositType === undefined
+          ? undefined
+          : enumValue(input.depositType, DEPOSIT_TYPES, 'Deposit type', 'OTHER'),
+      studentId,
       amount:
         amount === undefined ? undefined : Math.round(amount * 100) / 100,
       currency:
@@ -1477,11 +1649,17 @@ export class HostelPropertyService {
               'UPI',
             ),
       reference:
-        input.reference === undefined
+        input.referenceNumber === undefined && input.reference === undefined
           ? undefined
-          : input.reference === null
+          : (input.referenceNumber === undefined ? input.reference : input.referenceNumber) === null
             ? null
-            : requiredText(input.reference, 'Reference number', 160),
+            : requiredText(
+                input.referenceNumber === undefined
+                  ? input.reference
+                  : input.referenceNumber,
+                'Reference number',
+                160,
+              ),
       depositedBy:
         input.depositedBy === undefined
           ? undefined

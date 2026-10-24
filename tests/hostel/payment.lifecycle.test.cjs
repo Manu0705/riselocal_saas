@@ -78,10 +78,17 @@ test('verification returns a receipt only through the verification operation', a
 test('payment API routes and gateway-free UPI behavior are present', () => {
   const routes = read('apps/api/src/modules/hostel/presentation/hostel.routes.ts');
   const controller = read('apps/api/src/modules/hostel/presentation/hostel.controller.ts');
-  assert.match(routes, /\/payments\/initiate/);
-  assert.match(routes, /\/payments\/:id\/submit/);
-  assert.match(routes, /\/payments\/:id\/verify/);
-  assert.match(routes, /\/payments\/:id\/reject/);
+  const operationsPage = read(
+    'apps/web/app/(dashboard)/dashboard/hostel/operations/page.tsx',
+  );
+  assert.match(routes, /router\.post\(\s*'\/hostel\/payments'/);
+  assert.match(routes, /router\.get\('\/hostel\/payments'/);
+  assert.match(routes, /\/hostel\/payments\/:id\/submit/);
+  assert.match(routes, /\/hostel\/payments\/:id\/verify/);
+  assert.match(routes, /\/hostel\/payments\/:id\/reject/);
+  assert.match(operationsPage, /`\/hostel\/payments\$\{query\}`/);
+  assert.match(operationsPage, /'\/hostel\/payments', \{ studentId:/);
+  assert.match(operationsPage, /`\/hostel\/payments\/\$\{activePayment\.id\}\/submit`/);
   assert.match(controller, /upi:\/\/pay/);
   assert.match(controller, /does not process or confirm/);
 });

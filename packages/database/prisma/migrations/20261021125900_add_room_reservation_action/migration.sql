@@ -1,0 +1,1 @@
+ALTER TYPE "RoomAllocationAction" ADD VALUE IF NOT EXISTS 'RESERVED';

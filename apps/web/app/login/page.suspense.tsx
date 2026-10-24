@@ -55,26 +55,33 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Detect tenant from subdomain hostname when no ?tenant param is present.
+  // Detect tenant from the hostname or the last selected tenant when no
+  // ?tenant param is present.
   useEffect(() => {
-    if (!tenant && typeof window !== 'undefined') {
-      const parts = window.location.hostname.split('.');
+    if (tenant || typeof window === 'undefined') return;
 
-      const isProductionTenantSubdomain =
-        parts.length >= 3 &&
-        parts[0] !== 'www' &&
-        parts.slice(-2).join('.') === 'riselocal.in';
+    const parts = window.location.hostname.split('.');
+    const isProductionTenantSubdomain =
+      parts.length >= 3 &&
+      parts[0] !== 'www' &&
+      parts.slice(-2).join('.') === 'riselocal.in';
+    const isLocalTenantSubdomain =
+      parts.length === 2 &&
+      parts[1] === 'localhost' &&
+      parts[0] !== 'www';
 
-      const isLocalTenantSubdomain =
-        parts.length === 2 &&
-        parts[1] === 'localhost' &&
-        parts[0] !== 'www';
-
-      if (isProductionTenantSubdomain || isLocalTenantSubdomain) {
-        setTenant(parts[0].toLowerCase());
-      }
+    if (isProductionTenantSubdomain || isLocalTenantSubdomain) {
+      setTenant(parts[0].toLowerCase());
+      return;
     }
-  }, []);
+
+    try {
+      const lastTenant = localStorage.getItem(LAST_TENANT_KEY)?.trim().toLowerCase();
+      if (lastTenant) setTenant(lastTenant);
+    } catch {
+      // Tenant context remains optional when browser storage is unavailable.
+    }
+  }, [tenant]);
 
   useEffect(() => {
     if (tenant) {

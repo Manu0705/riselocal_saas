@@ -27,6 +27,13 @@ type HostelRoom = {
   vacancyStatus: string;
   isActive: boolean;
   status: string;
+  beds: Array<{
+    id: string;
+    bedNumber: string;
+    status: 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'INACTIVE';
+    studentId: string | null;
+    student?: { id: string; name: string; admissionNumber: string } | null;
+  }>;
 };
 
 type HostelStudent = {
@@ -106,6 +113,7 @@ export default function HostelPage() {
   const [vacancySummary, setVacancySummary] = useState<VacancySummary | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<HostelRoom | null>(null);
   const [allocationStudentId, setAllocationStudentId] = useState('');
+  const [allocationBedId, setAllocationBedId] = useState('');
   const [students, setStudents] = useState<HostelStudent[]>([]);
   const [studentPagination, setStudentPagination] = useState<StudentPage['pagination'] | null>(
     null,
@@ -252,7 +260,7 @@ export default function HostelPage() {
           ? `?studentId=${encodeURIComponent(selectedStudentId)}`
           : '';
         const response = await api.get<ApiResponse<{ items: HostelPayment[] }>>(
-          `/payments${query}`,
+          `/hostel/payments${query}`,
         );
         setPayments(response.data.items);
       } catch (loadError) {
@@ -318,15 +326,17 @@ export default function HostelPage() {
     }
   }
 
-  async function allocateStudent(roomId: string) {
-    if (!allocationStudentId) return;
+  async function allocateStudent(roomId: string, bedId: string) {
+    if (!allocationStudentId || !bedId) return;
     try {
       await api.post('/hostel/rooms/allocate', {
         hostelId: selectedHostelId,
         roomId,
+        bedId,
         studentId: allocationStudentId,
       });
       setAllocationStudentId('');
+      setAllocationBedId('');
       toast.success('Student allocated');
       const query = `?hostelId=${encodeURIComponent(selectedHostelId)}`;
       const response = await api.get<ApiResponse<RoomPage>>(`/hostel/rooms${query}`);
@@ -337,12 +347,13 @@ export default function HostelPage() {
     }
   }
 
-  async function deallocateStudent(roomId: string) {
-    if (!selectedStudentId) return;
+  async function deallocateStudent(roomId: string, bedId: string) {
+    if (!selectedStudentId || !bedId) return;
     try {
       await api.post('/hostel/rooms/deallocate', {
         hostelId: selectedHostelId,
         roomId,
+        bedId,
         studentId: selectedStudentId,
       });
       toast.success('Student deallocated');
@@ -413,7 +424,7 @@ export default function HostelPage() {
       const response = await api.post<
         ApiResponse<HostelPayment>,
         { studentId: string; amount: number }
-      >('/payments/initiate', { studentId: selectedStudentId, amount: Number(paymentAmount) });
+      >('/hostel/payments', { studentId: selectedStudentId, amount: Number(paymentAmount) });
       setActivePayment(response.data);
       setPayments((current) => [response.data, ...current]);
       toast.success('Payment request created');
@@ -437,7 +448,7 @@ export default function HostelPage() {
         proofUrl = uploadResponse.data.url;
       }
       const response = await api.post<ApiResponse<HostelPayment>, Record<string, unknown>>(
-        `/payments/${activePayment.id}/submit`,
+        `/hostel/payments/${activePayment.id}/submit`,
         {
           utr: paymentUtr,
           transactionReferenceId: paymentReference || undefined,
@@ -691,9 +702,15 @@ export default function HostelPage() {
                 key={room.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedRoom(room)}
+                onClick={() => {
+                  setSelectedRoom(room);
+                  setAllocationBedId('');
+                }}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') setSelectedRoom(room);
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    setSelectedRoom(room);
+                    setAllocationBedId('');
+                  }
                 }}
                 style={{
                   padding: 12,
@@ -748,10 +765,33 @@ export default function HostelPage() {
                         </option>
                       ))}
                   </select>
+                  <select
+                    aria-label="Bed to allocate"
+                    value={allocationBedId}
+                    onChange={(event) => setAllocationBedId(event.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: 9,
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                    }}
+                  >
+                    <option value="">Select bed</option>
+                    {selectedRoom.beds
+                      .filter(
+                        (bed) =>
+                          bed.status === 'AVAILABLE' ||
+                          (bed.status === 'RESERVED' && bed.studentId === allocationStudentId),
+                      )
+                      .map((bed) => (
+                        <option key={bed.id} value={bed.id}>{bed.bedNumber}</option>
+                      ))}
+                  </select>
                   <button
                     type="button"
-                    disabled={!allocationStudentId || selectedRoom.vacancyStatus === 'FULL'}
-                    onClick={() => void allocateStudent(selectedRoom.id)}
+                    disabled={!allocationStudentId || !allocationBedId}
+                    onClick={() => void allocateStudent(selectedRoom.id, allocationBedId)}
                     style={{
                       padding: '0 10px',
                       border: 0,
@@ -779,8 +819,18 @@ export default function HostelPage() {
                 </div>
                 <button
                   type="button"
-                  disabled={!selectedStudentId}
-                  onClick={() => void deallocateStudent(selectedRoom.id)}
+                  disabled={
+                    !selectedStudentId ||
+                    !selectedRoom.beds.some(
+                      (bed) => bed.studentId === selectedStudentId && bed.status === 'OCCUPIED',
+                    )
+                  }
+                  onClick={() => {
+                    const bed = selectedRoom.beds.find(
+                      (item) => item.studentId === selectedStudentId && item.status === 'OCCUPIED',
+                    );
+                    if (bed) void deallocateStudent(selectedRoom.id, bed.id);
+                  }}
                   style={{
                     marginTop: 10,
                     padding: 9,

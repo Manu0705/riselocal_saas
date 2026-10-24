@@ -115,6 +115,12 @@ router.get(
 );
 
 router.get(
+  '/hostel/stays',
+  roleGuard('owner', 'manager', 'staff', 'admin', 'super_admin'),
+  controller.listStays.bind(controller),
+);
+
+router.get(
   '/hostel/rooms/recent-activity',
   controller.recentAllocationActivity.bind(controller),
 );
@@ -122,6 +128,12 @@ router.get(
 router.get(
   '/hostel/rooms/:id/history',
   controller.allocationHistory.bind(controller),
+);
+
+router.post(
+  '/hostel/rooms/reserve',
+  roleGuard('owner', 'manager', 'staff'),
+  controller.reserveStudent.bind(controller),
 );
 
 router.post(
@@ -157,6 +169,24 @@ router.delete(
 );
 
 // Students
+
+router.get(
+  '/hostel/enquiries',
+  roleGuard('owner', 'manager', 'staff', 'admin', 'super_admin'),
+  controller.listHostelEnquiries.bind(controller),
+);
+
+router.post(
+  '/hostel/enquiries',
+  roleGuard('owner', 'manager', 'staff', 'admin', 'super_admin'),
+  controller.createHostelEnquiry.bind(controller),
+);
+
+router.post(
+  '/hostel/enquiries/:id/convert',
+  roleGuard('owner', 'manager', 'staff', 'admin', 'super_admin'),
+  controller.convertHostelEnquiry.bind(controller),
+);
 
 router.get('/hostel/students', controller.listStudents.bind(controller));
 

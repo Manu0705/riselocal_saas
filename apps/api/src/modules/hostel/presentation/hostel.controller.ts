@@ -409,6 +409,18 @@ studentLogin(req: Request, res: Response) {
     );
   }
 
+  reserveStudent(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId)
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    return respond(
+      req,
+      res,
+      () => service.reserveStudent(tenantId, req.body ?? {}, getActorId(req)),
+      201,
+    );
+  }
+
   deallocateStudent(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId)
@@ -430,6 +442,20 @@ studentLogin(req: Request, res: Response) {
       res,
       () => service.autoAllocateStudent(tenantId, req.body ?? {}, getActorId(req)),
       201,
+    );
+  }
+
+  listStays(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId)
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    return respond(req, res, () =>
+      service.listStays(tenantId, {
+        hostelId: getHostelId(req),
+        status: req.query.status,
+        page: getPageValue(req.query.page, 1),
+        limit: getPageValue(req.query.limit, 100),
+      }),
     );
   }
 
@@ -493,7 +519,41 @@ studentLogin(req: Request, res: Response) {
     if (!tenantId) {
       return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
     }
-    return respond(req, res, () => service.createStudent(tenantId, req.body ?? {}), 201);
+    return respond(req, res, () => service.createStudent(tenantId, req.body ?? {}, getActorId(req)), 201);
+  }
+
+  listHostelEnquiries(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+    return respond(req, res, () => service.listHostelEnquiries(tenantId, getHostelId(req)));
+  }
+
+  createHostelEnquiry(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+    return respond(
+      req,
+      res,
+      () => service.createHostelEnquiry(tenantId, req.body ?? {}, getActorId(req)),
+      201,
+    );
+  }
+
+  convertHostelEnquiry(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', { code: 'VALIDATION_ERROR', req });
+    }
+    return respond(
+      req,
+      res,
+      () => service.convertHostelEnquiry(tenantId, req.params.id, req.body ?? {}, getActorId(req)),
+      201,
+    );
   }
 
   updateStudent(req: Request, res: Response) {
@@ -972,6 +1032,8 @@ studentLogin(req: Request, res: Response) {
       service.listDeposits(tenantId, {
         hostelId: getHostelId(req),
         status: req.query.status,
+        from: req.query.from,
+        to: req.query.to,
         page: getPageValue(req.query.page, 1),
         limit: getPageValue(req.query.limit, 25),
       }),
