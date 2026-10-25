@@ -26,6 +26,12 @@ type HostelStudent = {
     id: string;
     roomNumber?: string | null;
   } | null;
+  beds?: Array<{
+    id: string;
+    roomId: string;
+    status: 'RESERVED' | 'OCCUPIED';
+    bedNumber: string;
+  }>;
 };
 
 type ApiResponse<T> = {
@@ -83,6 +89,12 @@ export default function StudentDetailsPage({
       return;
     }
 
+    const bed = student.beds?.find((candidate) => candidate.roomId === student.room?.id);
+    if (!bed) {
+      setError('Bed information is missing for this student. Refresh the page before retrying.');
+      return;
+    }
+
     try {
       setDeallocating(true);
       setError(null);
@@ -91,6 +103,7 @@ export default function StudentDetailsPage({
         hostelId: student.hostel.id,
         studentId: student.id,
         roomId: student.room.id,
+        bedId: bed.id,
       });
 
       setStudent((currentStudent) =>

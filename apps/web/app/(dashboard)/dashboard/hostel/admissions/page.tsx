@@ -13,6 +13,10 @@ type HostelStudent = {
   email?: string | null;
   status?: string | null;
   paymentStatus?: string | null;
+  hostel?: {
+    id: string;
+    name: string;
+  };
   room?: {
     id: string;
     roomNumber?: string | null;
@@ -42,10 +46,12 @@ type StudentPage = {
 
 export default function AdmissionsPage() {
   const [students, setStudents] = useState<HostelStudent[]>([]);
-  const [property, setProperty] = useState<HostelProperty | null>(null);
+  const [properties, setProperties] = useState<HostelProperty[]>([]);
+  const [selectedHostelId, setSelectedHostelId] = useState('');
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,19 +68,17 @@ export default function AdmissionsPage() {
           ApiResponse<HostelProperty[]>
         >('/hostel/properties');
 
-        const firstProperty = propertyResponse.data?.[0];
-
-        if (!firstProperty) {
-          throw new Error('No hostel property found.');
-        }
-
-        setProperty(firstProperty);
+        const availableProperties = propertyResponse.data ?? [];
+        setProperties(availableProperties);
 
         const query = new URLSearchParams({
-          hostelId: firstProperty.id,
           page: String(page),
           limit: String(limit),
         });
+
+        if (selectedHostelId) {
+          query.set('hostelId', selectedHostelId);
+        }
 
         if (search.trim()) {
           query.set('search', search.trim());
@@ -85,6 +89,7 @@ export default function AdmissionsPage() {
         >(`/hostel/students?${query.toString()}`);
 
         setStudents(studentsResponse.data.items ?? []);
+        setTotalPages(studentsResponse.data.pagination?.totalPages ?? 1);
       } catch (loadError) {
         setError(
           loadError instanceof Error
@@ -97,7 +102,7 @@ export default function AdmissionsPage() {
     }
 
     void loadAdmissions();
-  }, [page, search]);
+  }, [page, search, selectedHostelId]);
 
   return (
     <div>
@@ -167,13 +172,39 @@ export default function AdmissionsPage() {
 
       <div
         style={{
+          display: 'flex',
+          gap: 12,
           marginBottom: 16,
           background: 'var(--bg, #ffffff)',
           border: '1px solid var(--border, #e5e7eb)',
           borderRadius: 12,
           padding: 16,
+          flexWrap: 'wrap',
         }}
       >
+        <select
+          value={selectedHostelId}
+          onChange={(event) => {
+            setSelectedHostelId(event.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter admissions by hostel property"
+          style={{
+            minWidth: 190,
+            height: 42,
+            padding: '0 12px',
+            border: '1px solid var(--border, #d1d5db)',
+            borderRadius: 8,
+            background: 'var(--bg, #ffffff)',
+            color: 'var(--foreground, #111827)',
+            fontSize: 14,
+          }}
+        >
+          <option value="">All properties</option>
+          {properties.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
         <input
           type="search"
           value={search}
@@ -183,6 +214,7 @@ export default function AdmissionsPage() {
           }}
           placeholder="Search by name, admission number, phone..."
           style={{
+            flex: '1 1 280px',
             width: '100%',
             minWidth: 0,
             padding: '11px 12px',
@@ -216,6 +248,7 @@ export default function AdmissionsPage() {
             <tr>
               <th style={headerStyle}>Student</th>
               <th style={headerStyle}>Admission No.</th>
+              {!selectedHostelId && <th style={headerStyle}>Property</th>}
               <th style={headerStyle}>Phone</th>
               <th style={headerStyle}>Room</th>
               <th style={headerStyle}>Payment</th>
@@ -227,7 +260,7 @@ export default function AdmissionsPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={selectedHostelId ? 6 : 7}
                   style={{
                     padding: 24,
                     textAlign: 'center',
@@ -240,7 +273,7 @@ export default function AdmissionsPage() {
             ) : students.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={selectedHostelId ? 6 : 7}
                   style={{
                     padding: 24,
                     textAlign: 'center',
@@ -268,6 +301,10 @@ export default function AdmissionsPage() {
                   <td style={cellStyle}>
                     {student.admissionNumber ?? '—'}
                   </td>
+
+                  {!selectedHostelId && (
+                    <td style={cellStyle}>{student.hostel?.name ?? '—'}</td>
+                  )}
 
                   <td style={cellStyle}>
                     {student.phone ?? '—'}
@@ -334,9 +371,7 @@ export default function AdmissionsPage() {
 
         <button
           type="button"
-          disabled={
-            loading || students.length < limit
-          }
+          disabled={loading || page >= totalPages}
           onClick={() => setPage((currentPage) => currentPage + 1)}
           style={paginationButtonStyle}
         >
@@ -344,7 +379,7 @@ export default function AdmissionsPage() {
         </button>
       </div>
 
-      {property && (
+      {selectedHostelId && (
         <div
           style={{
             marginTop: 16,
@@ -352,7 +387,7 @@ export default function AdmissionsPage() {
             color: 'var(--muted, #6b7280)',
           }}
         >
-          Property: {property.name}
+          Property: {properties.find((item) => item.id === selectedHostelId)?.name ?? 'Selected property'}
         </div>
       )}
     </div>

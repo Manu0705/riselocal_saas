@@ -51,9 +51,15 @@ export default function HostelSidebar() {
           height: calc(100vh - clamp(56px, 6vw, 64px));
           max-height: calc(100vh - clamp(56px, 6vw, 64px));
           overflow-y: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
           border-right: 1px solid var(--border, #e5e7eb);
           padding: 20px 12px;
           box-sizing: border-box;
+        }
+
+        .hostel-sidebar::-webkit-scrollbar {
+          display: none;
         }
 
         .hostel-sidebar-heading {

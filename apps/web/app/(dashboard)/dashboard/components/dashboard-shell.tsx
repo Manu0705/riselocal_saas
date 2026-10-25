@@ -9,20 +9,21 @@ export default function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
-  const { tenant } = useDashboardData();
+  const { tenant, tenantResolved } = useDashboardData();
   const pathname = usePathname();
 
   const isHostelTheme =
+    tenantResolved &&
     tenant?.theme?.trim().toLowerCase() === 'hostel';
 
   const isHostelRoute = pathname.startsWith('/dashboard/hostel');
 
   /*
-   * The /dashboard/hostel/* route tree already has its own
-   * HostelSidebar through dashboard/hostel/layout.tsx.
+   * The /dashboard/hostel/* route tree already renders
+   * its own HostelSidebar through dashboard/hostel/layout.tsx.
    *
-   * Therefore the root shell only mounts the sidebar when the
-   * Hostel theme is being displayed at /dashboard.
+   * Render the sidebar here only when the Hostel theme is
+   * displayed on the root /dashboard route.
    */
   const shouldRenderHostelSidebar =
     isHostelTheme && !isHostelRoute;
@@ -49,6 +50,7 @@ export default function DashboardShell({
           flex: 1,
           minWidth: 0,
           width: '100%',
+          padding: 24,
           boxSizing: 'border-box',
         }}
       >

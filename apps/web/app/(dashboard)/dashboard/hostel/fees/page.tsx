@@ -10,6 +10,8 @@ type Fee = {
   description?: string | null;
   amount: number;
   currency?: string;
+  type?: string;
+  billingFrequency?: string;
   frequency?: string | null;
   isActive?: boolean;
   createdAt?: string;
@@ -35,7 +37,7 @@ type ApiResponse<T> = {
   message?: string;
 };
 
-type FeeListResponse = {
+type PaginatedFeeListResponse = {
   items: Fee[];
   pagination: Pagination;
 };
@@ -44,6 +46,7 @@ type FeeForm = {
   name: string;
   description: string;
   amount: string;
+  type: string;
   frequency: string;
   hostelId: string;
 };
@@ -52,6 +55,7 @@ const DEFAULT_FORM: FeeForm = {
   name: '',
   description: '',
   amount: '',
+  type: 'OTHER',
   frequency: 'MONTHLY',
   hostelId: '',
 };
@@ -140,12 +144,19 @@ export default function HostelFeesPage() {
         params.set('hostelId', hostelId);
       }
 
-      const response = await api.get<ApiResponse<FeeListResponse>>(
+      const response = await api.get<ApiResponse<Fee[] | PaginatedFeeListResponse>>(
         `/hostel/fees?${params.toString()}`,
       );
 
-      setFees(response.data?.items ?? []);
-      setPagination(response.data?.pagination ?? null);
+      if (Array.isArray(response.data)) {
+        const total = response.data.length;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
+        setFees(response.data.slice((page - 1) * PAGE_LIMIT, page * PAGE_LIMIT));
+        setPagination({ page, limit: PAGE_LIMIT, total, totalPages });
+      } else {
+        setFees(response.data?.items ?? []);
+        setPagination(response.data?.pagination ?? null);
+      }
     } catch (err) {
       setFees([]);
       setPagination(null);
@@ -192,7 +203,8 @@ export default function HostelFeesPage() {
       name: fee.name ?? '',
       description: fee.description ?? '',
       amount: String(fee.amount ?? ''),
-      frequency: fee.frequency ?? 'MONTHLY',
+      type: fee.type ?? 'OTHER',
+      frequency: fee.billingFrequency ?? fee.frequency ?? 'MONTHLY',
       hostelId: selectedHostelId,
     });
 
@@ -241,7 +253,8 @@ export default function HostelFeesPage() {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         amount,
-        frequency: form.frequency,
+        type: form.type,
+        billingFrequency: form.frequency,
         hostelId: form.hostelId || undefined,
       };
 
@@ -427,6 +440,7 @@ export default function HostelFeesPage() {
                 <thead>
                   <tr>
                     <th>Fee</th>
+                    <th>Category</th>
                     <th>Frequency</th>
                     <th>Amount</th>
                     <th>Status</th>
@@ -454,7 +468,11 @@ export default function HostelFeesPage() {
                         </td>
 
                         <td>
-                          {fee.frequency ?? '—'}
+                          {fee.type === 'MONTHLY' ? 'Rent' : fee.type ?? '—'}
+                        </td>
+
+                        <td>
+                          {fee.billingFrequency ?? fee.frequency ?? 'MONTHLY'}
                         </td>
 
                         <td className="amount">
@@ -538,6 +556,13 @@ export default function HostelFeesPage() {
 
                     <div className="fee-card-details">
                       <div>
+                        <span>Category</span>
+                        <strong>
+                          {fee.type === 'MONTHLY' ? 'Rent' : fee.type ?? '—'}
+                        </strong>
+                      </div>
+
+                      <div>
                         <span>Amount</span>
                         <strong>
                           {formatCurrency(
@@ -550,7 +575,7 @@ export default function HostelFeesPage() {
                       <div>
                         <span>Frequency</span>
                         <strong>
-                          {fee.frequency ?? '—'}
+                          {fee.billingFrequency ?? fee.frequency ?? 'MONTHLY'}
                         </strong>
                       </div>
                     </div>
@@ -659,6 +684,22 @@ export default function HostelFeesPage() {
             <form onSubmit={handleSubmit}>
               <div className="form-grid">
                 <label>
+                  <span>Fee category</span>
+
+                  <select
+                    value={form.type}
+                    onChange={(event) => updateForm('type', event.target.value)}
+                  >
+                    <option value="MONTHLY">Rent</option>
+                    <option value="ADMISSION">Admission</option>
+                    <option value="MESS">Mess</option>
+                    <option value="ELECTRICITY">Electricity</option>
+                    <option value="MAINTENANCE">Maintenance</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </label>
+
+                <label>
                   <span>Fee name *</span>
 
                   <input
@@ -688,7 +729,7 @@ export default function HostelFeesPage() {
                 </label>
 
                 <label>
-                  <span>Frequency</span>
+                  <span>Billing frequency</span>
 
                   <select
                     value={form.frequency}
@@ -760,6 +801,15 @@ export default function HostelFeesPage() {
                   />
                 </label>
               </div>
+
+              <p className="billing-policy-note">
+                {editingFeeId
+                  ? 'Edits do not change invoices already issued; updated terms apply to the next unbilled period.'
+                  : 'Active fees are invoiced automatically for current students and applied to future admissions. A newer fee in the same category replaces the previous one.'}{' '}
+                Full periods are charged without proration. Periodic invoices
+                are due on the 5th; charges generated after that date are due
+                immediately.
+              </p>
 
               {error && (
                 <div className="form-error">
@@ -1173,6 +1223,13 @@ export default function HostelFeesPage() {
 
         .full-width {
           grid-column: 1 / -1;
+        }
+
+        .billing-policy-note {
+          margin: 16px 0 0;
+          color: var(--muted, #6b7280);
+          font-size: 12px;
+          line-height: 1.5;
         }
 
         .form-error {

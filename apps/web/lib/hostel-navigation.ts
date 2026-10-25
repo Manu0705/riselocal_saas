@@ -15,9 +15,9 @@ export type HostelNavigationGroup = {
 };
 
 export const HOSTEL_NAVIGATION_GROUPS: readonly HostelNavigationGroup[] = [
-  { id: 'overview', label: 'Overview' },
+  { id: 'overview', label: 'Home' },
   { id: 'people', label: 'People' },
-  { id: 'hostel-operations', label: 'Hostel Operations' },
+  { id: 'hostel-operations', label: 'Operations' },
   { id: 'finance', label: 'Finance' },
   { id: 'communication', label: 'Communication' },
   { id: 'reports', label: 'Reports' },

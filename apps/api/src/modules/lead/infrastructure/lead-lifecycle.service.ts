@@ -16,6 +16,7 @@ const STATUS = {
 
 type UpsertLeadInput = {
   tenantId: string;
+  hostelId?: string;
   actorUserId?: string;
   name: string;
   phone: string;
@@ -328,13 +329,34 @@ export class LeadLifecycleService {
 
     return withRetry(async () => {
       return prisma.$transaction(async (tx) => {
-        const existing = await tx.$queryRaw<Array<{ id: string; assignedTo: string | null; teamId: string | null }>>`
-          SELECT "id", "assignedTo", "teamId"
+        if (input.hostelId) {
+          const hostel = await tx.hostel.findFirst({
+            where: { id: input.hostelId, tenantId: input.tenantId },
+            select: { id: true },
+          });
+          if (!hostel) throw new Error('Hostel not found');
+        }
+
+        const existing = await tx.$queryRaw<Array<{
+          id: string;
+          assignedTo: string | null;
+          teamId: string | null;
+          hostelId: string | null;
+        }>>`
+          SELECT "id", "assignedTo", "teamId", "hostelId"
           FROM "Lead"
           WHERE "tenantId" = ${input.tenantId}
             AND "phone" = ${normalizedPhone}
           LIMIT 1
         `;
+
+        if (
+          input.hostelId &&
+          existing[0]?.hostelId &&
+          existing[0].hostelId !== input.hostelId
+        ) {
+          throw new Error('This enquiry is already associated with another hostel');
+        }
 
         const isNewLead = existing.length === 0;
         let assigned: { assigneeId: string | null; teamId: string | null };
@@ -355,13 +377,14 @@ export class LeadLifecycleService {
 
         const upserted = await tx.$queryRaw<Array<{ id: string }>>`
           INSERT INTO "Lead" (
-            "id", "tenantId", "name", "phone", "email", "source", "campaignId",
+            "id", "tenantId", "hostelId", "name", "phone", "email", "source", "campaignId",
             "utmSource", "utmMedium", "utmCampaign", "location", "status", "notes",
             "assignedTo", "teamId", "createdAt", "updatedAt", "deletedAt"
           )
           VALUES (
             ${crypto.randomUUID()},
             ${input.tenantId},
+            ${input.hostelId ?? null},
             ${name},
             ${normalizedPhone},
             ${safeTrim(input.email)},
@@ -382,6 +405,7 @@ export class LeadLifecycleService {
           ON CONFLICT ("tenantId", "phone")
           DO UPDATE SET
             "name" = EXCLUDED."name",
+            "hostelId" = COALESCE(EXCLUDED."hostelId", "Lead"."hostelId"),
             "email" = COALESCE(EXCLUDED."email", "Lead"."email"),
             "location" = COALESCE(EXCLUDED."location", "Lead"."location"),
             "notes" = COALESCE(EXCLUDED."notes", "Lead"."notes"),

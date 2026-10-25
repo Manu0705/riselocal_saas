@@ -19,6 +19,11 @@ type HostelRoom = {
   vacant?: number | null;
   vacantBeds?: number | null;
   status?: string | null;
+  beds?: Array<{
+    id: string;
+    bedNumber: string;
+    status: 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'INACTIVE';
+  }>;
 };
 
 type ApiResponse<T> = {
@@ -37,7 +42,20 @@ type CreatedStudent = {
 
 type CreateStudentResult = {
   student: CreatedStudent;
-  temporaryPasskey: string;
+  temporaryPasskey?: string;
+  alreadyConverted?: boolean;
+  existingStudent?: boolean;
+  bedReserved?: boolean;
+};
+
+type HostelEnquiry = {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  status: string;
+  createdAt: string;
+  activities?: Array<{ type: string; timestamp: string }>;
 };
 
 type ModalStep = 'recipients' | 'ready';
@@ -49,6 +67,10 @@ type HostelAdmissionFlowProps = {
   onPropertyChange?: (hostelId: string) => void;
   onAdmissionCreated?: (studentId: string) => void;
 };
+
+function getAdmissionRequestStorageKey(hostelId: string, phone: string) {
+  return `hostel-admission-request:${hostelId}:${phone.replace(/\D/g, '')}`;
+}
 
 export default function HostelAdmissionFlow({
   embedded = false,
@@ -62,8 +84,13 @@ export default function HostelAdmissionFlow({
   const [properties, setProperties] = useState<HostelProperty[]>([]);
   const [selectedHostelId, setSelectedHostelId] = useState(initialHostelId);
   const [rooms, setRooms] = useState<HostelRoom[]>([]);
+  const [enquiries, setEnquiries] = useState<HostelEnquiry[]>([]);
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState('');
+  const [savingEnquiry, setSavingEnquiry] = useState(false);
+  const [admissionRequestId, setAdmissionRequestId] = useState('');
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedBedId, setSelectedBedId] = useState('');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -81,11 +108,13 @@ export default function HostelAdmissionFlow({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [roomWarning, setRoomWarning] = useState<string | null>(null);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>('recipients');
   const [createdStudent, setCreatedStudent] = useState<CreatedStudent | null>(null);
   const [temporaryPasskey, setTemporaryPasskey] = useState('');
+  const [passkeyCopied, setPasskeyCopied] = useState(false);
+  const [admittingExistingStudent, setAdmittingExistingStudent] = useState(false);
+  const [bedReserved, setBedReserved] = useState(false);
 
   useEffect(() => {
     onPropertyChangeRef.current = onPropertyChange;
@@ -125,6 +154,7 @@ export default function HostelAdmissionFlow({
   useEffect(() => {
     if (!selectedHostelId) {
       setRooms([]);
+      setEnquiries([]);
       setSelectedRoomId('');
       setRoomsLoading(false);
       return;
@@ -137,11 +167,17 @@ export default function HostelAdmissionFlow({
 
     async function loadRooms() {
       try {
-        const response = await api.get<ApiResponse<HostelRoom[]>>(
-          `/hostel/rooms/vacancies?hostelId=${encodeURIComponent(selectedHostelId)}`,
-        );
+        const [roomResponse, enquiryResponse] = await Promise.all([
+          api.get<ApiResponse<HostelRoom[]>>(
+            `/hostel/rooms/vacancies?hostelId=${encodeURIComponent(selectedHostelId)}`,
+          ),
+          api.get<ApiResponse<HostelEnquiry[]>>(
+            `/hostel/enquiries?hostelId=${encodeURIComponent(selectedHostelId)}`,
+          ),
+        ]);
         if (!cancelled) {
-          setRooms(Array.isArray(response.data) ? response.data : []);
+          setRooms(Array.isArray(roomResponse.data) ? roomResponse.data : []);
+          setEnquiries(Array.isArray(enquiryResponse.data) ? enquiryResponse.data : []);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -162,6 +198,43 @@ export default function HostelAdmissionFlow({
     };
   }, [selectedHostelId]);
 
+  async function saveEnquiry() {
+    if (!selectedHostelId || !name.trim() || !phone.trim()) {
+      setError('Select a hostel and provide the enquiry name and phone number.');
+      return;
+    }
+
+    try {
+      setSavingEnquiry(true);
+      setError(null);
+      const response = await api.post<ApiResponse<{ leadId: string }>>('/hostel/enquiries', {
+        hostelId: selectedHostelId,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+      });
+      const leadId = response.data?.leadId;
+      const enquiriesResponse = await api.get<ApiResponse<HostelEnquiry[]>>(
+        `/hostel/enquiries?hostelId=${encodeURIComponent(selectedHostelId)}`,
+      );
+      setEnquiries(Array.isArray(enquiriesResponse.data) ? enquiriesResponse.data : []);
+      setSelectedEnquiryId(leadId ?? '');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save enquiry.');
+    } finally {
+      setSavingEnquiry(false);
+    }
+  }
+
+  function selectEnquiry(leadId: string) {
+    setSelectedEnquiryId(leadId);
+    const enquiry = enquiries.find((item) => item.id === leadId);
+    if (!enquiry) return;
+    setName(enquiry.name);
+    setPhone(enquiry.phone);
+    setEmail(enquiry.email ?? '');
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -178,12 +251,39 @@ export default function HostelAdmissionFlow({
       setError('Admission date is required.');
       return;
     }
+    if (selectedEnquiryId && !enquiries.some((item) => item.id === selectedEnquiryId)) {
+      setError('The selected enquiry is no longer available. Refresh and select it again.');
+      return;
+    }
+    if (selectedRoomId && !selectedBedId) {
+      setError('Select an available bed for the selected room.');
+      return;
+    }
+
+    if (!selectedEnquiryId) {
+      const storageKey = getAdmissionRequestStorageKey(selectedHostelId, phone);
+      let requestId = '';
+      try {
+        requestId = sessionStorage.getItem(storageKey) ?? '';
+      } catch {
+        requestId = '';
+      }
+      requestId ||= globalThis.crypto.randomUUID();
+      try {
+        sessionStorage.setItem(storageKey, requestId);
+      } catch {
+        // Keep the request id in component state when storage is unavailable.
+      }
+      setAdmissionRequestId(requestId);
+    }
 
     // Collect the two WhatsApp recipients before creating the student.
     setModalStep('recipients');
     setCreatedStudent(null);
     setTemporaryPasskey('');
-    setRoomWarning(null);
+    setPasskeyCopied(false);
+    setAdmittingExistingStudent(false);
+    setBedReserved(false);
     setShowWhatsAppModal(true);
   }
 
@@ -208,9 +308,7 @@ export default function HostelAdmissionFlow({
     try {
       setSaving(true);
       setError(null);
-      setRoomWarning(null);
-
-      const studentResponse = await api.post<ApiResponse<CreateStudentResult>>('/hostel/students', {
+      const admissionPayload = {
         hostelId: selectedHostelId,
         name: name.trim(),
         email: email.trim() || undefined,
@@ -220,12 +318,25 @@ export default function HostelAdmissionFlow({
         emergencyPhone: emergencyPhone.trim() || undefined,
         emergencyRelation: emergencyRelation.trim() || undefined,
         admissionDate,
-      });
+        ...(selectedEnquiryId ? {} : { admissionRequestId }),
+        roomId: selectedRoomId || undefined,
+        bedId: selectedBedId || undefined,
+      };
+      const studentResponse = selectedEnquiryId
+        ? await api.post<ApiResponse<CreateStudentResult>>(
+            `/hostel/enquiries/${encodeURIComponent(selectedEnquiryId)}/convert`,
+            admissionPayload,
+          )
+        : await api.post<ApiResponse<CreateStudentResult>>('/hostel/students', admissionPayload);
 
       const created = studentResponse.data?.student;
       const passkey = studentResponse.data?.temporaryPasskey;
 
-      if (!created?.id || !passkey) {
+      if (studentResponse.data?.alreadyConverted) {
+        throw new Error(`This enquiry was already converted to admission ${created?.admissionNumber ?? ''}.`);
+      }
+
+      if (!created?.id || (!passkey && !studentResponse.data?.existingStudent)) {
         throw new Error(
           'The student was created, but the API did not return the temporary passkey. Do not retry creating the admission; check the API response first.',
         );
@@ -233,23 +344,19 @@ export default function HostelAdmissionFlow({
 
       // Keep the passkey only in component memory for the WhatsApp hand-off.
       setCreatedStudent(created);
-      setTemporaryPasskey(passkey);
+      setTemporaryPasskey(passkey ?? '');
+      setPasskeyCopied(false);
+      setAdmittingExistingStudent(Boolean(studentResponse.data?.existingStudent));
+      setBedReserved(studentResponse.data?.bedReserved ?? Boolean(selectedBedId));
       setModalStep('ready');
-
-      if (selectedRoomId) {
+      window.dispatchEvent(new Event('hostel:admission-created'));
+      if (!selectedEnquiryId) {
         try {
-          await api.post('/hostel/rooms/allocate', {
-            hostelId: selectedHostelId,
-            roomId: selectedRoomId,
-            studentId: created.id,
-          });
-        } catch (allocationError) {
-          setRoomWarning(
-            allocationError instanceof Error
-              ? `Admission created, but room allocation failed: ${allocationError.message}`
-              : 'Admission created, but room allocation failed. Please allocate the room from the admissions page.',
-          );
+          sessionStorage.removeItem(getAdmissionRequestStorageKey(selectedHostelId, phone));
+        } catch {
+          // The database idempotency key remains authoritative.
         }
+        setAdmissionRequestId('');
       }
       onAdmissionCreated?.(created.id);
     } catch (saveError) {
@@ -260,7 +367,7 @@ export default function HostelAdmissionFlow({
   }
 
   function openWhatsApp(recipient: 'student' | 'admin') {
-    if (!createdStudent || !temporaryPasskey) return;
+    if (!createdStudent) return;
 
     const rawNumber = recipient === 'student' ? studentWhatsApp : adminWhatsApp;
     const number = normalizeWhatsAppNumber(rawNumber);
@@ -278,9 +385,11 @@ export default function HostelAdmissionFlow({
       `Admission Number: ${createdStudent.admissionNumber}`,
       `Student Name: ${createdStudent.name}`,
       `Admission Date: ${dateText}`,
-      `Temporary Passkey: ${temporaryPasskey}`,
+      ...(temporaryPasskey ? [`Temporary Passkey: ${temporaryPasskey}`] : []),
       '',
-      'Please keep this passkey confidential and change it after your first login.',
+      ...(temporaryPasskey
+        ? ['Please keep this passkey confidential and change it after your first login.']
+        : ['Contact your hostel administrator if you need help accessing your student account.']),
     ].join('\n');
 
     const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
@@ -296,6 +405,20 @@ export default function HostelAdmissionFlow({
       return;
     }
     window.location.href = '/dashboard/hostel/admissions';
+  }
+
+  let successTitle = 'Admission created successfully';
+  let successDescription = 'Open each WhatsApp chat and press Send to deliver the message.';
+  if (admittingExistingStudent) {
+    successTitle = selectedEnquiryId
+      ? 'Enquiry linked to existing student'
+      : 'Admission already created';
+    successDescription = selectedEnquiryId
+      ? 'The enquiry history is preserved and linked to the existing student record.'
+      : 'This request was already completed. The existing student record was returned.';
+  } else if (bedReserved) {
+    successDescription =
+      'The admission was created and the selected bed is reserved. Complete check-in when the student arrives.';
   }
 
   if (loading) {
@@ -368,6 +491,8 @@ export default function HostelAdmissionFlow({
                 setError(null);
                 setSelectedHostelId(event.target.value);
                 setSelectedRoomId('');
+                setSelectedBedId('');
+                setSelectedEnquiryId('');
                 onPropertyChange?.(event.target.value);
               }}
               required
@@ -409,6 +534,22 @@ export default function HostelAdmissionFlow({
           </p>
 
           <div className="admission-form-grid" style={gridStyle}>
+            <label style={fieldLabelStyle}>
+              Existing enquiry
+              <select
+                value={selectedEnquiryId}
+                onChange={(event) => selectEnquiry(event.target.value)}
+                disabled={!selectedHostelId || enquiries.length === 0}
+                style={inputStyle}
+              >
+                <option value="">No enquiry selected</option>
+                {enquiries.map((enquiry) => (
+                  <option key={enquiry.id} value={enquiry.id}>
+                    {enquiry.name} · {enquiry.phone} · {enquiry.status}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Field label="Student Name" value={name} onChange={setName} required />
             <Field label="Phone" value={phone} onChange={setPhone} type="tel" />
             <Field label="Email" value={email} onChange={setEmail} type="email" />
@@ -430,7 +571,10 @@ export default function HostelAdmissionFlow({
               Room
               <select
                 value={selectedRoomId}
-                onChange={(event) => setSelectedRoomId(event.target.value)}
+                onChange={(event) => {
+                  setSelectedRoomId(event.target.value);
+                  setSelectedBedId('');
+                }}
                 disabled={!selectedHostelId || rooms.length === 0}
                 style={inputStyle}
               >
@@ -441,6 +585,22 @@ export default function HostelAdmissionFlow({
                     {room.floor != null ? ` · Floor ${room.floor}` : ''}
                   </option>
                 ))}
+              </select>
+            </label>
+            <label style={fieldLabelStyle}>
+              Bed
+              <select
+                value={selectedBedId}
+                onChange={(event) => setSelectedBedId(event.target.value)}
+                disabled={!selectedRoomId || roomsLoading}
+                style={inputStyle}
+              >
+                <option value="">Select available bed</option>
+                {(rooms.find((room) => room.id === selectedRoomId)?.beds ?? [])
+                  .filter((bed) => bed.status === 'AVAILABLE')
+                  .map((bed) => (
+                    <option key={bed.id} value={bed.id}>{bed.bedNumber}</option>
+                  ))}
               </select>
             </label>
           </div>
@@ -482,8 +642,16 @@ export default function HostelAdmissionFlow({
               Cancel
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => void saveEnquiry()}
+            disabled={savingEnquiry || !selectedHostelId || !name.trim() || !phone.trim()}
+            style={secondaryButtonStyle}
+          >
+            {savingEnquiry ? 'Saving enquiry...' : 'Save as Enquiry'}
+          </button>
           <button type="submit" disabled={saving || !selectedHostelId} style={primaryButtonStyle}>
-            Create Admission
+            {selectedEnquiryId ? 'Convert to Admission' : 'Create Admission'}
           </button>
         </div>
       </form>
@@ -511,12 +679,12 @@ export default function HostelAdmissionFlow({
                 <h2 id="whatsapp-modal-title" style={{ margin: 0, fontSize: 21 }}>
                   {modalStep === 'recipients'
                     ? 'Admission WhatsApp details'
-                    : 'Admission created successfully'}
+                    : successTitle}
                 </h2>
                 <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: 13 }}>
                   {modalStep === 'recipients'
                     ? 'Enter both WhatsApp numbers before creating the student account.'
-                    : 'Open each WhatsApp chat and press Send to deliver the message.'}
+                    : successDescription}
                 </p>
               </div>
               {!saving && (
@@ -604,49 +772,68 @@ export default function HostelAdmissionFlow({
                   <SummaryRow label="Admin WhatsApp" value={adminWhatsApp} />
                 </div>
 
-                <div style={passkeyBoxStyle}>
-                  <div>
-                    <div style={{ fontSize: 12, color: '#166534', fontWeight: 700 }}>
-                      TEMPORARY PASSKEY
+                {temporaryPasskey ? (
+                  <div style={passkeyBoxStyle}>
+                    <div>
+                      <div style={{ fontSize: 12, color: '#166534', fontWeight: 700 }}>
+                        TEMPORARY PASSKEY
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>
+                        {temporaryPasskey}
+                      </div>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>
-                      {temporaryPasskey}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(temporaryPasskey);
+                          setPasskeyCopied(true);
+                        } catch {
+                          setError('Could not copy the passkey. Select and copy it manually.');
+                        }
+                      }}
+                      style={secondaryButtonStyle}
+                    >
+                      {passkeyCopied ? 'Copied!' : 'Copy'}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(temporaryPasskey);
-                    }}
-                    style={secondaryButtonStyle}
-                  >
-                    Copy
-                  </button>
-                </div>
+                ) : admittingExistingStudent ? (
+                  <p style={{ margin: '12px 0 0', fontSize: 13, color: '#92400e' }}>
+                    This admission already existed, so its one-time passkey cannot be retrieved or
+                    shared again. The admission details below can still be shared via WhatsApp.
+                  </p>
+                ) : null}
 
-                {roomWarning && <div style={{ ...errorStyle, marginTop: 12 }}>{roomWarning}</div>}
+                {createdStudent ? (
+                  <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
+                    <button
+                      type="button"
+                      onClick={() => openWhatsApp('student')}
+                      style={whatsAppButtonStyle}
+                    >
+                      Share with Student
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openWhatsApp('admin')}
+                      style={whatsAppButtonStyle}
+                    >
+                      Forward to Admin
+                    </button>
+                  </div>
+                ) : null}
 
-                <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
-                  <button
-                    type="button"
-                    onClick={() => openWhatsApp('student')}
-                    style={whatsAppButtonStyle}
-                  >
-                    Open WhatsApp — Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openWhatsApp('admin')}
-                    style={whatsAppButtonStyle}
-                  >
-                    Open WhatsApp — Admin
-                  </button>
-                </div>
-
-                <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6b7280' }}>
-                  WhatsApp opens with the message prepared. You must press Send in each chat. Keep
-                  this passkey private.
-                </p>
+                {temporaryPasskey ? (
+                  <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6b7280' }}>
+                    WhatsApp opens with the message prepared. You must press Send in each chat. Keep
+                    this passkey private.
+                  </p>
+                ) : createdStudent ? (
+                  <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6b7280' }}>
+                    WhatsApp opens with the admission details prepared. Review the message and press
+                    Send in each chat.
+                  </p>
+                ) : null}
 
                 <div style={modalActionsStyle}>
                   <button type="button" onClick={finishAdmission} style={primaryButtonStyle}>

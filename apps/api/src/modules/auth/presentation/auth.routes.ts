@@ -5,6 +5,11 @@ import { prisma } from '@saas/database';
 import { verifyPassword } from '../infrastructure/password.service';
 import { normalizeAuthRole } from '@saas/domain-core/auth.contract';
 import { sendError, sendSuccess } from '../../../shared/http/api-response';
+import {
+  getTransientDatabaseErrorCode,
+  isTransientDatabaseError,
+  withDatabaseReadRetry,
+} from '../../../shared/database/database-read-retry';
 
 const router = Router();
 const jwtService = new JwtService();
@@ -34,21 +39,30 @@ router.post('/login', async (req, res) => {
 
     if (tenantSlug) {
       const tenant = await tenantRepository.findBySlug(tenantSlug);
-      if (tenant) {
-        resolvedTenantId = tenant.toJSON().id;
+      if (!tenant) {
+        return sendError(res, 404, 'Tenant not found', {
+          code: 'TENANT_NOT_FOUND',
+          req,
+        });
       }
+
+      resolvedTenantId = tenant.toJSON().id;
     }
 
     let user = null as Awaited<ReturnType<typeof prisma.tenantUser.findFirst>>;
 
     if (!resolvedTenantId) {
-      const matchingUsers = await prisma.tenantUser.findMany({
-        where: {
-          email: normalizedEmail,
-          isActive: true,
-        },
-        take: 2,
-      });
+      const matchingUsers = await withDatabaseReadRetry(
+        () =>
+          prisma.tenantUser.findMany({
+            where: {
+              email: normalizedEmail,
+              isActive: true,
+            },
+            take: 2,
+          }),
+        'auth.findUsersByEmail',
+      );
 
       if (matchingUsers.length !== 1) {
         return sendError(res, 400, 'tenantId or tenantSlug is required', {
@@ -60,13 +74,17 @@ router.post('/login', async (req, res) => {
       user = matchingUsers[0];
       resolvedTenantId = user.tenantId;
     } else {
-      user = await prisma.tenantUser.findFirst({
-        where: {
-          tenantId: resolvedTenantId,
-          email: normalizedEmail,
-          isActive: true,
-        },
-      });
+      user = await withDatabaseReadRetry(
+        () =>
+          prisma.tenantUser.findFirst({
+            where: {
+              tenantId: resolvedTenantId,
+              email: normalizedEmail,
+              isActive: true,
+            },
+          }),
+        'auth.findUserByTenantAndEmail',
+      );
     }
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
@@ -103,8 +121,26 @@ router.post('/login', async (req, res) => {
       },
       req,
     );
-  } catch (err: any) {
-    console.error('Login route error:', err?.message || err);
+  } catch (err: unknown) {
+    if (isTransientDatabaseError(err)) {
+      const databaseErrorCode =
+        getTransientDatabaseErrorCode(err) ?? 'CONNECTION_UNAVAILABLE';
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          action: 'login_database_unavailable',
+          requestId: req.requestId,
+          code: databaseErrorCode,
+        }),
+      );
+      res.setHeader('Retry-After', '2');
+      return sendError(res, 503, 'Login service is temporarily unavailable. Please retry shortly.', {
+        code: 'DATABASE_UNAVAILABLE',
+        req,
+      });
+    }
+
+    console.error('Login route error:', err instanceof Error ? err.message : err);
     return sendError(res, 500, 'Login service temporarily unavailable. Please try again.', {
       code: 'LOGIN_UNAVAILABLE',
       req,

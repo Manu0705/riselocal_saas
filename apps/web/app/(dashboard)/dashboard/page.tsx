@@ -15,7 +15,7 @@ import HostelDashboard from './hostel/HostelDashboard';
 
 export default function DashboardPage() {
   const { userName } = useAuth();
-  const { leads, metrics, tenant, loading, error, refresh } = useDashboardData();
+  const { leads, metrics, tenant, tenantResolved, loading, error, refresh } = useDashboardData();
   const [showGreeting, setShowGreeting] = useState(true);
 
   const convertedStatus = normalizeLeadStatus('CONVERTED');
@@ -44,8 +44,16 @@ export default function DashboardPage() {
    * We import the shared HostelDashboard component,
    * NOT the /dashboard/hostel/page.tsx route.
    */
-  if (!loading && !error && tenantTheme === 'hostel') {
+  if (!tenantResolved) {
+    return <DashboardHomeSkeleton />;
+  }
+
+  if (tenantTheme === 'hostel') {
     return <HostelDashboard />;
+  }
+
+  if (loading) {
+    return <DashboardHomeSkeleton />;
   }
 
   const tenantServices = Array.isArray((tenant as { services?: unknown[] } | null)?.services)

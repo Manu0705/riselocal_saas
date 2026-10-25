@@ -11,6 +11,7 @@ import { requestContextMiddleware } from './middleware/request-context.middlewar
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 import { inputSanitizeMiddleware } from './middleware/input-sanitize.middleware';
 import { sendSuccess } from './shared/http/api-response';
+import { startHostelFeeBillingScheduler } from './modules/hostel/infrastructure/hostel-fee-billing.scheduler';
 
 const startupAdminPassword = process.env.ADMIN_PASSWORD?.trim();
 
@@ -112,9 +113,11 @@ const PORT = env.PORT;
 const server = app.listen(PORT, () => {
   console.log(`🚀 API running on port ${PORT}`);
 });
+const stopHostelFeeBillingScheduler = startHostelFeeBillingScheduler();
 
 async function gracefulShutdown(signal: string) {
   console.log(`${signal} received. Shutting down gracefully...`);
+  stopHostelFeeBillingScheduler();
 
   server.close(async () => {
     console.log('HTTP server closed.');

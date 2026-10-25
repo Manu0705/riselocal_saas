@@ -1,22 +1,55 @@
-# Prisma migration baseline cutover
+# Prisma migration history and deployment safety
 
-## What changed
+## Current verified development baseline
 
-The historical migration chain under `prisma/migrations/` could not reproduce
-`prisma/schema.prisma`. It has been replaced by a single baseline migration:
+As of 2026-10-23, the repository contains 17 migration folders. The latest is:
+
+`20261022110000_remove_legacy_student_user_id`
+
+The last reported development verification found that all 17 migrations were
+applied, `prisma migrate status` was up to date, the schema diff was empty, and
+`prisma validate` succeeded. Treat this as the last verified development
+baseline, not as a permanent migration count. Always check the actual target
+database; the number of migration folders does not prove that a database is up
+to date.
+
+## Pending hostel fee billing migration
+
+`20261024100000_hostel_fee_billing` adds billing frequency and an idempotency
+key for automatic hostel invoices. Existing fees default to monthly; when
+multiple active fees share a property and category, only the newest remains
+active. This migration has not been applied or verified against a target
+database in this session.
+
+## Migration safety
+
+- Read `prisma/schema.prisma` and inspect migration history before schema
+  changes. Check Git status and preserve existing user changes.
+- Never delete, rename, consolidate, or rewrite migrations already applied to
+  a database. Add a new timestamped migration for each required schema change.
+- Check existing data and application usage before removing data or columns;
+  obtain explicit approval for destructive changes. Avoid duplicate schema
+  objects.
+- Review migration SQL before applying it and save it as UTF-8 without a BOM.
+- After a development migration, verify migration status, an empty schema diff,
+  `prisma validate`, and relevant tests and builds. If a check fails, stop and
+  investigate the database state; do not automatically mark a migration
+  applied or rolled back.
+- Before production deployment, inspect production migration status, review
+  pending SQL, confirm backups, and check for data-loss risks. Apply reviewed
+  migrations with `prisma migrate deploy`. Never use `prisma migrate reset`,
+  `prisma db push`, or `prisma migrate dev` against production. Deploy
+  application code that depends on a migration only when that migration is
+  available to the deployment pipeline.
+
+## Historical baseline
+
+The migration chain began with the baseline migration:
 
 `20260801000000_baseline_schema`
 
-Legacy SQL is archived at `prisma/migrations_legacy_archive/` (not applied by Prisma).
-
-## Verified failure (before)
-
-Empty database + old chain:
-
-```text
-P3018 on 20260318120000_lead_lifecycle_engine
-ERROR: column "source" of relation "Lead" does not exist
-```
+Legacy SQL is archived at `prisma/migrations_legacy_archive/` and is not
+applied by Prisma.
 
 ## Fresh environments
 
@@ -31,36 +64,10 @@ pnpm run db:sync-check
 
 ## Existing production / QA databases
 
-Do **not** run the baseline CREATE TABLE migration against a database that already
-has application tables. That would fail with "relation already exists".
-
-### Required operator procedure
-
-1. Take a backup.
-2. Confirm the live database already matches `schema.prisma`:
-
-```bash
-pnpm --filter @saas/database exec prisma migrate diff \
-  --from-url "$DATABASE_URL" \
-  --to-schema-datamodel packages/database/prisma/schema.prisma \
-  --exit-code
-```
-
-Exit code `0` means no drift.  
-Exit code `2` means drift — stop and reconcile the live schema to `schema.prisma`
-with an explicit, reviewed SQL plan before continuing. Do not use `IF NOT EXISTS`
-band-aids.
-
-3. After the live schema matches, reset migration history bookkeeping only:
-
-```bash
-psql "$DATABASE_URL" -c 'DELETE FROM "_prisma_migrations";'
-pnpm --filter @saas/database exec prisma migrate resolve \
-  --applied 20260801000000_baseline_schema
-pnpm --filter @saas/database exec prisma migrate status
-```
-
-4. Deploy application code that contains only the baseline migration.
+Never apply the baseline migration blindly to a database that already has
+application tables. Verify that environment's migration status and schema
+before deployment, and stop to investigate any drift or failed migration.
+Do not clear or rewrite `_prisma_migrations` as a routine deployment step.
 
 ## Prisma client generation (pnpm)
 

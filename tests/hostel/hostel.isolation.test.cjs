@@ -141,6 +141,7 @@ test('hostel writes preserve the caller tenant identity', async () => {
   });
   await service.createStudent('tenant-b', {
     hostelId: 'hostel-1',
+    admissionRequestId: 'admission-request-b1',
     admissionNumber: 'B-2',
     name: 'B Student 2',
   });
@@ -161,7 +162,24 @@ test('hostel service rejects invalid cross-tenant context values', async () => {
   await assert.rejects(() => service.listRooms('', 'hostel-1'), /Tenant context is required/);
   await assert.rejects(
     () => service.createStudent('tenant-a', { hostelId: 'hostel-1', name: 'Student' }),
-    /Admission number is required/,
+    /admissionRequestId is required/,
+  );
+  await assert.rejects(
+    () => service.createStudent('tenant-a', {
+      hostelId: 'hostel-1',
+      admissionRequestId: 'admission-request-a1',
+      roomId: 'room-1',
+      name: 'Student',
+    }),
+    /roomId and bedId must be provided together/,
+  );
+  await assert.rejects(
+    () => service.allocateStudent('tenant-a', {
+      hostelId: 'hostel-1',
+      roomId: 'room-1',
+      studentId: 'student-1',
+    }),
+    /bedId is required/,
   );
 });
 
@@ -206,11 +224,13 @@ test('concurrent allocations consume the final vacancy only once', async () => {
     service.allocateStudent('tenant-a', {
       hostelId: 'hostel-1',
       roomId: 'room-1',
+      bedId: 'bed-1',
       studentId: 'student-a',
     }),
     service.allocateStudent('tenant-a', {
       hostelId: 'hostel-1',
       roomId: 'room-1',
+      bedId: 'bed-1',
       studentId: 'student-b',
     }),
   ]);
@@ -222,4 +242,131 @@ test('concurrent allocations consume the final vacancy only once', async () => {
     results.find((result) => result.status === 'rejected').reason.message,
     /capacity is full/,
   );
+});
+
+test('bed reservations preserve tenant, hostel, room, bed, and student scope', async () => {
+  let reservationInput;
+  const repository = {
+    async reserveStudent(input) {
+      reservationInput = input;
+      return { status: 'RESERVED', ...input };
+    },
+  };
+  const service = new HostelPropertyService(repository);
+
+  await service.reserveStudent('tenant-a', {
+    hostelId: 'hostel-1',
+    roomId: 'room-1',
+    bedId: 'bed-1',
+    studentId: 'student-1',
+  });
+
+  assert.deepEqual(reservationInput, {
+    tenantId: 'tenant-a',
+    hostelId: 'hostel-1',
+    roomId: 'room-1',
+    bedId: 'bed-1',
+    studentId: 'student-1',
+    actorId: undefined,
+  });
+  await assert.rejects(
+    () => service.reserveStudent('tenant-a', {
+      hostelId: 'hostel-1',
+      roomId: 'room-1',
+      studentId: 'student-1',
+    }),
+    /bedId is required/,
+  );
+});
+
+test('hostel enquiry conversion passes tenant ownership and admission data to the repository', async () => {
+  let conversionInput;
+  const repository = {
+    async convertHostelEnquiry(input) {
+      conversionInput = input;
+      return { student: { id: 'student-1' }, alreadyConverted: false };
+    },
+  };
+  const service = new HostelPropertyService(repository);
+
+  await service.convertHostelEnquiry('tenant-a', 'lead-1', {
+    hostelId: 'hostel-1',
+    name: 'A Student',
+    phone: '+919876543210',
+    admissionDate: '2026-10-21',
+    roomId: 'room-1',
+    bedId: 'bed-1',
+  }, 'staff-1');
+
+  assert.equal(conversionInput.tenantId, 'tenant-a');
+  assert.equal(conversionInput.hostelId, 'hostel-1');
+  assert.equal(conversionInput.leadId, 'lead-1');
+  assert.equal(conversionInput.roomId, 'room-1');
+  assert.equal(conversionInput.bedId, 'bed-1');
+  assert.equal(conversionInput.actorId, 'staff-1');
+
+  await assert.rejects(
+    () => service.convertHostelEnquiry('tenant-a', 'lead-1', {
+      hostelId: 'hostel-1',
+      name: 'A Student',
+      phone: '+919876543210',
+      admissionDate: '2026-10-21',
+      roomId: 'room-1',
+    }),
+    /roomId and bedId must be provided together/,
+  );
+});
+
+test('student creation forwards one idempotency key and optional bed reservation atomically', async () => {
+  let creationInput;
+  const repository = {
+    async createStudent(input) {
+      creationInput = input;
+      return { student: { id: 'student-1' }, bedReserved: true };
+    },
+  };
+  const service = new HostelPropertyService(repository);
+
+  await service.createStudent('tenant-a', {
+    hostelId: 'hostel-1',
+    admissionRequestId: 'admission-request-1',
+    name: 'A Student',
+    phone: '+919876543210',
+    admissionDate: '2026-10-21',
+    roomId: 'room-1',
+    bedId: 'bed-1',
+  }, 'staff-1');
+
+  assert.equal(creationInput.tenantId, 'tenant-a');
+  assert.equal(creationInput.admissionRequestId, 'admission-request-1');
+  assert.equal(creationInput.hostelId, 'hostel-1');
+  assert.equal(creationInput.roomId, 'room-1');
+  assert.equal(creationInput.bedId, 'bed-1');
+  assert.equal(creationInput.actorId, 'staff-1');
+});
+
+test('stay history is scoped by tenant and hostel with explicit status filtering', async () => {
+  let staysInput;
+  const repository = {
+    async listStays(input) {
+      staysInput = input;
+      return { items: [], total: 0 };
+    },
+  };
+  const service = new HostelPropertyService(repository);
+
+  await service.listStays('tenant-a', {
+    hostelId: 'hostel-1',
+    status: 'ACTIVE',
+    page: 1,
+    limit: 100,
+  });
+
+  assert.deepEqual(staysInput, {
+    tenantId: 'tenant-a',
+    hostelId: 'hostel-1',
+    status: 'ACTIVE',
+    page: 1,
+    limit: 100,
+  });
 });

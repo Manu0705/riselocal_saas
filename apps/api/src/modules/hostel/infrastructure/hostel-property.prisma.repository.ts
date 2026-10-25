@@ -1,6 +1,11 @@
 import { prisma, Prisma } from '@saas/database';
 import { randomBytes } from 'node:crypto';
 import { hashPassword } from '../../auth/infrastructure/password.service';
+import {
+  getCurrentFeeBillingPeriod,
+  getOneTimeFeePeriod,
+  type HostelFeeFrequency,
+} from '../application/hostel-fee-billing';
 
 export type HostelRepository = {
   findHostels(tenantId: string): Promise<unknown[]>;
@@ -32,6 +37,7 @@ export type HostelRepository = {
       | 'ELECTRICITY'
       | 'MAINTENANCE'
       | 'OTHER';
+    billingFrequency: HostelFeeFrequency;
     description?: string;
     amount: number;
     currency?: string;
@@ -49,6 +55,7 @@ export type HostelRepository = {
       | 'ELECTRICITY'
       | 'MAINTENANCE'
       | 'OTHER';
+    billingFrequency?: HostelFeeFrequency;
     description?: string | null;
     amount?: number;
     currency?: string;
@@ -184,10 +191,19 @@ export type HostelRepository = {
   findRoom(input: { tenantId: string; id: string }): Promise<unknown | null>;
   listVacancies(input: { tenantId: string; hostelId: string }): Promise<unknown[]>;
   vacancySummary(input: { tenantId: string; hostelId: string }): Promise<unknown>;
+  reserveStudent(input: {
+    tenantId: string;
+    hostelId: string;
+    roomId: string;
+    bedId: string;
+    studentId: string;
+    actorId?: string;
+  }): Promise<unknown>;
   allocateStudent(input: {
     tenantId: string;
     hostelId: string;
     roomId: string;
+    bedId: string;
     studentId: string;
     actorId?: string;
   }): Promise<unknown>;
@@ -195,6 +211,7 @@ export type HostelRepository = {
     tenantId: string;
     hostelId: string;
     roomId: string;
+    bedId: string;
     studentId: string;
     actorId?: string;
   }): Promise<unknown>;
@@ -204,6 +221,13 @@ export type HostelRepository = {
     studentId: string;
     actorId?: string;
   }): Promise<unknown>;
+  listStays(input: {
+    tenantId: string;
+    hostelId: string;
+    status?: 'ACTIVE' | 'CHECKED_OUT';
+    page: number;
+    limit: number;
+  }): Promise<{ items: unknown[]; total: number }>;
   allocationHistory(input: { tenantId: string; roomId: string }): Promise<unknown[]>;
   recentAllocationActivity(input: {
     tenantId: string;
@@ -231,10 +255,29 @@ export type HostelRepository = {
     pendingPaymentCount: number;
   }>;
   findStudent(input: { tenantId: string; id: string; userId?: string }): Promise<unknown | null>;
+  listHostelEnquiries(input: { tenantId: string; hostelId: string }): Promise<unknown[]>;
+  convertHostelEnquiry(input: {
+    tenantId: string;
+    hostelId: string;
+    leadId: string;
+    name: string;
+    email?: string;
+    phone: string;
+    dateOfBirth?: Date;
+    emergencyName?: string;
+    emergencyPhone?: string;
+    emergencyRelation?: string;
+    admissionDate: Date;
+    roomId?: string;
+    bedId?: string;
+    actorId?: string;
+  }): Promise<unknown>;
   createStudent(input: {
     tenantId: string;
     hostelId: string;
+    admissionRequestId: string;
     roomId?: string;
+    bedId?: string;
     name: string;
     email?: string;
     phone?: string;
@@ -243,6 +286,7 @@ export type HostelRepository = {
     emergencyPhone?: string;
     emergencyRelation?: string;
     admissionDate?: Date;
+    actorId?: string;
     paymentStatus: 'PAID' | 'PARTIAL' | 'DUE' | 'OVERDUE';
     status: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }): Promise<unknown>;
@@ -429,6 +473,8 @@ getFeeCollectionSummary(input: {
     tenantId: string;
     hostelId?: string;
     status?: string;
+    depositType?: string;
+    studentId?: string;
     from?: Date;
     to?: Date;
     page: number;
@@ -443,6 +489,8 @@ getFeeCollectionSummary(input: {
   createDeposit(input: {
     tenantId: string;
     hostelId: string;
+    depositType: 'SECURITY_DEPOSIT' | 'ADVANCE_RENT' | 'OTHER';
+    studentId?: string;
     amount: number;
     currency?: string;
     depositDate?: Date;
@@ -455,6 +503,8 @@ getFeeCollectionSummary(input: {
   updateDeposit(input: {
     tenantId: string;
     id: string;
+    depositType?: 'SECURITY_DEPOSIT' | 'ADVANCE_RENT' | 'OTHER';
+    studentId?: string | null;
     amount?: number;
     currency?: string;
     depositDate?: Date;
@@ -596,6 +646,327 @@ getFeeCollectionSummary(input: {
 };
 
 export class HostelPropertyPrismaRepository implements HostelRepository {
+  private async applyFeeToStudent(
+    tx: Prisma.TransactionClient,
+    fee: {
+      id: string;
+      tenantId: string;
+      hostelId: string;
+      name: string;
+      type:
+        | 'MONTHLY'
+        | 'ADMISSION'
+        | 'SECURITY_DEPOSIT'
+        | 'MESS'
+        | 'ELECTRICITY'
+        | 'MAINTENANCE'
+        | 'OTHER';
+      billingFrequency: HostelFeeFrequency;
+      amount: Prisma.Decimal;
+      createdAt: Date;
+    },
+    student: {
+      id: string;
+      tenantId: string;
+      hostelId: string;
+      status: string;
+      admissionDate: Date;
+      outstandingAmount: Prisma.Decimal;
+    },
+    issuedAt: Date,
+  ) {
+    if (
+      student.status !== 'ACTIVE' ||
+      student.admissionDate > issuedAt ||
+      fee.type === 'SECURITY_DEPOSIT' ||
+      fee.createdAt > issuedAt
+    ) {
+      return false;
+    }
+
+    const period =
+      fee.billingFrequency === 'ONE_TIME'
+        ? getOneTimeFeePeriod(fee.createdAt, issuedAt)
+        : getCurrentFeeBillingPeriod(fee.billingFrequency, issuedAt);
+    if (!period) return false;
+
+    const billingKey = [
+      student.id,
+      fee.id,
+      period.start.toISOString(),
+    ].join(':');
+    const billingLockKey = [
+      student.id,
+      fee.type,
+      period.start.toISOString(),
+    ].join(':');
+    const periodEndExclusive = new Date(period.end.getTime() + 1);
+    const currentPeriodAssignmentConditions: Prisma.HostelFeeAssignmentWhereInput[] = [
+      { periodStart: period.start },
+      {
+        periodStart: null,
+        assignedAt: { gte: period.start, lt: periodEndExclusive },
+      },
+      {
+        periodStart: null,
+        dueDate: { gte: period.start, lt: periodEndExclusive },
+      },
+    ];
+    const currentPeriodAssignments =
+      fee.billingFrequency === 'ONE_TIME'
+        ? {}
+        : { OR: currentPeriodAssignmentConditions };
+    const overlappingPeriodAssignments =
+      fee.billingFrequency === 'ONE_TIME'
+        ? {}
+        : {
+            OR: [
+              {
+                periodStart: { not: null, lte: period.end },
+                OR: [{ periodEnd: null }, { periodEnd: { gte: period.start } }],
+              },
+              ...currentPeriodAssignmentConditions,
+            ],
+          };
+
+    // await tx.$executeRaw<Array<{ pg_advisory_xact_lock: null }>>`
+    //   SELECT pg_advisory_xact_lock(hashtext(${student.tenantId}), hashtext(${billingLockKey}))
+    // `;
+
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH advisory_lock AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(
+          hashtext(${student.tenantId}),
+          hashtext(${billingLockKey})
+        )
+      )
+      SELECT 1::int AS locked
+      FROM advisory_lock
+    `;
+
+    const alreadyGenerated = await tx.hostelFeeAssignment.findFirst({
+      where: { tenantId: student.tenantId, billingKey },
+      select: { id: true },
+    });
+    if (alreadyGenerated) return false;
+
+    let assignment = await tx.hostelFeeAssignment.findFirst({
+      where: {
+        tenantId: student.tenantId,
+        studentId: student.id,
+        feeId: fee.id,
+        status: 'ACTIVE',
+        ...currentPeriodAssignments,
+      },
+    });
+
+    if (!assignment && fee.billingFrequency !== 'ONE_TIME') {
+      const overlappingAssignment = await tx.hostelFeeAssignment.findFirst({
+        where: {
+          tenantId: student.tenantId,
+          studentId: student.id,
+          feeId: fee.id,
+          status: 'ACTIVE',
+          ...overlappingPeriodAssignments,
+        },
+        select: { id: true },
+      });
+      if (overlappingAssignment) return false;
+    }
+
+    const priorCategoryCharge = await tx.hostelFeeAssignment.findFirst({
+      where: {
+        tenantId: student.tenantId,
+        studentId: student.id,
+        status: 'ACTIVE',
+        ...overlappingPeriodAssignments,
+        fee: {
+          type: fee.type,
+          ...(fee.billingFrequency === 'ONE_TIME'
+            ? {}
+            : { id: { not: fee.id } }),
+        },
+      },
+      select: { id: true },
+    });
+    if (priorCategoryCharge) return false;
+
+    let createdAssignment = false;
+    if (assignment) {
+      const existingInvoiceItem = await tx.hostelInvoiceItem.findFirst({
+        where: {
+          tenantId: student.tenantId,
+          feeAssignmentId: assignment.id,
+          invoice: { status: { not: 'CANCELLED' } },
+        },
+        select: { id: true },
+      });
+      if (existingInvoiceItem) {
+        await tx.hostelFeeAssignment.update({
+          where: { id: assignment.id },
+          data: { billingKey },
+        });
+        return false;
+      }
+
+      assignment = await tx.hostelFeeAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          dueDate: period.dueDate,
+          periodStart: period.start,
+          periodEnd: period.end,
+          billingKey,
+        },
+      });
+    } else {
+      assignment = await tx.hostelFeeAssignment.create({
+        data: {
+          tenantId: student.tenantId,
+          hostelId: student.hostelId,
+          studentId: student.id,
+          feeId: fee.id,
+          amount: fee.amount,
+          dueDate: period.dueDate,
+          periodStart: period.start,
+          periodEnd: period.end,
+          billingKey,
+          status: 'ACTIVE',
+        },
+      });
+      createdAssignment = true;
+    }
+    const chargeAmount = assignment.amount;
+
+    const invoiceNumber =
+      `AUTO-${period.start.toISOString().slice(0, 10)}-${fee.id}-${student.id}`;
+    await tx.hostelInvoice.create({
+      data: {
+        tenantId: student.tenantId,
+        hostelId: student.hostelId,
+        studentId: student.id,
+        invoiceNumber,
+        issueDate: issuedAt,
+        dueDate: period.dueDate,
+        subtotal: chargeAmount,
+        discount: new Prisma.Decimal(0),
+        totalAmount: chargeAmount,
+        paidAmount: new Prisma.Decimal(0),
+        balanceAmount: chargeAmount,
+        status: 'ISSUED',
+        notes: `${fee.name} (${period.start.toISOString().slice(0, 10)} to ${period.end.toISOString().slice(0, 10)})`,
+        items: {
+          create: {
+            feeAssignmentId: assignment.id,
+            description: fee.name,
+            amount: chargeAmount,
+          },
+        },
+      },
+    });
+
+    if (createdAssignment) {
+      const nextOutstanding = student.outstandingAmount.add(chargeAmount);
+      await tx.student.update({
+        where: { id: student.id },
+        data: {
+          outstandingAmount: nextOutstanding,
+          paymentStatus: nextOutstanding.gt(0) ? 'DUE' : 'PAID',
+        },
+      });
+      student.outstandingAmount = nextOutstanding;
+    }
+    return true;
+  }
+
+  private async applyActiveFeesToStudent(
+    tx: Prisma.TransactionClient,
+    studentId: string,
+    tenantId: string,
+    hostelId: string,
+    issuedAt: Date,
+  ) {
+    const student = await tx.student.findFirst({
+      where: {
+        id: studentId,
+        tenantId,
+        hostelId,
+        status: 'ACTIVE',
+        admissionDate: { lte: issuedAt },
+      },
+    });
+    if (!student) return 0;
+
+    const fees = await tx.hostelFee.findMany({
+      where: {
+        tenantId,
+        hostelId,
+        isActive: true,
+        createdAt: { lte: issuedAt },
+        type: { not: 'SECURITY_DEPOSIT' },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    let generatedCount = 0;
+    for (const fee of fees) {
+      if (await this.applyFeeToStudent(tx, fee, student, issuedAt)) {
+        generatedCount += 1;
+      }
+    }
+    return generatedCount;
+  }
+
+  async generateCurrentFeeInvoices(issuedAt = new Date()) {
+    const fees = await prisma.hostelFee.findMany({
+      where: {
+        isActive: true,
+        createdAt: { lte: issuedAt },
+        billingFrequency: { not: 'ONE_TIME' },
+        type: { not: 'SECURITY_DEPOSIT' },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    const hostels = new Map<string, { tenantId: string; hostelId: string }>();
+    for (const fee of fees) {
+      hostels.set(`${fee.tenantId}:${fee.hostelId}`, {
+        tenantId: fee.tenantId,
+        hostelId: fee.hostelId,
+      });
+    }
+
+    let generatedCount = 0;
+    for (const { tenantId, hostelId } of hostels.values()) {
+      const students = await prisma.student.findMany({
+        where: {
+          tenantId,
+          hostelId,
+          status: 'ACTIVE',
+          admissionDate: { lte: issuedAt },
+        },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      });
+
+      for (const student of students) {
+        generatedCount += await prisma.$transaction((tx) =>
+          this.applyActiveFeesToStudent(
+            tx,
+            student.id,
+            tenantId,
+            hostelId,
+            issuedAt,
+          ),
+          {
+            maxWait: 5000,
+            timeout: 15000,
+          },
+        );
+      }
+    }
+    return generatedCount;
+  }
+
   findHostels(tenantId: string) {
     return prisma.hostel.findMany({
       where: { tenantId },
@@ -769,40 +1140,72 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       | 'ELECTRICITY'
       | 'MAINTENANCE'
       | 'OTHER';
+    billingFrequency: HostelFeeFrequency;
     description?: string;
     amount: number;
     currency?: string;
   }) {
-    const hostel = await prisma.hostel.findFirst({
-      where: {
-        id: input.hostelId,
-        tenantId: input.tenantId,
-      },
-    });
+    return prisma.$transaction(async (tx) => {
+      const hostel = await tx.hostel.findFirst({
+        where: { id: input.hostelId, tenantId: input.tenantId },
+        select: { id: true },
+      });
+      if (!hostel) throw new Error('Hostel not found');
 
-    if (!hostel) {
-      throw new Error('Hostel not found');
-    }
-    return prisma.hostelFee.create({
-      data: {
-        tenantId: input.tenantId,
-        hostelId: input.hostelId,
-        name: input.name,
-        type: input.type,
-        description: input.description,
-        amount: new Prisma.Decimal(input.amount),
-        currency: input.currency ?? 'INR',
-        isActive: true,
-      },
-      include: {
-        hostel: {
-          select: {
-            id: true,
-            name: true,
-          },
+      const categoryLockKey = `fee-category:${input.hostelId}:${input.type}`;
+      await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+        SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${categoryLockKey}))
+      `;
+
+      await tx.hostelFee.updateMany({
+        where: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          type: input.type,
+          isActive: true,
         },
-      },
-    });
+        data: { isActive: false },
+      });
+
+      const fee = await tx.hostelFee.create({
+        data: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          name: input.name,
+          type: input.type,
+          billingFrequency: input.billingFrequency,
+          description: input.description,
+          amount: new Prisma.Decimal(input.amount),
+          currency: input.currency ?? 'INR',
+          isActive: true,
+        },
+        include: {
+          hostel: { select: { id: true, name: true } },
+        },
+      });
+
+      const issuedAt = new Date();
+      const students = await tx.student.findMany({
+        where: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          status: 'ACTIVE',
+          admissionDate: { lte: issuedAt },
+        },
+        select: { id: true },
+      });
+      for (const student of students) {
+        await this.applyActiveFeesToStudent(
+          tx,
+          student.id,
+          input.tenantId,
+          input.hostelId,
+          issuedAt,
+        );
+      }
+
+      return fee;
+    }, { timeout: 60_000 });
   }
 
   async updateFee(input: {
@@ -817,45 +1220,81 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       | 'ELECTRICITY'
       | 'MAINTENANCE'
       | 'OTHER';
+    billingFrequency?: HostelFeeFrequency;
     description?: string | null;
     amount?: number;
     currency?: string;
     isActive?: boolean;
   }) {
-    const existing = await prisma.hostelFee.findFirst({
-      where: {
-        id: input.id,
-        tenantId: input.tenantId,
-      },
-    });
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.hostelFee.findFirst({
+        where: { id: input.id, tenantId: input.tenantId },
+      });
+      if (!existing) throw new Error('Fee not found');
 
-    if (!existing) throw new Error('Fee not found');
-
-    const {
-      tenantId: _tenantId,
-      id: _id,
-      amount,
-      ...data
-    } = input;
-
-    return prisma.hostelFee.update({
-      where: {
-        id: existing.id,
-      },
-      data: {
-        ...data,
-        ...(amount !== undefined
-          ? { amount: new Prisma.Decimal(amount) }
-          : {}),
-      },
-      include: {
-        hostel: {
-          select: {
-            id: true,
-            name: true,
+      if (input.isActive !== false && (input.isActive === true || input.type)) {
+        const nextType = input.type ?? existing.type;
+        const categoryLockKey = `fee-category:${existing.hostelId}:${nextType}`;
+        await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+          SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${categoryLockKey}))
+        `;
+        await tx.hostelFee.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            hostelId: existing.hostelId,
+            type: nextType,
+            id: { not: existing.id },
+            isActive: true,
           },
+          data: { isActive: false },
+        });
+      }
+
+      const fee = await tx.hostelFee.update({
+        where: { id: existing.id },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.type !== undefined ? { type: input.type } : {}),
+          ...(input.billingFrequency !== undefined
+            ? { billingFrequency: input.billingFrequency }
+            : {}),
+          ...(input.description !== undefined
+            ? { description: input.description }
+            : {}),
+          ...(input.amount !== undefined
+            ? { amount: new Prisma.Decimal(input.amount) }
+            : {}),
+          ...(input.currency !== undefined ? { currency: input.currency } : {}),
+          ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         },
-      },
+        include: {
+          hostel: { select: { id: true, name: true } },
+        },
+      });
+
+      if (fee.isActive) {
+        const issuedAt = new Date();
+        const students = await tx.student.findMany({
+          where: {
+            tenantId: fee.tenantId,
+            hostelId: fee.hostelId,
+            status: 'ACTIVE',
+            admissionDate: { lte: issuedAt },
+          },
+          select: { id: true },
+        });
+        for (const student of students) {
+          await this.applyActiveFeesToStudent(
+            tx,
+            student.id,
+            fee.tenantId,
+            fee.hostelId,
+            issuedAt,
+          );
+        }
+      }
+
+      return fee;
     });
   }
 
@@ -1010,12 +1449,16 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           select: {
             id: true,
             amount: true,
+            type: true,
           },
         }),
       ]);
 
       if (!student) throw new Error('Student not found');
       if (!fee) throw new Error('Active fee not found');
+      if (fee.type === 'SECURITY_DEPOSIT') {
+        throw new Error('Security deposits must be recorded through the deposits workflow');
+      }
 
       const amount = new Prisma.Decimal(input.amount);
 
@@ -1606,6 +2049,19 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         orderBy: { roomNumber: 'asc' },
         skip,
         take: limit,
+        include: {
+          students: {
+            where: { tenantId: input.tenantId },
+            select: { id: true, name: true, admissionNumber: true },
+          },
+          beds: {
+            where: { status: { not: 'INACTIVE' } },
+            orderBy: { bedNumber: 'asc' },
+            include: {
+              student: { select: { id: true, name: true, admissionNumber: true } },
+            },
+          },
+        },
       }),
 
       prisma.room.count({
@@ -1624,23 +2080,39 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     };
   }
 
-  createRoom(input: {
+  async createRoom(input: {
     tenantId: string;
     hostelId: string;
     roomNumber: string;
     capacity: number;
     sharingType?: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD' | 'DORMITORY';
   }) {
-    return prisma.room.create({
-      data: {
-        roomNumber: input.roomNumber,
-        capacity: input.capacity,
-        ...(input.sharingType ? { sharingType: input.sharingType } : {}),
-        tenant: { connect: { id: input.tenantId } },
-        hostel: {
-          connect: { id_tenantId: { id: input.hostelId, tenantId: input.tenantId } },
+    return prisma.$transaction(async (tx) => {
+      const room = await tx.room.create({
+        data: {
+          roomNumber: input.roomNumber,
+          capacity: input.capacity,
+          ...(input.sharingType ? { sharingType: input.sharingType } : {}),
+          tenant: { connect: { id: input.tenantId } },
+          hostel: {
+            connect: { id_tenantId: { id: input.hostelId, tenantId: input.tenantId } },
+          },
         },
-      },
+      });
+
+      await tx.roomBed.createMany({
+        data: Array.from({ length: input.capacity }, (_, index) => ({
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: room.id,
+          bedNumber: `B${index + 1}`,
+        })),
+      });
+
+      return tx.room.findUnique({
+        where: { id: room.id },
+        include: { beds: { orderBy: { bedNumber: 'asc' } } },
+      });
     });
   }
 
@@ -1652,6 +2124,11 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         students: {
           where: { tenantId: input.tenantId },
           select: { id: true, name: true, admissionNumber: true },
+        },
+        beds: {
+          where: { status: { not: 'INACTIVE' } },
+          orderBy: { bedNumber: 'asc' },
+          include: { student: { select: { id: true, name: true, admissionNumber: true } } },
         },
       },
     });
@@ -1673,6 +2150,46 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         throw new Error('Capacity cannot be below current occupancy');
       }
       const capacity = input.capacity ?? room.capacity;
+      const beds = await tx.roomBed.findMany({
+        where: { tenantId: input.tenantId, roomId: room.id },
+        orderBy: { bedNumber: 'desc' },
+      });
+      const activeBeds = beds.filter((bed) => bed.status !== 'INACTIVE');
+
+      if (capacity < activeBeds.length) {
+        const toRetire = activeBeds.slice(0, activeBeds.length - capacity);
+        if (toRetire.some((bed) => bed.status !== 'AVAILABLE')) {
+          throw new Error('Capacity cannot be reduced while beds are reserved or occupied');
+        }
+        await tx.roomBed.updateMany({
+          where: { id: { in: toRetire.map((bed) => bed.id) }, tenantId: input.tenantId },
+          data: { status: 'INACTIVE' },
+        });
+      } else if (capacity > activeBeds.length) {
+        const needed = capacity - activeBeds.length;
+        const inactiveBeds = beds.filter((bed) => bed.status === 'INACTIVE').slice(0, needed);
+        if (inactiveBeds.length > 0) {
+          await tx.roomBed.updateMany({
+            where: { id: { in: inactiveBeds.map((bed) => bed.id) }, tenantId: input.tenantId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+        const remaining = needed - inactiveBeds.length;
+        if (remaining > 0) {
+          const highestBedNumber = beds.reduce((highest, bed) => {
+            const number = Number(bed.bedNumber.replace(/^B/, ''));
+            return Number.isInteger(number) ? Math.max(highest, number) : highest;
+          }, 0);
+          await tx.roomBed.createMany({
+            data: Array.from({ length: remaining }, (_, index) => ({
+              tenantId: input.tenantId,
+              hostelId: room.hostelId,
+              roomId: room.id,
+              bedNumber: `B${highestBedNumber + index + 1}`,
+            })),
+          });
+        }
+      }
       const status = input.status ?? room.status;
       const isActive = input.isActive ?? room.isActive;
       const vacancyStatus =
@@ -1690,12 +2207,17 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         ...roomData
       } = input;
 
-      return tx.room.update({
+      await tx.room.update({
         where: { id: input.id },
         data: {
           ...roomData,
           vacancyStatus,
         },
+      });
+      await this.syncRoomBedState(tx, input.tenantId, room.id);
+      return tx.room.findUnique({
+        where: { id: room.id },
+        include: { beds: { where: { status: { not: 'INACTIVE' } }, orderBy: { bedNumber: 'asc' } } },
       });
     });
   }
@@ -1703,7 +2225,12 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
   async deleteRoom(input: { tenantId: string; id: string }) {
     const room = await prisma.room.findFirst({ where: { id: input.id, tenantId: input.tenantId } });
     if (!room) throw new Error('Room not found');
-    if (room.occupancy > 0) throw new Error('Cannot deactivate an occupied room');
+    const assignedBeds = await prisma.roomBed.count({
+      where: { tenantId: input.tenantId, roomId: room.id, status: { in: ['RESERVED', 'OCCUPIED'] } },
+    });
+    if (assignedBeds > 0 || room.occupancy > 0) {
+      throw new Error('Cannot deactivate a room with reserved or occupied beds');
+    }
 
     return prisma.room.update({
       where: { id: input.id },
@@ -1720,32 +2247,50 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         vacancyStatus: { not: 'UNAVAILABLE' },
       },
       orderBy: [{ vacancyStatus: 'asc' }, { roomNumber: 'asc' }],
+      include: {
+        beds: {
+          where: { status: { not: 'INACTIVE' } },
+          orderBy: { bedNumber: 'asc' },
+          include: { student: { select: { id: true, name: true, admissionNumber: true } } },
+        },
+      },
     });
   }
 
   async vacancySummary(input: { tenantId: string; hostelId: string }) {
-    const rooms = await prisma.room.findMany({ where: input });
+    const rooms = await prisma.room.findMany({
+      where: input,
+      include: { beds: { where: { status: { not: 'INACTIVE' } }, select: { status: true } } },
+    });
     return rooms.reduce(
       (summary, room) => {
         summary.rooms += 1;
         summary.capacity += room.capacity;
-        summary.occupancy += room.occupancy;
-        summary.vacancy += Math.max(0, room.capacity - room.occupancy);
-        if (room.vacancyStatus === 'FULL') summary.full += 1;
-        if (room.vacancyStatus === 'VACANT') summary.vacant += 1;
-        if (room.vacancyStatus === 'PARTIALLY_OCCUPIED') summary.partial += 1;
+        const occupied = room.beds.filter((bed) => bed.status === 'OCCUPIED').length;
+        const reserved = room.beds.filter((bed) => bed.status === 'RESERVED').length;
+        const available = room.beds.filter((bed) => bed.status === 'AVAILABLE').length;
+        summary.occupancy += occupied;
+        summary.reserved += reserved;
+        summary.vacancy += available;
+        if (available === 0) summary.full += 1;
+        if (occupied === 0 && reserved === 0) summary.vacant += 1;
+        if (available > 0 && (occupied > 0 || reserved > 0)) summary.partial += 1;
         return summary;
       },
-      { rooms: 0, capacity: 0, occupancy: 0, vacancy: 0, full: 0, vacant: 0, partial: 0 },
+      { rooms: 0, capacity: 0, occupancy: 0, reserved: 0, vacancy: 0, full: 0, vacant: 0, partial: 0 },
     );
   }
 
   private async withAllocationRetry<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
+    timeout = 15_000,
   ): Promise<T> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        return await prisma.$transaction(operation, { isolationLevel: 'Serializable' });
+        return await prisma.$transaction(operation, {
+          isolationLevel: 'Serializable',
+          timeout,
+        });
       } catch (error: unknown) {
         const code =
           typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
@@ -1755,10 +2300,110 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     throw new Error('Allocation transaction failed');
   }
 
+  private async syncRoomBedState(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    roomId: string,
+  ) {
+    const beds = await tx.roomBed.findMany({
+      where: { tenantId, roomId, status: { not: 'INACTIVE' } },
+      select: { status: true },
+    });
+    const occupied = beds.filter((bed) => bed.status === 'OCCUPIED').length;
+    const reserved = beds.filter((bed) => bed.status === 'RESERVED').length;
+    const available = beds.filter((bed) => bed.status === 'AVAILABLE').length;
+    const room = await tx.room.findFirst({ where: { id: roomId, tenantId } });
+
+    if (!room) throw new Error('Room not found');
+
+    const unavailable = !room.isActive || room.status === 'MAINTENANCE' || room.status === 'INACTIVE';
+    await tx.room.update({
+      where: { id: room.id },
+      data: {
+        occupancy: occupied,
+        vacancyStatus: unavailable
+          ? 'UNAVAILABLE'
+          : available === 0
+            ? 'FULL'
+            : occupied === 0 && reserved === 0
+              ? 'VACANT'
+              : 'PARTIALLY_OCCUPIED',
+      },
+    });
+  }
+
+  reserveStudent(input: {
+    tenantId: string;
+    hostelId: string;
+    roomId: string;
+    bedId: string;
+    studentId: string;
+    actorId?: string;
+  }) {
+    return this.withAllocationRetry(async (tx) => {
+      const room = await tx.room.findFirst({
+        where: { id: input.roomId, tenantId: input.tenantId, hostelId: input.hostelId },
+      });
+      if (!room) throw new Error('Room not found');
+      if (!room.isActive || room.status === 'MAINTENANCE' || room.status === 'INACTIVE') {
+        throw new Error('Room is unavailable');
+      }
+
+      const student = await tx.student.findFirst({
+        where: { id: input.studentId, tenantId: input.tenantId, hostelId: input.hostelId },
+      });
+      if (!student) throw new Error('Student not found');
+      if (student.status !== 'ACTIVE') throw new Error('Only active students can reserve a bed');
+      if (student.roomId) throw new Error('Student is already allocated');
+
+      const existingBed = await tx.roomBed.findFirst({
+        where: { tenantId: input.tenantId, studentId: input.studentId },
+      });
+      if (existingBed) throw new Error('Student already has an active bed assignment');
+
+      const bed = await tx.roomBed.findFirst({
+        where: {
+          id: input.bedId,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          status: 'AVAILABLE',
+          studentId: null,
+        },
+      });
+      if (!bed) throw new Error('Bed is unavailable');
+
+      const reserved = await tx.roomBed.updateMany({
+        where: { id: bed.id, tenantId: input.tenantId, status: 'AVAILABLE', studentId: null },
+        data: { status: 'RESERVED', studentId: input.studentId },
+      });
+      if (reserved.count !== 1) throw new Error('Bed is unavailable');
+
+      await tx.roomAllocation.create({
+        data: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          bedId: bed.id,
+          studentId: input.studentId,
+          actorId: input.actorId,
+          action: 'RESERVED',
+        },
+      });
+      await this.syncRoomBedState(tx, input.tenantId, input.roomId);
+
+      return tx.roomBed.findUnique({
+        where: { id: bed.id },
+        include: { student: { select: { id: true, name: true, admissionNumber: true } } },
+      });
+    });
+  }
+
   allocateStudent(input: {
     tenantId: string;
     hostelId: string;
     roomId: string;
+    bedId: string;
     studentId: string;
     actorId?: string;
   }) {
@@ -1769,37 +2414,116 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       if (!room) throw new Error('Room not found');
       if (!room.isActive || room.status === 'MAINTENANCE' || room.status === 'INACTIVE')
         throw new Error('Room is unavailable');
-      if (room.occupancy >= room.capacity) throw new Error('Room capacity is full');
 
       const student = await tx.student.findFirst({
         where: { id: input.studentId, tenantId: input.tenantId, hostelId: input.hostelId },
       });
       if (!student) throw new Error('Student not found');
-      if (student.roomId) throw new Error('Student is already allocated');
+      if (student.status !== 'ACTIVE') throw new Error('Only active students can check in');
+
+      const activeStay = await tx.hostelStay.findFirst({
+        where: { tenantId: input.tenantId, studentId: student.id, status: 'ACTIVE' },
+      });
+
+      const bed = await tx.roomBed.findFirst({
+        where: {
+          id: input.bedId,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+        },
+      });
+      if (!bed) throw new Error('Bed not found');
+
+      if (student.roomId || activeStay) {
+        const sameActiveAllocation =
+          student.roomId === input.roomId &&
+          activeStay?.hostelId === input.hostelId &&
+          activeStay.roomId === input.roomId &&
+          activeStay.bedId === input.bedId &&
+          bed.status === 'OCCUPIED' &&
+          bed.studentId === input.studentId;
+
+        if (sameActiveAllocation && activeStay) {
+          const allocation = await tx.roomAllocation.findFirst({
+            where: {
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: input.roomId,
+              bedId: input.bedId,
+              studentId: input.studentId,
+              action: 'ALLOCATED',
+            },
+            orderBy: { happenedAt: 'desc' },
+          });
+          if (allocation) return { allocation, stay: activeStay };
+        }
+
+        throw new Error(
+          activeStay ? 'Student already has an active stay' : 'Student is already allocated',
+        );
+      }
+
+      if (bed.status === 'OCCUPIED' || bed.status === 'INACTIVE') {
+        throw new Error('Bed is unavailable');
+      }
+      if (bed.status === 'RESERVED' && bed.studentId !== input.studentId) {
+        throw new Error('Bed is reserved for another student');
+      }
+
+      const existingBed = await tx.roomBed.findFirst({
+        where: { tenantId: input.tenantId, studentId: input.studentId, id: { not: bed.id } },
+      });
+      if (existingBed) throw new Error('Student already has an active bed assignment');
+
+      const bedUpdate = await tx.roomBed.updateMany({
+        where: {
+          id: bed.id,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          OR: [
+            { status: 'AVAILABLE', studentId: null },
+            { status: 'RESERVED', studentId: input.studentId },
+          ],
+        },
+        data: { status: 'OCCUPIED', studentId: input.studentId },
+      });
+      if (bedUpdate.count !== 1) throw new Error('Bed is unavailable');
 
       const studentUpdate = await tx.student.updateMany({
-        where: { id: input.studentId, tenantId: input.tenantId, roomId: null },
+        where: {
+          id: input.studentId,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: null,
+        },
         data: { roomId: input.roomId },
       });
       if (studentUpdate.count !== 1) throw new Error('Student is already allocated');
-      const nextOccupancy = room.occupancy + 1;
-      await tx.room.update({
-        where: { id: room.id },
-        data: {
-          occupancy: nextOccupancy,
-          vacancyStatus: nextOccupancy >= room.capacity ? 'FULL' : 'PARTIALLY_OCCUPIED',
-        },
-      });
-      return tx.roomAllocation.create({
+      const allocation = await tx.roomAllocation.create({
         data: {
           tenantId: input.tenantId,
           hostelId: input.hostelId,
           roomId: input.roomId,
+          bedId: bed.id,
           studentId: input.studentId,
           actorId: input.actorId,
           action: 'ALLOCATED',
         },
       });
+      const stay = await tx.hostelStay.create({
+        data: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          bedId: bed.id,
+          studentId: student.id,
+          status: 'ACTIVE',
+        },
+      });
+      await this.syncRoomBedState(tx, input.tenantId, input.roomId);
+      return { allocation, stay };
     });
   }
 
@@ -1807,6 +2531,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tenantId: string;
     hostelId: string;
     roomId: string;
+    bedId: string;
     studentId: string;
     actorId?: string;
   }) {
@@ -1815,7 +2540,31 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         where: { id: input.roomId, tenantId: input.tenantId, hostelId: input.hostelId },
       });
       if (!room) throw new Error('Room not found');
-      const updated = await tx.student.updateMany({
+      const stay = await tx.hostelStay.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          bedId: input.bedId,
+          studentId: input.studentId,
+          status: 'ACTIVE',
+        },
+      });
+      if (!stay) throw new Error('Student has no active stay in this bed');
+
+      const bed = await tx.roomBed.findFirst({
+        where: {
+          id: input.bedId,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          roomId: input.roomId,
+          studentId: input.studentId,
+          status: 'OCCUPIED',
+        },
+      });
+      if (!bed) throw new Error('Student does not occupy this bed');
+
+      const studentUpdate = await tx.student.updateMany({
         where: {
           id: input.studentId,
           tenantId: input.tenantId,
@@ -1824,26 +2573,63 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         },
         data: { roomId: null },
       });
-      if (updated.count !== 1) throw new Error('Student is not allocated to this room');
-      const nextOccupancy = Math.max(0, room.occupancy - 1);
-      await tx.room.update({
-        where: { id: room.id },
-        data: {
-          occupancy: nextOccupancy,
-          vacancyStatus: nextOccupancy === 0 ? 'VACANT' : 'PARTIALLY_OCCUPIED',
-        },
+      if (studentUpdate.count !== 1) throw new Error('Student room assignment is inconsistent');
+
+      const checkedOutAt = new Date();
+      const closedStay = await tx.hostelStay.updateMany({
+        where: { id: stay.id, tenantId: input.tenantId, status: 'ACTIVE' },
+        data: { status: 'CHECKED_OUT', checkedOutAt },
       });
-      return tx.roomAllocation.create({
+      if (closedStay.count !== 1) throw new Error('Stay is no longer active');
+
+      await tx.roomBed.update({
+        where: { id: bed.id },
+        data: { status: 'AVAILABLE', studentId: null },
+      });
+      const allocation = await tx.roomAllocation.create({
         data: {
           tenantId: input.tenantId,
           hostelId: input.hostelId,
           roomId: input.roomId,
+          bedId: bed.id,
           studentId: input.studentId,
           actorId: input.actorId,
           action: 'DEALLOCATED',
         },
       });
+      await this.syncRoomBedState(tx, input.tenantId, input.roomId);
+      const completedStay = await tx.hostelStay.findUnique({ where: { id: stay.id } });
+      return { allocation, stay: completedStay };
     });
+  }
+
+  async listStays(input: {
+    tenantId: string;
+    hostelId: string;
+    status?: 'ACTIVE' | 'CHECKED_OUT';
+    page: number;
+    limit: number;
+  }) {
+    const where = {
+      tenantId: input.tenantId,
+      hostelId: input.hostelId,
+      ...(input.status ? { status: input.status } : {}),
+    };
+    const [items, total] = await prisma.$transaction([
+      prisma.hostelStay.findMany({
+        where,
+        orderBy: [{ checkedInAt: 'desc' }, { createdAt: 'desc' }],
+        skip: (input.page - 1) * input.limit,
+        take: input.limit,
+        include: {
+          student: { select: { id: true, name: true, admissionNumber: true } },
+          room: { select: { id: true, roomNumber: true } },
+          bed: { select: { id: true, bedNumber: true } },
+        },
+      }),
+      prisma.hostelStay.count({ where }),
+    ]);
+    return { items, total };
   }
 
   async autoAllocateStudent(input: {
@@ -1852,19 +2638,19 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     studentId: string;
     actorId?: string;
   }) {
-    const rooms = await prisma.room.findMany({
+    const beds = await prisma.roomBed.findMany({
       where: {
         tenantId: input.tenantId,
         hostelId: input.hostelId,
-        isActive: true,
         status: 'AVAILABLE',
-        occupancy: { lt: 999999 },
+        room: { isActive: true, status: { notIn: ['MAINTENANCE', 'INACTIVE'] } },
       },
-      orderBy: [{ occupancy: 'asc' }, { roomNumber: 'asc' }],
+      orderBy: [{ roomId: 'asc' }, { bedNumber: 'asc' }],
+      select: { id: true, roomId: true },
     });
-    for (const room of rooms) {
+    for (const bed of beds) {
       try {
-        return await this.allocateStudent({ ...input, roomId: room.id });
+        return await this.allocateStudent({ ...input, roomId: bed.roomId, bedId: bed.id });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '';
         if (!/full|unavailable|already allocated/i.test(message)) throw error;
@@ -1950,7 +2736,10 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     const [items, total] = await prisma.$transaction([
       prisma.student.findMany({
         where,
-        include: { room: { select: { id: true, roomNumber: true } } },
+        include: {
+          hostel: { select: { id: true, name: true } },
+          room: { select: { id: true, roomNumber: true } },
+        },
         orderBy: { name: 'asc' },
         skip: (input.page - 1) * input.limit,
         take: input.limit,
@@ -2030,14 +2819,282 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       include: {
         hostel: { select: { id: true, name: true } },
         room: { select: { id: true, roomNumber: true } },
+        beds: {
+          where: { status: { in: ['RESERVED', 'OCCUPIED'] } },
+          select: { id: true, roomId: true, status: true, bedNumber: true },
+        },
       },
+    });
+  }
+
+  listHostelEnquiries(input: { tenantId: string; hostelId: string }) {
+    return prisma.lead.findMany({
+      where: {
+        tenantId: input.tenantId,
+        hostelId: input.hostelId,
+        deletedAt: null,
+        status: { not: 'CONVERTED' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        activities: {
+          orderBy: { timestamp: 'desc' },
+          take: 25,
+          include: { session: { select: { startedAt: true, source: true } } },
+        },
+      },
+    });
+  }
+
+  convertHostelEnquiry(input: {
+    tenantId: string;
+    hostelId: string;
+    leadId: string;
+    name: string;
+    email?: string;
+    phone: string;
+    dateOfBirth?: Date;
+    emergencyName?: string;
+    emergencyPhone?: string;
+    emergencyRelation?: string;
+    admissionDate: Date;
+    roomId?: string;
+    bedId?: string;
+    actorId?: string;
+  }) {
+    return this.withAllocationRetry(async (tx) => {
+      const lead = await tx.lead.findFirst({
+        where: {
+          id: input.leadId,
+          tenantId: input.tenantId,
+          hostelId: input.hostelId,
+          deletedAt: null,
+        },
+      });
+      if (!lead) throw new Error('Hostel enquiry not found');
+      if (lead.phone.replace(/\D/g, '') !== input.phone.replace(/\D/g, '')) {
+        throw new Error('Student phone must match the enquiry phone');
+      }
+
+      const linkedStudent = await tx.student.findFirst({
+        where: { tenantId: input.tenantId, enquiryLeadId: lead.id },
+      });
+      if (linkedStudent) {
+        await this.applyActiveFeesToStudent(
+          tx,
+          linkedStudent.id,
+          input.tenantId,
+          input.hostelId,
+          new Date(),
+        );
+        const updatedStudent = await tx.student.findUnique({
+          where: { id: linkedStudent.id },
+        });
+        if (!updatedStudent) throw new Error('Converted student record was not found');
+        return { student: updatedStudent, alreadyConverted: true };
+      }
+
+      const normalizedPhone = input.phone.replace(/\D/g, '');
+      await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+        SELECT pg_advisory_xact_lock(
+          hashtext(${input.tenantId}),
+          hashtext(${normalizedPhone})
+        )
+      `;
+
+      const duplicateStudents = await tx.$queryRaw<Array<{
+        id: string;
+        enquiryLeadId: string | null;
+        hostelId: string;
+      }>>`
+        SELECT "id", "enquiryLeadId", "hostelId"
+        FROM "Student"
+        WHERE "tenantId" = ${input.tenantId}
+          AND regexp_replace(COALESCE("phone", ''), '[^0-9]', '', 'g') =
+              regexp_replace(${input.phone}, '[^0-9]', '', 'g')
+        ORDER BY "createdAt" ASC
+        LIMIT 1
+      `;
+      const duplicate = duplicateStudents[0];
+      if (duplicate && duplicate.hostelId !== input.hostelId) {
+        throw new Error('This student already has an admission under another hostel');
+      }
+      if (duplicate?.enquiryLeadId && duplicate.enquiryLeadId !== lead.id) {
+        throw new Error('This student is already linked to another enquiry');
+      }
+
+      let student;
+      let temporaryPasskey: string | undefined;
+      let existingStudent = false;
+      if (duplicate) {
+        student = await tx.student.update({
+          where: { id: duplicate.id },
+          data: { enquiryLead: { connect: { id_tenantId: { id: lead.id, tenantId: input.tenantId } } } },
+        });
+        existingStudent = true;
+      } else {
+        temporaryPasskey = randomBytes(6).toString('base64url').slice(0, 10);
+        const passwordHash = hashPassword(temporaryPasskey);
+        const admissionYear = input.admissionDate.getUTCFullYear();
+        const [counter] = await tx.$queryRaw<Array<{ lastValue: number }>>`
+          INSERT INTO "HostelAdmissionNumberCounter" ("tenantId", "admissionYear", "lastValue")
+          VALUES (${input.tenantId}, ${admissionYear}, 1)
+          ON CONFLICT ("tenantId", "admissionYear")
+          DO UPDATE SET "lastValue" = "HostelAdmissionNumberCounter"."lastValue" + 1
+          RETURNING "lastValue"
+        `;
+        if (!counter) throw new Error('Failed to allocate an admission number.');
+
+        const admissionNumber = `ADM-${admissionYear}-${String(counter.lastValue).padStart(5, '0')}`;
+        student = await tx.student.create({
+          data: {
+            admissionNumber,
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            dateOfBirth: input.dateOfBirth,
+            emergencyName: input.emergencyName,
+            emergencyPhone: input.emergencyPhone,
+            emergencyRelation: input.emergencyRelation,
+            admissionDate: input.admissionDate,
+            paymentStatus: 'DUE',
+            status: 'ACTIVE',
+            tenant: { connect: { id: input.tenantId } },
+            hostel: { connect: { id_tenantId: { id: input.hostelId, tenantId: input.tenantId } } },
+            enquiryLead: { connect: { id_tenantId: { id: lead.id, tenantId: input.tenantId } } },
+          },
+        });
+        await tx.studentAccount.create({
+          data: {
+            tenantId: input.tenantId,
+            studentId: student.id,
+            passwordHash,
+            isActive: true,
+          },
+        });
+      }
+
+      if (input.roomId && input.bedId) {
+        const room = await tx.room.findFirst({
+          where: { id: input.roomId, tenantId: input.tenantId, hostelId: input.hostelId, isActive: true },
+        });
+        if (!room || room.status === 'MAINTENANCE' || room.status === 'INACTIVE') {
+          throw new Error('Room is unavailable');
+        }
+        if (student.roomId && student.roomId !== room.id) {
+          throw new Error('Student is already assigned to another room');
+        }
+
+        const bed = await tx.roomBed.findFirst({
+          where: {
+            id: input.bedId,
+            tenantId: input.tenantId,
+            hostelId: input.hostelId,
+            roomId: room.id,
+            OR: [
+              { status: 'AVAILABLE', studentId: null },
+              { status: 'RESERVED', studentId: student.id },
+              { status: 'OCCUPIED', studentId: student.id },
+            ],
+          },
+        });
+        if (!bed) throw new Error('Bed is unavailable');
+
+        if (bed.status === 'AVAILABLE') {
+          const bedUpdate = await tx.roomBed.updateMany({
+            where: {
+              id: bed.id,
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: room.id,
+              OR: [
+                { status: 'AVAILABLE', studentId: null },
+                { status: 'RESERVED', studentId: student.id },
+              ],
+            },
+            data: { status: 'RESERVED', studentId: student.id },
+          });
+          if (bedUpdate.count !== 1) throw new Error('Bed is unavailable');
+          await tx.roomAllocation.create({
+            data: {
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: room.id,
+              bedId: bed.id,
+              studentId: student.id,
+              actorId: input.actorId,
+              action: 'RESERVED',
+            },
+          });
+          await this.syncRoomBedState(tx, input.tenantId, room.id);
+        }
+      }
+
+      await tx.lead.update({
+        where: { id: lead.id },
+        data: { status: 'CONVERTED', convertedAt: new Date() },
+      });
+
+      const sessions = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "LeadSession"
+        WHERE "tenantId" = ${input.tenantId} AND "leadId" = ${lead.id} AND "deletedAt" IS NULL
+        ORDER BY "startedAt" DESC LIMIT 1
+      `;
+      let sessionId = sessions[0]?.id;
+      if (!sessionId) {
+        const [session] = await tx.$queryRaw<Array<{ id: string }>>`
+          INSERT INTO "LeadSession" ("id", "tenantId", "leadId", "startedAt", "lastActivityAt", "source")
+          VALUES (${crypto.randomUUID()}, ${input.tenantId}, ${lead.id}, NOW(), NOW(), 'HOSTEL_ENQUIRY')
+          RETURNING "id"
+        `;
+        sessionId = session.id;
+      } else {
+        await tx.leadSession.update({ where: { id: sessionId }, data: { lastActivityAt: new Date() } });
+      }
+
+      await tx.leadActivity.create({
+        data: {
+          tenantId: input.tenantId,
+          leadId: lead.id,
+          sessionId,
+          type: 'hostel_admission_converted',
+          metadata: {
+            studentId: student.id,
+            admissionNumber: student.admissionNumber,
+            hostelId: input.hostelId,
+            actorId: input.actorId ?? null,
+          },
+        },
+      });
+
+      await this.applyActiveFeesToStudent(
+        tx,
+        student.id,
+        input.tenantId,
+        input.hostelId,
+        new Date(),
+      );
+      const updatedStudent = await tx.student.findUnique({
+        where: { id: student.id },
+      });
+      if (!updatedStudent) throw new Error('Admitted student record was not found');
+
+      return {
+        student: updatedStudent,
+        temporaryPasskey,
+        alreadyConverted: false,
+        existingStudent,
+      };
     });
   }
 
   async createStudent(input: {
     tenantId: string;
     hostelId: string;
+    admissionRequestId: string;
     roomId?: string;
+    bedId?: string;
     name: string;
     email?: string;
     phone?: string;
@@ -2046,6 +3103,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     emergencyPhone?: string;
     emergencyRelation?: string;
     admissionDate?: Date;
+    actorId?: string;
     paymentStatus: 'PAID' | 'PARTIAL' | 'DUE' | 'OVERDUE';
     status: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }) {
@@ -2058,76 +3116,203 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     const admissionDate = input.admissionDate ?? new Date();
     const admissionYear = admissionDate.getUTCFullYear();
 
-    const result = await prisma.$transaction(async (tx) => {
-      const [counter] = await tx.$queryRaw<Array<{ lastValue: number }>>`
-        INSERT INTO "HostelAdmissionNumberCounter"
-          ("tenantId", "admissionYear", "lastValue")
-        VALUES (${input.tenantId}, ${admissionYear}, 1)
-        ON CONFLICT ("tenantId", "admissionYear")
-        DO UPDATE SET "lastValue" = "HostelAdmissionNumberCounter"."lastValue" + 1
-        RETURNING "lastValue"
-      `;
+    try {
+      return await this.withAllocationRetry(async (tx) => {
+        const priorRequest = await tx.student.findFirst({
+          where: { tenantId: input.tenantId, admissionRequestId: input.admissionRequestId },
+        });
+        if (priorRequest) {
+          if (priorRequest.hostelId !== input.hostelId) {
+            throw new Error('Admission request key has already been used');
+          }
+          if ((priorRequest.phone ?? '').replace(/\D/g, '') !== (input.phone ?? '').replace(/\D/g, '')) {
+            throw new Error('Admission request key has already been used');
+          }
+          const priorBed = await tx.roomBed.findFirst({
+            where: { tenantId: input.tenantId, studentId: priorRequest.id, status: 'RESERVED' },
+            select: { id: true },
+          });
+          await this.applyActiveFeesToStudent(
+            tx,
+            priorRequest.id,
+            input.tenantId,
+            input.hostelId,
+            new Date(),
+          );
+          const updatedStudent = await tx.student.findUnique({
+            where: { id: priorRequest.id },
+          });
+          if (!updatedStudent) throw new Error('Admitted student record was not found');
+          return {
+            student: updatedStudent,
+            existingStudent: true,
+            bedReserved: Boolean(priorBed),
+          };
+        }
 
-      if (!counter) {
-        throw new Error('Failed to allocate an admission number.');
-      }
+        const normalizedPhone = input.phone?.replace(/\D/g, '');
+        if (normalizedPhone) {
+          await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+            SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${normalizedPhone}))
+          `;
+          const matchingStudent = await tx.$queryRaw<Array<{ id: string; admissionNumber: string }>>`
+            SELECT "id", "admissionNumber"
+            FROM "Student"
+            WHERE "tenantId" = ${input.tenantId}
+              AND regexp_replace(COALESCE("phone", ''), '[^0-9]', '', 'g') = ${normalizedPhone}
+            ORDER BY "createdAt" ASC
+            LIMIT 1
+          `;
+          if (matchingStudent[0]) {
+            throw new Error(`A student with this phone is already admitted (${matchingStudent[0].admissionNumber})`);
+          }
+        }
 
-      const admissionNumber =
-        `ADM-${admissionYear}-${String(counter.lastValue).padStart(5, '0')}`;
+        let room: { id: string } | null = null;
+        let bed: { id: string } | null = null;
+        if (input.roomId && input.bedId) {
+          room = await tx.room.findFirst({
+            where: {
+              id: input.roomId,
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              isActive: true,
+              status: { notIn: ['MAINTENANCE', 'INACTIVE'] },
+            },
+            select: { id: true },
+          });
+          if (!room) throw new Error('Room is unavailable');
+          bed = await tx.roomBed.findFirst({
+            where: {
+              id: input.bedId,
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: room.id,
+              status: 'AVAILABLE',
+              studentId: null,
+            },
+            select: { id: true },
+          });
+          if (!bed) throw new Error('Bed is unavailable');
+        }
 
-      const student = await tx.student.create({
-        data: {
-          admissionNumber,
-          name: input.name,
-          email: input.email,
-          phone: input.phone,
-          dateOfBirth: input.dateOfBirth,
-          emergencyName: input.emergencyName,
-          emergencyPhone: input.emergencyPhone,
-          emergencyRelation: input.emergencyRelation,
-          admissionDate,
-          paymentStatus: input.paymentStatus,
-          status: input.status,
-          tenant: { connect: { id: input.tenantId } },
-          hostel: {
-            connect: {
-              id_tenantId: { id: input.hostelId, tenantId: input.tenantId },
+        const [counter] = await tx.$queryRaw<Array<{ lastValue: number }>>`
+          INSERT INTO "HostelAdmissionNumberCounter"
+            ("tenantId", "admissionYear", "lastValue")
+          VALUES (${input.tenantId}, ${admissionYear}, 1)
+          ON CONFLICT ("tenantId", "admissionYear")
+          DO UPDATE SET "lastValue" = "HostelAdmissionNumberCounter"."lastValue" + 1
+          RETURNING "lastValue"
+        `;
+        if (!counter) throw new Error('Failed to allocate an admission number.');
+
+        const admissionNumber =
+          `ADM-${admissionYear}-${String(counter.lastValue).padStart(5, '0')}`;
+        const student = await tx.student.create({
+          data: {
+            admissionNumber,
+            admissionRequestId: input.admissionRequestId,
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            dateOfBirth: input.dateOfBirth,
+            emergencyName: input.emergencyName,
+            emergencyPhone: input.emergencyPhone,
+            emergencyRelation: input.emergencyRelation,
+            admissionDate,
+            paymentStatus: input.paymentStatus,
+            status: input.status,
+            tenant: { connect: { id: input.tenantId } },
+            hostel: {
+              connect: {
+                id_tenantId: { id: input.hostelId, tenantId: input.tenantId },
+              },
             },
           },
-          ...(input.roomId
-            ? {
-                room: {
-                  connect: {
-                    id_tenantId: { id: input.roomId, tenantId: input.tenantId },
-                  },
-                },
-              }
-            : {}),
-        },
+        });
+
+        await tx.studentAccount.create({
+          data: {
+            tenantId: input.tenantId,
+            studentId: student.id,
+            passwordHash,
+            isActive: true,
+          },
+        });
+
+        if (room && bed) {
+          const reservation = await tx.roomBed.updateMany({
+            where: {
+              id: bed.id,
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: room.id,
+              status: 'AVAILABLE',
+              studentId: null,
+            },
+            data: { status: 'RESERVED', studentId: student.id },
+          });
+          if (reservation.count !== 1) throw new Error('Bed is unavailable');
+
+          await tx.roomAllocation.create({
+            data: {
+              tenantId: input.tenantId,
+              hostelId: input.hostelId,
+              roomId: room.id,
+              bedId: bed.id,
+              studentId: student.id,
+              actorId: input.actorId,
+              action: 'RESERVED',
+            },
+          });
+          await this.syncRoomBedState(tx, input.tenantId, room.id);
+        }
+
+        await this.applyActiveFeesToStudent(
+          tx,
+          student.id,
+          input.tenantId,
+          input.hostelId,
+          new Date(),
+        );
+        const updatedStudent = await tx.student.findUnique({
+          where: { id: student.id },
+        });
+        if (!updatedStudent) throw new Error('Admitted student record was not found');
+
+        return {
+          student: updatedStudent,
+          temporaryPasskey,
+          existingStudent: false,
+          bedReserved: Boolean(bed),
+        };
+      }, 15_000);
+    } catch (error: unknown) {
+      const priorRequest = await prisma.student.findFirst({
+        where: { tenantId: input.tenantId, admissionRequestId: input.admissionRequestId },
       });
-
-      await tx.studentAccount.create({
-        data: {
-          tenantId: input.tenantId,
-          studentId: student.id,
-          passwordHash,
-          isActive: true,
-        },
-      });
-
-      return student;
-    });
-
-    return {
-      student: result,
-      temporaryPasskey,
-    };
+      if (priorRequest?.hostelId === input.hostelId) {
+        if ((priorRequest.phone ?? '').replace(/\D/g, '') !== (input.phone ?? '').replace(/\D/g, '')) {
+          throw new Error('Admission request key has already been used');
+        }
+        const priorBed = await prisma.roomBed.findFirst({
+          where: { tenantId: input.tenantId, studentId: priorRequest.id, status: 'RESERVED' },
+          select: { id: true },
+        });
+        return {
+          student: priorRequest,
+          existingStudent: true,
+          bedReserved: Boolean(priorBed),
+        };
+      }
+      if (priorRequest) throw new Error('Admission request key has already been used');
+      throw error;
+    }
   }
 
   async updateStudent(input: {
     tenantId: string;
     id: string;
-    roomId?: string | null;
     name?: string;
     email?: string | null;
     phone?: string | null;
@@ -2139,27 +3324,28 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     paymentStatus?: 'PAID' | 'PARTIAL' | 'DUE' | 'OVERDUE';
     status?: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }) {
-    const existing = prisma.student.findFirst({
-      where: { id: input.id, tenantId: input.tenantId },
-      select: { id: true },
-    });
-
-    const { tenantId, id, roomId, ...data } = input;
-
-    return existing.then((found) => {
-      if (!found) throw new Error('Student not found');
-
-      return prisma.student.update({
-        where: { id },
-        data: {
-          ...data,
-          ...(roomId === undefined
-            ? {}
-            : roomId === null
-              ? { room: { disconnect: true } }
-              : { room: { connect: { id_tenantId: { id: roomId, tenantId } } } }),
-        },
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.student.findFirst({
+        where: { id: input.id, tenantId: input.tenantId },
       });
+      if (!existing) throw new Error('Student not found');
+
+      const { tenantId, id, ...data } = input;
+      await tx.student.update({ where: { id }, data });
+
+      if (input.status === 'ACTIVE' || existing.status === 'ACTIVE') {
+        await this.applyActiveFeesToStudent(
+          tx,
+          id,
+          tenantId,
+          existing.hostelId,
+          new Date(),
+        );
+      }
+
+      const updated = await tx.student.findUnique({ where: { id } });
+      if (!updated) throw new Error('Student not found');
+      return updated;
     });
   }
 

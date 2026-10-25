@@ -53,6 +53,8 @@ model Tenant {
   paymentReceipts                 PaymentReceipt[]
   hostelRooms                     Room[]
   hostelRoomAllocations           RoomAllocation[]
+  hostelBeds                      RoomBed[]
+  hostelStays                     HostelStay[]
   services                        Service[]
   socialLinks                     SocialLink[]
   hostelStudents                  Student[]
@@ -83,6 +85,9 @@ model Hostel {
   rooms            Room[]
   allocations      RoomAllocation[]
   students         Student[]
+  beds             RoomBed[]
+  stays            HostelStay[]
+  enquiries        Lead[]
 
   @@unique([tenantId, name])
   @@unique([id, tenantId])
@@ -107,8 +112,11 @@ model Room {
   tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   allocationHistory RoomAllocation[]
   students          Student[]
+  beds              RoomBed[]
+  stays             HostelStay[]
 
   @@unique([id, tenantId])
+  @@unique([id, tenantId, hostelId])
   @@unique([tenantId, hostelId, roomNumber])
   @@index([tenantId, hostelId, status])
   @@index([tenantId, status])
@@ -124,13 +132,41 @@ model RoomAllocation {
   action     RoomAllocationAction
   actorId    String?
   happenedAt DateTime             @default(now())
+  bedId      String?
   hostel     Hostel               @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
   room       Room                 @relation(fields: [roomId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  student    Student              @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  bed        RoomBed?             @relation(fields: [bedId, tenantId, hostelId, roomId], references: [id, tenantId, hostelId, roomId], onDelete: Restrict)
+  student    Student              @relation(fields: [studentId, tenantId, hostelId], references: [id, tenantId, hostelId], onDelete: Cascade)
   tenant     Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, roomId, happenedAt])
   @@index([tenantId, studentId, happenedAt])
+  @@index([tenantId, bedId, happenedAt])
+}
+
+model RoomBed {
+  id                    String       @id @default(uuid())
+  tenantId              String
+  hostelId              String
+  roomId                String
+  bedNumber             String
+  status                RoomBedStatus @default(AVAILABLE)
+  studentId             String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  hostel                Hostel       @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  room                  Room         @relation(fields: [roomId, tenantId, hostelId], references: [id, tenantId, hostelId], onDelete: Cascade)
+  student               Student?     @relation(fields: [studentId, tenantId, hostelId], references: [id, tenantId, hostelId], onDelete: Restrict)
+  tenant                Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  allocationHistory     RoomAllocation[]
+  stays                 HostelStay[]
+
+  @@unique([id, tenantId, hostelId])
+  @@unique([id, tenantId, hostelId, roomId])
+  @@unique([tenantId, roomId, bedNumber])
+  @@unique([tenantId, studentId])
+  @@index([tenantId, hostelId, roomId, status])
+  @@index([tenantId, studentId, status])
 }
 
 model Student {
@@ -138,6 +174,8 @@ model Student {
   tenantId          String
   hostelId          String
   roomId            String?
+  enquiryLeadId     String?
+  admissionRequestId String?
   admissionNumber   String
   name              String
   email             String?
@@ -153,23 +191,53 @@ model Student {
   paymentStatus     StudentPaymentStatus  @default(DUE)
   outstandingAmount Decimal               @default(0) @db.Decimal(12, 2)
   complaints        HostelComplaint[]
+  hostelDeposits    HostelDeposit[]
   feeAssignments    HostelFeeAssignment[]
   invoices          HostelInvoice[]
   payments          Payment[]
   allocationHistory RoomAllocation[]
+  beds              RoomBed[]
+  stays             HostelStay[]
+  enquiryLead       Lead?                 @relation(fields: [enquiryLeadId, tenantId], references: [id, tenantId], onDelete: Restrict)
   hostel            Hostel                @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  room              Room?                 @relation(fields: [roomId, tenantId], references: [id, tenantId])
+  room              Room?                 @relation(fields: [roomId, tenantId, hostelId], references: [id, tenantId, hostelId])
   tenant            Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   studentAccount    StudentAccount?
 
   @@unique([tenantId, admissionNumber])
   @@unique([id, tenantId])
+  @@unique([id, tenantId, hostelId])
+  @@unique([enquiryLeadId, tenantId])
+  @@unique([tenantId, admissionRequestId])
   @@index([tenantId, hostelId, status])
   @@index([tenantId, roomId])
   @@index([tenantId, name])
   @@index([tenantId, phone])
   @@index([tenantId, email])
   @@index([tenantId, paymentStatus])
+}
+
+model HostelStay {
+  id          String           @id @default(uuid())
+  tenantId    String
+  hostelId    String
+  roomId      String
+  bedId       String
+  studentId   String
+  status      HostelStayStatus @default(ACTIVE)
+  checkedInAt DateTime         @default(now())
+  checkedOutAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostel      Hostel           @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  room        Room             @relation(fields: [roomId, tenantId, hostelId], references: [id, tenantId, hostelId], onDelete: Restrict)
+  bed         RoomBed          @relation(fields: [bedId, tenantId, hostelId, roomId], references: [id, tenantId, hostelId, roomId], onDelete: Restrict)
+  student     Student          @relation(fields: [studentId, tenantId, hostelId], references: [id, tenantId, hostelId], onDelete: Restrict)
+
+  @@index([tenantId, hostelId, status, checkedInAt])
+  @@index([tenantId, studentId, checkedInAt])
+  @@index([tenantId, roomId, bedId, checkedInAt])
 }
 
 model HostelAdmissionNumberCounter {
@@ -220,6 +288,7 @@ model HostelFee {
   hostelId    String
   name        String
   type        HostelFeeType
+  billingFrequency HostelFeeFrequency @default(MONTHLY)
   description String?
   amount      Decimal               @db.Decimal(12, 2)
   currency    String                @default("INR")
@@ -247,6 +316,7 @@ model HostelFeeAssignment {
   dueDate      DateTime?
   periodStart  DateTime?
   periodEnd    DateTime?
+  billingKey   String?
   status       HostelFeeAssignmentStatus @default(ACTIVE)
   createdAt    DateTime                  @default(now())
   updatedAt    DateTime                  @updatedAt
@@ -261,6 +331,7 @@ model HostelFeeAssignment {
   @@index([tenantId, studentId, status])
   @@index([tenantId, feeId])
   @@index([tenantId, dueDate])
+  @@unique([tenantId, billingKey])
 }
 
 model HostelInvoice {
@@ -384,6 +455,8 @@ model HostelDeposit {
   id              String              @id @default(uuid())
   tenantId        String
   hostelId        String
+  studentId       String?
+  depositType     HostelDepositType   @default(OTHER)
   amount          Decimal             @db.Decimal(12, 2)
   currency        String              @default("INR")
   depositDate     DateTime            @default(now())
@@ -397,11 +470,14 @@ model HostelDeposit {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   hostel          Hostel              @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  student         Student?            @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Restrict)
   tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId, hostelId, status])
+  @@index([tenantId, hostelId, depositType])
   @@index([tenantId, hostelId, depositDate])
+  @@index([tenantId, studentId])
   @@index([tenantId, referenceNumber])
 }
 
@@ -445,7 +521,7 @@ model HostelComplaint {
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
   hostel      Hostel                  @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  student     Student?                @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  student     Student?                @relation(fields: [studentId, tenantId], references: [id, tenantId], onDelete: Restrict)
   tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
@@ -502,6 +578,7 @@ model TenantUser {
 model Lead {
   id          String         @id @default(uuid())
   tenantId    String
+  hostelId    String?
   name        String
   email       String?
   phone       String
@@ -520,20 +597,24 @@ model Lead {
   updatedAt   DateTime       @updatedAt
   deletedAt   DateTime?
   bookings    Booking[]
+  convertedStudent Student?
   feedbacks   Feedback[]
   followUps   FollowUp[]
   assignee    TenantUser?    @relation("LeadAssignee", fields: [assignedTo], references: [id])
   tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  hostel      Hostel?        @relation(fields: [hostelId, tenantId], references: [id, tenantId], onDelete: Restrict)
   activities  LeadActivity[]
   sessions    LeadSession[]
 
   @@unique([tenantId, phone])
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
   @@index([tenantId, assignedTo])
   @@index([tenantId, deletedAt])
+  @@index([tenantId, hostelId, status])
 }
 
 model LeadSession {
@@ -1459,6 +1540,14 @@ enum HostelFeeType {
   OTHER
 }
 
+enum HostelFeeFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  ONE_TIME
+}
+
 enum HostelFeeAssignmentStatus {
   ACTIVE
   WAIVED
@@ -1500,9 +1589,22 @@ enum RoomVacancyStatus {
   UNAVAILABLE
 }
 
+enum RoomBedStatus {
+  AVAILABLE
+  RESERVED
+  OCCUPIED
+  INACTIVE
+}
+
 enum RoomAllocationAction {
+  RESERVED
   ALLOCATED
   DEALLOCATED
+}
+
+enum HostelStayStatus {
+  ACTIVE
+  CHECKED_OUT
 }
 
 enum StudentStatus {
@@ -1544,6 +1646,12 @@ enum HostelDepositStatus {
   DEPOSITED
   RECONCILED
   CANCELLED
+}
+
+enum HostelDepositType {
+  SECURITY_DEPOSIT
+  ADVANCE_RENT
+  OTHER
 }
 
 enum HostelLedgerEntryType {

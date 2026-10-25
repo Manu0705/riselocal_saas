@@ -92,9 +92,32 @@ export default function HostelWorkspaceNavigation({
               }`}
               aria-current={isActiveGroup ? 'page' : undefined}
               onClick={onNavigate}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: 11,
+                width: '100%',
+                minHeight: 40,
+                padding: '0 12px',
+                boxSizing: 'border-box',
+              }}
             >
-              <Icon size={18} aria-hidden="true" />
-              <span>{group.label}</span>
+              <Icon
+                size={18}
+                aria-hidden="true"
+                style={{ display: 'block', flex: '0 0 18px' }}
+              />
+              <span
+                style={{
+                  display: 'inline-block',
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                {group.label}
+              </span>
             </Link>
           );
         }

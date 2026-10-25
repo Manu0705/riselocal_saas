@@ -65,6 +65,7 @@ export type DashboardMetrics = {
 type DashboardDataContextType = {
   tenant: TenantRecord | null;
   tenantSlug: string | null;
+  tenantResolved: boolean;
   leads: any[];
   missedFollowUps: Array<{
     id: string;
@@ -469,7 +470,8 @@ function getLatestPublicActivityPerLead(
 }
 
 export function DashboardDataProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const { tenantSlug } = useAuth();
+  const [tenantResolved, setTenantResolved] = useState(false);
+  const { tenantSlug, hydrated } = useAuth();
   const [tenant, setTenant] = useState<TenantRecord | null>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<LeadAnalyticsPayload | null>(null);
@@ -553,11 +555,56 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     };
   }, [shouldHandleRefreshForTenant, triggerRefresh]);
 
+  // Resolve the tenant independently so theme selection does not wait
+  // for slower dashboard requests such as analytics.
   useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    let cancelled = false;
+
     if (!tenantSlug) {
+      setTenant(null);
+      setTenantResolved(true);
+      return;
+    }
+
+    setTenant(null);
+    setTenantResolved(false);
+
+    resolveTenant(tenantSlug)
+      .then((resolvedTenant) => {
+        if (cancelled) return;
+        setTenant(resolvedTenant);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTenant(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTenantResolved(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantSlug, hydrated]);
+
+  useEffect(() => {
+    // Wait until stored authentication has been restored.
+    if (!hydrated) {
+      return;
+    }
+
+    if (!tenantSlug) {
+      setTenant(null);
       setError('Tenant not available');
       setLeads([]);
       setAnalytics(null);
+      setMissedFollowUps([]);
       setLoading(false);
       return;
     }
@@ -565,74 +612,96 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     if (!hasLoadedOnceRef.current) {
       setLoading(true);
     }
+
     setError(null);
 
     Promise.allSettled([
-      resolveTenant(tenantSlug),
       fetchLeadsForTenant(tenantSlug),
       fetchLeadAnalyticsForTenant(tenantSlug, 'week'),
       fetchFeedbackForTenant(tenantSlug),
       fetchTenantSettingsForTenant(tenantSlug),
     ])
-      .then(([tenantResult, leadsResult, analyticsResult, feedbackResult, settingsResult]) => {
-        const getErrorMessage = (reason: unknown): string =>
-          reason instanceof Error ? reason.message : 'Failed to load dashboard data';
-        if (tenantResult.status === 'fulfilled') {
-          setTenant(tenantResult.value);
-        } else {
-          setTenant(null);
-        }
+      .then(
+        ([
+          leadsResult,
+          analyticsResult,
+          feedbackResult,
+          settingsResult,
+        ]) => {
+          const getErrorMessage = (reason: unknown): string =>
+            reason instanceof Error
+              ? reason.message
+              : 'Failed to load dashboard data';
 
-        const analyticsPayload =
-          analyticsResult.status === 'fulfilled' && analyticsResult.value
-            ? analyticsResult.value
-            : null;
-        setAnalytics(analyticsPayload);
+          const analyticsPayload =
+            analyticsResult.status === 'fulfilled' && analyticsResult.value
+              ? analyticsResult.value
+              : null;
 
-        const leadLifecycleConfigRaw =
-          settingsResult.status === 'fulfilled' &&
-          settingsResult.value &&
-          typeof settingsResult.value === 'object'
-            ? (settingsResult.value as Record<string, unknown>).leadLifecycle
-            : undefined;
-        const policy = getConfiguredLifecyclePolicy(leadLifecycleConfigRaw);
+          setAnalytics(analyticsPayload);
 
-        if (leadsResult.status === 'fulfilled') {
-          const fetchedLeads = leadsResult.value;
-          const normalizedLeads = normalizeTenantLeads(fetchedLeads);
-          const feedbackEntries =
-            feedbackResult.status === 'fulfilled' && Array.isArray(feedbackResult.value)
-              ? (feedbackResult.value as FeedbackEntry[])
-              : [];
-          const reviewedLeadSet = buildReviewedLeadSet(feedbackEntries);
-          const nowMs = Date.now();
+          const leadLifecycleConfigRaw =
+            settingsResult.status === 'fulfilled' &&
+            settingsResult.value &&
+            typeof settingsResult.value === 'object'
+              ? (settingsResult.value as Record<string, unknown>)
+                  .leadLifecycle
+              : undefined;
 
-          const visibleLeads = normalizedLeads.filter((lead) =>
-            shouldDisplayLeadInActiveBoard(lead, reviewedLeadSet, nowMs, policy),
+          const policy = getConfiguredLifecyclePolicy(
+            leadLifecycleConfigRaw,
           );
 
-          const secondaryError = [analyticsResult, feedbackResult, settingsResult].find(
-            (result) => result.status === 'rejected',
-          );
+          if (leadsResult.status === 'fulfilled') {
+            const fetchedLeads = leadsResult.value;
+            const normalizedLeads = normalizeTenantLeads(fetchedLeads);
 
-          if (secondaryError) {
-            setError(getErrorMessage(secondaryError.reason));
+            const feedbackEntries =
+              feedbackResult.status === 'fulfilled' &&
+              Array.isArray(feedbackResult.value)
+                ? (feedbackResult.value as FeedbackEntry[])
+                : [];
+
+            const reviewedLeadSet = buildReviewedLeadSet(feedbackEntries);
+            const nowMs = Date.now();
+
+            const visibleLeads = normalizedLeads.filter((lead) =>
+              shouldDisplayLeadInActiveBoard(
+                lead,
+                reviewedLeadSet,
+                nowMs,
+                policy,
+              ),
+            );
+
+            const secondaryError = [
+              analyticsResult,
+              feedbackResult,
+              settingsResult,
+            ].find((result) => result.status === 'rejected');
+
+            if (secondaryError) {
+              setError(getErrorMessage(secondaryError.reason));
+            } else {
+              setError(null);
+            }
+
+            setLeads(orderLeadsForBoard(visibleLeads));
+            setMissedFollowUps(
+              deriveMissedFollowUpNotifications(normalizedLeads, policy),
+            );
           } else {
-            setError(null);
-          }
+            const message =
+              leadsResult.reason instanceof Error
+                ? leadsResult.reason.message
+                : 'Failed to fetch leads';
 
-          setLeads(orderLeadsForBoard(visibleLeads));
-          setMissedFollowUps(deriveMissedFollowUpNotifications(normalizedLeads, policy));
-        } else {
-          const message =
-            leadsResult.reason instanceof Error
-              ? leadsResult.reason.message
-              : 'Failed to fetch leads';
-          setError(message);
-          setLeads([]);
-          setMissedFollowUps([]);
-        }
-      })
+            setError(message);
+            setLeads([]);
+            setMissedFollowUps([]);
+          }
+        },
+      )
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
         setLeads([]);
@@ -643,7 +712,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
         setLoading(false);
         hasLoadedOnceRef.current = true;
       });
-  }, [tenantSlug, refreshKey]);
+  }, [tenantSlug, refreshKey, hydrated]);
 
   const metrics = useMemo<DashboardMetrics>(() => {
     const fallback = defaultMetricsFromLeads(leads);
@@ -700,6 +769,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
     () => ({
       tenant,
       tenantSlug,
+      tenantResolved,
       leads,
       missedFollowUps,
       metrics,
@@ -707,7 +777,7 @@ export function DashboardDataProvider({ children }: Readonly<{ children: ReactNo
       error,
       refresh,
     }),
-    [tenant, tenantSlug, leads, missedFollowUps, metrics, loading, error, refresh],
+    [tenant, tenantSlug, tenantResolved, leads, missedFollowUps, metrics, loading, error, refresh],
   );
 
   return (

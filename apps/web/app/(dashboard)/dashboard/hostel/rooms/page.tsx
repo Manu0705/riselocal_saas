@@ -40,6 +40,8 @@ type ApiResponse<T> = {
 };
 
 export default function HostelRoomsPage() {
+  const [properties, setProperties] = useState<HostelProperty[]>([]);
+  const [selectedHostelId, setSelectedHostelId] = useState('');
   const [rooms, setRooms] = useState<HostelRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,58 +52,71 @@ export default function HostelRoomsPage() {
   const [totalRooms, setTotalRooms] = useState(0);
 
   useEffect(() => {
-    async function loadRooms() {
+    async function loadProperties() {
       try {
-        setLoading(true);
-        setError(null);
-
         const propertyResponse = await api.get<
           ApiResponse<HostelProperty[]>
         >('/hostel/properties');
-
-        const hostelId = propertyResponse.data[0]?.id;
-
-        if (!hostelId) {
-          setRooms([]);
-          setTotalPages(1);
-          setTotalRooms(0);
-          return;
-        }
-
-        const roomResponse = await api.get<ApiResponse<RoomPage>>(
-          `/hostel/rooms?hostelId=${encodeURIComponent(
-            hostelId,
-          )}&page=${page}&limit=25&search=${encodeURIComponent(
-            search.trim(),
-          )}`,
-        );
-
-        setRooms(
-          Array.isArray(roomResponse.data?.items)
-            ? roomResponse.data.items
-            : [],
-        );
-
-        setTotalPages(
-          roomResponse.data?.pagination?.totalPages ?? 1,
-        );
-
-        setTotalRooms(
-          roomResponse.data?.pagination?.total ?? 0,
+        const loadedProperties = propertyResponse.data ?? [];
+        setProperties(loadedProperties);
+        setSelectedHostelId((current) =>
+          loadedProperties.some((property) => property.id === current)
+            ? current
+            : (loadedProperties[0]?.id ?? ''),
         );
       } catch (loadError) {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Failed to load rooms',
+            : 'Failed to load hostel properties',
         );
-      } finally {
+      }
+    }
+
+    void loadProperties();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRooms() {
+      if (!selectedHostelId) {
+        setRooms([]);
+        setTotalPages(1);
+        setTotalRooms(0);
         setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const roomResponse = await api.get<ApiResponse<RoomPage>>(
+          `/hostel/rooms?hostelId=${encodeURIComponent(
+            selectedHostelId,
+          )}&page=${page}&limit=25&search=${encodeURIComponent(search.trim())}`,
+        );
+
+        if (cancelled) return;
+        setRooms(Array.isArray(roomResponse.data?.items) ? roomResponse.data.items : []);
+        setTotalPages(roomResponse.data?.pagination?.totalPages ?? 1);
+        setTotalRooms(roomResponse.data?.pagination?.total ?? 0);
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error ? loadError.message : 'Failed to load rooms',
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
     void loadRooms();
-  }, [page, search]);
+    return () => {
+      cancelled = true;
+    };
+  }, [page, search, selectedHostelId]);
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -181,6 +196,30 @@ export default function HostelRoomsPage() {
           flexWrap: 'wrap',
         }}
       >
+        {properties.length > 1 && (
+          <select
+            value={selectedHostelId}
+            onChange={(event) => {
+              setSelectedHostelId(event.target.value);
+              setPage(1);
+            }}
+            aria-label="Filter rooms by hostel property"
+            style={{
+              height: 40,
+              minWidth: 190,
+              padding: '0 12px',
+              border: '1px solid var(--border, #d1d5db)',
+              borderRadius: 8,
+              background: 'var(--bg, #ffffff)',
+              color: 'var(--foreground, #111827)',
+              fontSize: 13,
+            }}
+          >
+            {properties.map((property) => (
+              <option key={property.id} value={property.id}>{property.name}</option>
+            ))}
+          </select>
+        )}
         <input
           type="text"
           value={search}
