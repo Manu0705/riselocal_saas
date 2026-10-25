@@ -196,6 +196,12 @@ router.post(
   controller.createStudent.bind(controller),
 );
 
+router.post(
+  '/hostel/students/:id/reissue-passkey',
+  roleGuard('owner', 'manager', 'staff'),
+  controller.reissueStudentPasskey.bind(controller),
+);
+
 router.get('/hostel/students/:id', controller.getStudent.bind(controller));
 
 router.patch(

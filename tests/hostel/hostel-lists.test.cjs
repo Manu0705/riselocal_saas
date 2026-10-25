@@ -29,3 +29,27 @@ test('rooms page lets users select the property whose rooms should be listed', (
   assert.match(roomsPage, /properties\.map\(\(property\)/);
   assert.match(roomsPage, /hostelId=\$\{encodeURIComponent\(\s*selectedHostelId/);
 });
+
+test('rooms page displays occupied bed counts, student identities, and vacancy status', () => {
+  const roomsPage = read('apps/web/app/(dashboard)/dashboard/hostel/rooms/page.tsx');
+
+  assert.match(roomsPage, /occupancy\?: number \| null/);
+  assert.match(roomsPage, /vacancyStatus\?: string \| null/);
+  assert.match(roomsPage, /bed\.status === 'OCCUPIED' && bed\.student/);
+  assert.match(roomsPage, /\{occupied\} \/ \{capacity\}/);
+  assert.match(roomsPage, /student\.admissionNumber/);
+  assert.match(roomsPage, /room\.vacancyStatus === 'FULL'/);
+  assert.match(roomsPage, /room\.vacancyStatus === 'PARTIALLY_OCCUPIED'/);
+});
+
+test('room detail page uses occupancy and bed-level occupants from the API', () => {
+  const roomDetailsPage = read('apps/web/app/(dashboard)/dashboard/hostel/rooms/[id]/page.tsx');
+
+  assert.match(roomDetailsPage, /vacancyStatus\?: string \| null/);
+  assert.match(roomDetailsPage, /bed\.status === 'OCCUPIED' && bed\.student/);
+  assert.match(roomDetailsPage, /room\.occupancy \?\?/);
+  assert.match(roomDetailsPage, /room\.vacancyStatus === 'FULL'/);
+  assert.match(roomDetailsPage, /room\.beds\.map\(\(bed\)/);
+  assert.match(roomDetailsPage, /allocatedStudents\.map\(\(student\)/);
+  assert.match(roomDetailsPage, /bed\.student\.admissionNumber/);
+});

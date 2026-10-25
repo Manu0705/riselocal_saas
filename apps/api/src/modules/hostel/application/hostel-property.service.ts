@@ -791,6 +791,7 @@ export class HostelPropertyService {
       tenantId: tenantIdValue(tenantId),
       hostelId: requiredText(input.hostelId, 'hostelId'),
       leadId: requiredText(leadId, 'leadId'),
+      admissionRequestId: requiredText(input.admissionRequestId,'admissionRequestId',100),
       name: requiredText(input.name, 'Student name'),
       email: input.email === undefined || input.email === '' ? undefined : requiredText(input.email, 'Email', 160),
       phone: requiredText(input.phone, 'Phone', 40),
@@ -850,6 +851,20 @@ export class HostelPropertyService {
       admissionDate: requiredDate(input.admissionDate, 'Admission date'),
       paymentStatus: enumValue(input.paymentStatus, PAYMENT_STATUSES, 'Payment status', 'DUE'),
       status: enumValue(input.status, STUDENT_STATUSES, 'Student status', 'ACTIVE'),
+    });
+  }
+
+  async reissueStudentPasskey(
+    tenantId: string,
+    studentId: unknown,
+    hostelId: unknown,
+    actorId?: string,
+  ) {
+    return this.repository.reissueStudentPasskey({
+      tenantId: tenantIdValue(tenantId),
+      studentId: requiredText(studentId, 'studentId'),
+      hostelId: requiredText(hostelId, 'hostelId'),
+      actorId,
     });
   }
 

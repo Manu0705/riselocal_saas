@@ -16,11 +16,18 @@ type HostelRoom = {
   roomNumber?: string | null;
   floor?: string | number | null;
   capacity?: number | null;
+  occupancy?: number | null;
   occupied?: number | null;
   occupiedBeds?: number | null;
   vacant?: number | null;
   vacantBeds?: number | null;
   status?: string | null;
+  vacancyStatus?: string | null;
+  students?: Array<{ id: string; name: string; admissionNumber?: string | null }>;
+  beds?: Array<{
+    status?: string | null;
+    student?: { id: string; name: string; admissionNumber?: string | null } | null;
+  }>;
 };
 
 type RoomPage = {
@@ -54,9 +61,7 @@ export default function HostelRoomsPage() {
   useEffect(() => {
     async function loadProperties() {
       try {
-        const propertyResponse = await api.get<
-          ApiResponse<HostelProperty[]>
-        >('/hostel/properties');
+        const propertyResponse = await api.get<ApiResponse<HostelProperty[]>>('/hostel/properties');
         const loadedProperties = propertyResponse.data ?? [];
         setProperties(loadedProperties);
         setSelectedHostelId((current) =>
@@ -66,9 +71,7 @@ export default function HostelRoomsPage() {
         );
       } catch (loadError) {
         setError(
-          loadError instanceof Error
-            ? loadError.message
-            : 'Failed to load hostel properties',
+          loadError instanceof Error ? loadError.message : 'Failed to load hostel properties',
         );
       }
     }
@@ -103,9 +106,7 @@ export default function HostelRoomsPage() {
         setTotalRooms(roomResponse.data?.pagination?.total ?? 0);
       } catch (loadError) {
         if (!cancelled) {
-          setError(
-            loadError instanceof Error ? loadError.message : 'Failed to load rooms',
-          );
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load rooms');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -216,16 +217,16 @@ export default function HostelRoomsPage() {
             }}
           >
             {properties.map((property) => (
-              <option key={property.id} value={property.id}>{property.name}</option>
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
             ))}
           </select>
         )}
         <input
           type="text"
           value={search}
-          onChange={(event) =>
-            handleSearchChange(event.target.value)
-          }
+          onChange={(event) => handleSearchChange(event.target.value)}
           placeholder="Search rooms..."
           style={{
             width: '100%',
@@ -309,15 +310,28 @@ export default function HostelRoomsPage() {
 
               <tbody>
                 {rooms.map((room) => {
+                  const occupiedStudents =
+                    room.beds !== undefined
+                      ? room.beds.flatMap((bed) =>
+                          bed.status === 'OCCUPIED' && bed.student ? [bed.student] : [],
+                        )
+                      : (room.students ?? []);
                   const occupied =
-                    room.occupiedBeds ?? room.occupied ?? 0;
+                    room.occupancy ?? room.occupiedBeds ?? room.occupied ?? occupiedStudents.length;
 
                   const capacity = room.capacity ?? 0;
 
-                  const vacant =
-                    room.vacantBeds ??
-                    room.vacant ??
-                    Math.max(capacity - occupied, 0);
+                  const vacant = room.vacantBeds ?? room.vacant ?? Math.max(capacity - occupied, 0);
+                  const statusLabel =
+                    room.vacancyStatus === 'FULL'
+                      ? 'Full'
+                      : room.vacancyStatus === 'PARTIALLY_OCCUPIED'
+                        ? 'Partially occupied'
+                        : room.vacancyStatus === 'VACANT'
+                          ? 'Vacant'
+                          : room.vacancyStatus === 'UNAVAILABLE'
+                            ? (room.status ?? 'Unavailable')
+                            : (room.status ?? '—');
 
                   return (
                     <tr key={room.id}>
@@ -333,19 +347,36 @@ export default function HostelRoomsPage() {
                         </Link>
                       </td>
 
-                      <td style={cellStyle}>
-                        {room.floor ?? '—'}
-                      </td>
+                      <td style={cellStyle}>{room.floor ?? '—'}</td>
 
                       <td style={cellStyle}>{capacity}</td>
 
-                      <td style={cellStyle}>{occupied}</td>
+                      <td style={cellStyle}>
+                        <div>
+                          {occupied} / {capacity}
+                        </div>
+                        {occupiedStudents.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: 4,
+                              color: 'var(--muted, #6b7280)',
+                              fontSize: 12,
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {occupiedStudents.map((student) => (
+                              <div key={student.id}>
+                                {student.name}
+                                {student.admissionNumber ? ` · ${student.admissionNumber}` : ''}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
 
                       <td style={cellStyle}>{vacant}</td>
 
-                      <td style={cellStyle}>
-                        {room.status ?? '—'}
-                      </td>
+                      <td style={cellStyle}>{statusLabel}</td>
                     </tr>
                   );
                 })}
@@ -383,9 +414,7 @@ export default function HostelRoomsPage() {
           <button
             type="button"
             disabled={page === 1 || loading}
-            onClick={() =>
-              setPage((current) => current - 1)
-            }
+            onClick={() => setPage((current) => current - 1)}
             style={buttonStyle(page === 1 || loading)}
           >
             Previous
@@ -394,9 +423,7 @@ export default function HostelRoomsPage() {
           <button
             type="button"
             disabled={page >= totalPages || loading}
-            onClick={() =>
-              setPage((current) => current + 1)
-            }
+            onClick={() => setPage((current) => current + 1)}
             style={buttonStyle(page >= totalPages || loading)}
           >
             Next

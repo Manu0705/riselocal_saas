@@ -522,6 +522,26 @@ studentLogin(req: Request, res: Response) {
     return respond(req, res, () => service.createStudent(tenantId, req.body ?? {}, getActorId(req)), 201);
   }
 
+  reissueStudentPasskey(req: Request, res: Response) {
+    const tenantId = getTenantId(req);
+
+    if (!tenantId) {
+      return sendError(res, 400, 'Tenant context is required', {
+        code: 'VALIDATION_ERROR',
+        req,
+      });
+    }
+
+    return respond(req, res, () =>
+      service.reissueStudentPasskey(
+        tenantId,
+        req.params.id,
+        getHostelId(req),
+        getActorId(req),
+      ),
+    );
+  }
+
   listHostelEnquiries(req: Request, res: Response) {
     const tenantId = getTenantId(req);
     if (!tenantId) {
