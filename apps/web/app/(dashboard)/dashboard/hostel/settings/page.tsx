@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api-client';
 
 type SettingSection = 'hostel' | 'billing' | 'notifications' | 'operations';
 
@@ -26,7 +27,93 @@ export default function HostelSettingsPage() {
   const [requireCheckoutApproval, setRequireCheckoutApproval] =
     useState(true);
 
+  const [upiVpa, setUpiVpa] = useState('');
+  const [upiPayeeName, setUpiPayeeName] = useState('');
+  const [loadingUpi, setLoadingUpi] = useState(true);
+  const [savingUpi, setSavingUpi] = useState(false);
+  const [upiMessage, setUpiMessage] = useState('');
+  const [upiError, setUpiError] = useState('');
+
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUpiSettings() {
+      try {
+        const response = await api.get<{
+          success?: boolean;
+          data?: {
+            upiVpa?: string | null;
+            upiPayeeName?: string | null;
+          };
+          upiVpa?: string | null;
+          upiPayeeName?: string | null;
+        }>('/settings');
+
+        const settings = response.data ?? response;
+
+        if (!cancelled) {
+          setUpiVpa(settings.upiVpa ?? '');
+          setUpiPayeeName(settings.upiPayeeName ?? '');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setUpiError(
+            error instanceof Error
+              ? error.message
+              : 'Unable to load UPI settings.',
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingUpi(false);
+      }
+    }
+
+    void loadUpiSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSaveUpi() {
+    setSavingUpi(true);
+    setUpiMessage('');
+    setUpiError('');
+
+    try {
+      const response = await api.put<{
+        success?: boolean;
+        data?: {
+          upiVpa?: string | null;
+          upiPayeeName?: string | null;
+        };
+        upiVpa?: string | null;
+        upiPayeeName?: string | null;
+      }, {
+        upiVpa: string;
+        upiPayeeName: string;
+      }>('/settings', {
+        upiVpa: upiVpa.trim(),
+        upiPayeeName: upiPayeeName.trim(),
+      });
+
+      const settings = response.data ?? response;
+
+      setUpiVpa(settings.upiVpa ?? upiVpa.trim());
+      setUpiPayeeName(settings.upiPayeeName ?? upiPayeeName.trim());
+      setUpiMessage('UPI payment settings saved successfully.');
+    } catch (error) {
+      setUpiError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to save UPI settings.',
+      );
+    } finally {
+      setSavingUpi(false);
+    }
+  }
 
   function handleSave() {
     // Backend settings API is not available yet.
@@ -282,6 +369,91 @@ export default function HostelSettingsPage() {
                   background: 'var(--border)',
                 }}
               />
+
+              <div
+                style={{
+                  height: 1,
+                  background: 'var(--border)',
+                  margin: '4px 0',
+                }}
+              />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 650,
+                    color: 'var(--foreground)',
+                  }}
+                >
+                  UPI Payment Settings
+                </h3>
+
+                <p
+                  style={{
+                    margin: '0 0 8px',
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: 'var(--muted-foreground)',
+                  }}
+                >
+                  Configure the UPI account that students will use to pay their hostel
+                  fees. Payments are not automatically verified by RiseLocal.
+                </p>
+
+                <Field
+                  label="UPI ID (VPA)"
+                  value={upiVpa}
+                  onChange={setUpiVpa}
+                  placeholder="e.g. hostelname@upi"
+                />
+
+                <Field
+                  label="UPI Payee Name"
+                  value={upiPayeeName}
+                  onChange={setUpiPayeeName}
+                  placeholder="Enter the account holder or hostel name"
+                />
+
+                {upiMessage && (
+                  <p role="status" style={{ color: 'green', fontSize: 13 }}>
+                    {upiMessage}
+                  </p>
+                )}
+
+                {upiError && (
+                  <p role="alert" style={{ color: '#dc2626', fontSize: 13 }}>
+                    {upiError}
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={handleSaveUpi}
+                    disabled={savingUpi || loadingUpi}
+                    style={{
+                      minHeight: 42,
+                      padding: '0 18px',
+                      border: 'none',
+                      borderRadius: 8,
+                      background: 'var(--foreground)',
+                      color: 'var(--background)',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: savingUpi || loadingUpi ? 'not-allowed' : 'pointer',
+                      opacity: savingUpi || loadingUpi ? 0.6 : 1,
+                    }}
+                  >
+                    {loadingUpi
+                      ? 'Loading settings...'
+                      : savingUpi
+                        ? 'Saving...'
+                        : 'Save UPI Settings'}
+                  </button>
+                </div>
+              </div>
 
               <div
                 style={{

@@ -969,7 +969,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             issuedAt,
           ),
           {
-            maxWait: 5000,
+            maxWait: 10000,
             timeout: 60000,
           },
         );
@@ -3716,20 +3716,143 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     actorId: string;
     idempotencyKey: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findFirst({
-        where: { id: input.id, tenantId: input.tenantId },
-        include: { student: true, receipt: true },
-      });
+    return prisma.$transaction(
+      async (tx) => {
+        const payment = await tx.payment.findFirst({
+          where: { id: input.id, tenantId: input.tenantId },
+          include: { student: true, receipt: true },
+        });
 
-      if (!payment) throw new Error('Payment not found');
+        if (!payment) throw new Error('Payment not found');
 
-      if (
-        payment.verifyIdempotencyKey === input.idempotencyKey &&
-        payment.receipt
-      ) {
-        return tx.payment.findFirst({
-          where: { id: payment.id, tenantId: input.tenantId },
+        if (
+          payment.verifyIdempotencyKey === input.idempotencyKey &&
+          payment.receipt
+        ) {
+          return tx.payment.findFirst({
+            where: { id: payment.id, tenantId: input.tenantId },
+            include: {
+              receipt: true,
+              invoiceAllocations: {
+                include: {
+                  invoice: true,
+                },
+              },
+            },
+          });
+        }
+
+        if (!['SUBMITTED', 'VERIFYING'].includes(payment.status)) {
+          throw new Error('Payment must be submitted before verification');
+        }
+
+        if (payment.amount.gt(payment.student.outstandingAmount)) {
+          throw new Error('Payment exceeds the current outstanding amount');
+        }
+
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: 'VERIFYING' },
+        });
+
+        const invoices = await tx.hostelInvoice.findMany({
+          where: {
+            tenantId: input.tenantId,
+            studentId: payment.studentId,
+            status: {
+              in: ['ISSUED', 'PARTIALLY_PAID'],
+            },
+            balanceAmount: { gt: 0 },
+          },
+          orderBy: [
+            { issueDate: 'asc' },
+            { createdAt: 'asc' },
+          ],
+        });
+
+        let remainingPayment = payment.amount;
+
+        if (invoices.length > 0) {
+          const totalInvoiceBalance = invoices.reduce(
+            (sum, invoice) => sum.add(invoice.balanceAmount),
+            new Prisma.Decimal(0),
+          );
+
+          if (totalInvoiceBalance.lt(payment.amount)) {
+            throw new Error(
+              "Payment exceeds the total balance of the student's open invoices",
+            );
+          }
+
+          for (const invoice of invoices) {
+            if (remainingPayment.lte(0)) break;
+
+            const allocationAmount = remainingPayment.lt(invoice.balanceAmount)
+              ? remainingPayment
+              : invoice.balanceAmount;
+
+            if (allocationAmount.lte(0)) continue;
+
+            await tx.hostelInvoicePayment.create({
+              data: {
+                tenantId: input.tenantId,
+                invoiceId: invoice.id,
+                paymentId: payment.id,
+                amount: allocationAmount,
+              },
+            });
+
+            const paidAmount = invoice.paidAmount.add(allocationAmount);
+            const balanceAmount = invoice.totalAmount.sub(paidAmount);
+
+            await tx.hostelInvoice.update({
+              where: { id: invoice.id },
+              data: {
+                paidAmount,
+                balanceAmount: balanceAmount.gt(0)
+                  ? balanceAmount
+                  : new Prisma.Decimal(0),
+                status: balanceAmount.lte(0) ? 'PAID' : 'PARTIALLY_PAID',
+              },
+            });
+
+            remainingPayment = remainingPayment.sub(allocationAmount);
+          }
+        }
+
+        const remainingOutstanding = payment.student.outstandingAmount.sub(
+          payment.amount,
+        );
+
+        await tx.student.update({
+          where: { id: payment.studentId },
+          data: {
+            outstandingAmount: { decrement: payment.amount },
+            paymentStatus: remainingOutstanding.gt(0) ? 'PARTIAL' : 'PAID',
+          },
+        });
+
+        const receipt = await tx.paymentReceipt.create({
+          data: {
+            tenantId: input.tenantId,
+            paymentId: payment.id,
+            receiptNumber: `RL-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 8)
+              .toUpperCase()}`,
+            metadata: { verifiedBy: input.actorId },
+          },
+        });
+
+        return tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'PAID',
+            receiptId: receipt.id,
+            verifiedAt: new Date(),
+            verifiedBy: input.actorId,
+            verifyIdempotencyKey: input.idempotencyKey,
+          },
           include: {
             receipt: true,
             invoiceAllocations: {
@@ -3739,129 +3862,12 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             },
           },
         });
-      }
-
-      if (!['SUBMITTED', 'VERIFYING'].includes(payment.status)) {
-        throw new Error('Payment must be submitted before verification');
-      }
-
-      if (payment.amount.gt(payment.student.outstandingAmount)) {
-        throw new Error('Payment exceeds the current outstanding amount');
-      }
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: 'VERIFYING' },
-      });
-
-      const invoices = await tx.hostelInvoice.findMany({
-        where: {
-          tenantId: input.tenantId,
-          studentId: payment.studentId,
-          status: {
-            in: ['ISSUED', 'PARTIALLY_PAID'],
-          },
-          balanceAmount: { gt: 0 },
-        },
-        orderBy: [
-          { issueDate: 'asc' },
-          { createdAt: 'asc' },
-        ],
-      });
-
-      let remainingPayment = payment.amount;
-
-      if (invoices.length > 0) {
-        const totalInvoiceBalance = invoices.reduce(
-          (sum, invoice) => sum.add(invoice.balanceAmount),
-          new Prisma.Decimal(0),
-        );
-
-        if (totalInvoiceBalance.lt(payment.amount)) {
-          throw new Error(
-            "Payment exceeds the total balance of the student's open invoices",
-          );
-        }
-
-        for (const invoice of invoices) {
-          if (remainingPayment.lte(0)) break;
-
-          const allocationAmount = remainingPayment.lt(invoice.balanceAmount)
-            ? remainingPayment
-            : invoice.balanceAmount;
-
-          if (allocationAmount.lte(0)) continue;
-
-          await tx.hostelInvoicePayment.create({
-            data: {
-              tenantId: input.tenantId,
-              invoiceId: invoice.id,
-              paymentId: payment.id,
-              amount: allocationAmount,
-            },
-          });
-
-          const paidAmount = invoice.paidAmount.add(allocationAmount);
-          const balanceAmount = invoice.totalAmount.sub(paidAmount);
-
-          await tx.hostelInvoice.update({
-            where: { id: invoice.id },
-            data: {
-              paidAmount,
-              balanceAmount: balanceAmount.gt(0)
-                ? balanceAmount
-                : new Prisma.Decimal(0),
-              status: balanceAmount.lte(0) ? 'PAID' : 'PARTIALLY_PAID',
-            },
-          });
-
-          remainingPayment = remainingPayment.sub(allocationAmount);
-        }
-      }
-
-      const remainingOutstanding = payment.student.outstandingAmount.sub(
-        payment.amount,
-      );
-
-      await tx.student.update({
-        where: { id: payment.studentId },
-        data: {
-          outstandingAmount: { decrement: payment.amount },
-          paymentStatus: remainingOutstanding.gt(0) ? 'PARTIAL' : 'PAID',
-        },
-      });
-
-      const receipt = await tx.paymentReceipt.create({
-        data: {
-          tenantId: input.tenantId,
-          paymentId: payment.id,
-          receiptNumber: `RL-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)
-            .toUpperCase()}`,
-          metadata: { verifiedBy: input.actorId },
-        },
-      });
-
-      return tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'PAID',
-          receiptId: receipt.id,
-          verifiedAt: new Date(),
-          verifiedBy: input.actorId,
-          verifyIdempotencyKey: input.idempotencyKey,
-        },
-        include: {
-          receipt: true,
-          invoiceAllocations: {
-            include: {
-              invoice: true,
-            },
-          },
-        },
-      });
-    });
+      },
+      {
+        maxWait: 10000,
+        timeout: 60000,
+      },
+    );
   }
 
   async rejectPayment(input: {

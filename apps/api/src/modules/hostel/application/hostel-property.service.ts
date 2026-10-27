@@ -1018,11 +1018,29 @@ export class HostelPropertyService {
 
   async initiatePayment(tenantId: string, input: Record<string, unknown>) {
     const amount = Number(input.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Payment amount must be positive');
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Payment amount must be positive');
+    }
+
+    const studentId =
+      typeof input.studentId === 'string' && input.studentId.trim()
+        ? input.studentId.trim()
+        : undefined;
+
+    const studentUserId =
+      typeof input.studentUserId === 'string' && input.studentUserId.trim()
+        ? input.studentUserId.trim()
+        : undefined;
+
+    if (!studentId && !studentUserId) {
+      throw new Error('Student account is required');
+    }
+
     return this.repository.initiatePayment({
       tenantId: tenantIdValue(tenantId),
-      studentId: requiredText(input.studentId, 'studentId'),
-      studentUserId: typeof input.studentUserId === 'string' ? input.studentUserId : undefined,
+      studentId,
+      studentUserId,
       amount: Math.round(amount * 100) / 100,
     });
   }

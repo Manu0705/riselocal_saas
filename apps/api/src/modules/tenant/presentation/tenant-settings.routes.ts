@@ -415,6 +415,8 @@ router.put(
         tagline,
         logoUrl,
         bannerUrl,
+        upiVpa,
+        upiPayeeName,
       } = req.body;
 
       // Get or create settings
@@ -492,6 +494,8 @@ router.put(
             ...(tagline !== undefined && { tagline }),
             ...(logoUrl !== undefined && { logoUrl }),
             ...(bannerUrl !== undefined && { bannerUrl }),
+            ...(upiVpa !== undefined && { upiVpa }),
+            ...(upiPayeeName !== undefined && { upiPayeeName }),
           },
         });
       }
