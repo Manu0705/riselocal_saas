@@ -2221,7 +2221,15 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           vacancyStatus,
         },
       });
-      await this.syncRoomBedState(tx, input.tenantId, room.id);
+      await this.syncRoomBedState(
+        tx,
+        input.tenantId,
+        room.id,
+        {
+          isActive,
+          status,
+        },
+      );
       return tx.room.findUnique({
         where: { id: room.id },
         include: { beds: { where: { status: { not: 'INACTIVE' } }, orderBy: { bedNumber: 'asc' } } },
@@ -2290,20 +2298,29 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
 
   private async withAllocationRetry<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
-    timeout = 15_000,
+    // set timeout to 60 seconds to allow for retries in case of deadlocks
+    timeout = 60_000,
   ): Promise<T> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         return await prisma.$transaction(operation, {
           isolationLevel: 'Serializable',
+          // set maxWait to 10 seconds to avoid long waits in case of deadlocks
+          maxWait: 10_000,
           timeout,
         });
       } catch (error: unknown) {
         const code =
-          typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
-        if (code !== 'P2034' || attempt === 2) throw error;
+          typeof error === 'object' && error !== null && 'code' in error
+            ? error.code
+            : undefined;
+
+        if (code !== 'P2034' || attempt === 2) {
+          throw error;
+        }
       }
     }
+
     throw new Error('Allocation transaction failed');
   }
 
@@ -2311,21 +2328,49 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tx: Prisma.TransactionClient,
     tenantId: string,
     roomId: string,
+    roomState?: {
+      isActive: boolean;
+      status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'INACTIVE';
+    },
   ) {
-    const beds = await tx.roomBed.findMany({
-      where: { tenantId, roomId, status: { not: 'INACTIVE' } },
-      select: { status: true },
-    });
-    const occupied = beds.filter((bed) => bed.status === 'OCCUPIED').length;
-    const reserved = beds.filter((bed) => bed.status === 'RESERVED').length;
-    const available = beds.filter((bed) => bed.status === 'AVAILABLE').length;
-    const room = await tx.room.findFirst({ where: { id: roomId, tenantId } });
+    const [counts, currentRoom] = await Promise.all([
+      tx.roomBed.groupBy({
+        by: ['status'],
+        where: {
+          tenantId,
+          roomId,
+          status: { not: 'INACTIVE' },
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+      roomState
+        ? Promise.resolve(roomState)
+        : tx.room.findFirst({
+            where: { id: roomId, tenantId },
+            select: { isActive: true, status: true },
+          }),
+    ]);
 
-    if (!room) throw new Error('Room not found');
+    if (!currentRoom) {
+      throw new Error('Room not found');
+    }
 
-    const unavailable = !room.isActive || room.status === 'MAINTENANCE' || room.status === 'INACTIVE';
+    const countFor = (status: string) =>
+      counts.find((item) => item.status === status)?._count._all ?? 0;
+
+    const occupied = countFor('OCCUPIED');
+    const reserved = countFor('RESERVED');
+    const available = countFor('AVAILABLE');
+
+    const unavailable =
+      !currentRoom.isActive ||
+      currentRoom.status === 'MAINTENANCE' ||
+      currentRoom.status === 'INACTIVE';
+
     await tx.room.update({
-      where: { id: room.id },
+      where: { id: roomId },
       data: {
         occupancy: occupied,
         vacancyStatus: unavailable
@@ -3345,7 +3390,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           existingStudent: false,
           bedReserved: Boolean(bed),
         };
-      }, 15_000);
+      }, 60_000); // 60 seconds timeout for advisory lock
     } catch (error: unknown) {
       const priorRequest = await prisma.student.findFirst({
         where: { tenantId: input.tenantId, admissionRequestId: input.admissionRequestId },
