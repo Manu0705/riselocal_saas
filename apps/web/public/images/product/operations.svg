@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="660" viewBox="0 0 960 660" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="77" y1="32" x2="881" y2="631" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#E9F2FF"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="294" y1="281" x2="763" y2="458" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3D83F6"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="660" rx="38" fill="url(#bg)"/>
+  <circle cx="794" cy="112" r="95" fill="#DAE7FF"/>
+  <rect x="119" y="83" width="722" height="493" rx="25" fill="#fff" stroke="#DEE7F3" stroke-width="3"/>
+  <path d="M144 83h672a25 25 0 0 1 25 25v52H119v-52a25 25 0 0 1 25-25Z" fill="#F9FBFF"/>
+  <circle cx="152" cy="120" r="5" fill="#F19494"/><circle cx="171" cy="120" r="5" fill="#F3C66E"/><circle cx="190" cy="120" r="5" fill="#7DC99B"/>
+  <rect x="221" y="111" width="142" height="17" rx="8.5" fill="#E5EBF4"/>
+  <text x="164" y="208" fill="#172A49" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700">Business operations</text>
+  <text x="164" y="235" fill="#7888A0" font-family="Arial, Helvetica, sans-serif" font-size="13">Make daily work easier to coordinate</text>
+  <rect x="164" y="266" width="156" height="272" rx="16" fill="#F5F8FC"/>
+  <text x="184" y="298" fill="#526987" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">WORKFLOW</text>
+  <circle cx="191" cy="339" r="10" fill="#DCEAFF"/><path d="m187 339 3 3 6-7" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="211" y="335" width="87" height="7" rx="3.5" fill="#7185A2"/>
+  <circle cx="191" cy="381" r="10" fill="#DDF2E5"/><path d="m187 381 3 3 6-7" stroke="#368A58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="211" y="377" width="72" height="7" rx="3.5" fill="#7185A2"/>
+  <circle cx="191" cy="423" r="10" fill="#FFF0D7"/><path d="M188 423h6" stroke="#C78A2E" stroke-width="2" stroke-linecap="round"/>
+  <rect x="211" y="419" width="91" height="7" rx="3.5" fill="#7185A2"/>
+  <circle cx="191" cy="465" r="10" fill="#ECE7FF"/><path d="M188 465h6" stroke="#7257C8" stroke-width="2" stroke-linecap="round"/>
+  <rect x="211" y="461" width="78" height="7" rx="3.5" fill="#7185A2"/>
+  <rect x="341" y="266" width="459" height="272" rx="17" fill="#F9FBFE" stroke="#E7EDF5"/>
+  <rect x="366" y="290" width="409" height="46" rx="11" fill="#F0F4FA"/>
+  <text x="384" y="318" fill="#7788A0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">ACTIVITY</text>
+  <text x="554" y="318" fill="#7788A0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">OWNER</text>
+  <text x="690" y="318" fill="#7788A0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">NEXT STEP</text>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="12">
+    <rect x="367" y="352" width="7" height="31" rx="3.5" fill="url(#accent)"/>
+    <text x="389" y="365" fill="#30435F" font-size="13" font-weight="700">Review request</text><text x="389" y="379" fill="#8A98AB" font-size="10">Today</text>
+    <circle cx="568" cy="367" r="12" fill="#DDEAFF"/><text x="564" y="371" fill="#2860B9" font-size="10" font-weight="700">A</text>
+    <text x="690" y="371" fill="#62748E">Follow up</text>
+    <path d="M367 395h408" stroke="#E9EEF5"/>
+    <rect x="367" y="407" width="7" height="31" rx="3.5" fill="#82D39D"/>
+    <text x="389" y="420" fill="#30435F" font-size="13" font-weight="700">Confirm details</text><text x="389" y="434" fill="#8A98AB" font-size="10">In progress</text>
+    <circle cx="568" cy="422" r="12" fill="#E8E2FF"/><text x="564" y="426" fill="#7257C8" font-size="10" font-weight="700">J</text>
+    <text x="690" y="426" fill="#62748E">Review</text>
+    <path d="M367 450h408" stroke="#E9EEF5"/>
+    <rect x="367" y="462" width="7" height="31" rx="3.5" fill="#F0C46E"/>
+    <text x="389" y="475" fill="#30435F" font-size="13" font-weight="700">Prepare update</text><text x="389" y="489" fill="#8A98AB" font-size="10">Upcoming</text>
+    <circle cx="568" cy="477" r="12" fill="#DDF2E5"/><text x="564" y="481" fill="#368A58" font-size="10" font-weight="700">S</text>
+    <text x="690" y="481" fill="#62748E">Schedule</text>
+  </g>
+</svg>

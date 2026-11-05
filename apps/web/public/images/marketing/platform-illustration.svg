@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="74" y1="44" x2="854" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#E9F1FF"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="264" y1="205" x2="680" y2="570" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3D83F6"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="602" y1="310" x2="840" y2="574" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1C3156"/>
+      <stop offset="1" stop-color="#101D3A"/>
+    </linearGradient>
+    <filter id="shadow" x="125" y="100" width="746" height="540" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix values="0 0 0 0 0.08 0 0 0 0 0.16 0 0 0 0 0.3 0 0 0 0.13 0"/>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="960" height="720" rx="40" fill="url(#bg)"/>
+  <circle cx="776" cy="142" r="95" fill="#D9E7FF" fill-opacity=".72"/>
+  <circle cx="140" cy="590" r="112" fill="#DCEFE5" fill-opacity=".72"/>
+  <g filter="url(#shadow)">
+    <rect x="163" y="136" width="634" height="450" rx="25" fill="#fff"/>
+    <path d="M188 136h584a25 25 0 0 1 25 25v38H163v-38a25 25 0 0 1 25-25Z" fill="#F9FBFF"/>
+    <circle cx="190" cy="169" r="5" fill="#F19494"/>
+    <circle cx="208" cy="169" r="5" fill="#F3C66E"/>
+    <circle cx="226" cy="169" r="5" fill="#7DC99B"/>
+    <rect x="255" y="160" width="162" height="17" rx="8.5" fill="#E8EEF7"/>
+    <rect x="163" y="199" width="142" height="387" fill="#F5F8FC"/>
+    <rect x="182" y="224" width="93" height="25" rx="8" fill="#E5EEFF"/>
+    <rect x="191" y="233" width="10" height="8" rx="3" fill="#2563EB"/>
+    <rect x="207" y="232" width="53" height="9" rx="4.5" fill="#6280B3"/>
+    <rect x="190" y="272" width="78" height="8" rx="4" fill="#D7E0EE"/>
+    <rect x="190" y="299" width="66" height="8" rx="4" fill="#D7E0EE"/>
+    <rect x="190" y="326" width="74" height="8" rx="4" fill="#D7E0EE"/>
+    <rect x="190" y="353" width="59" height="8" rx="4" fill="#D7E0EE"/>
+    <text x="338" y="245" fill="#101D3A" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">A clearer view of your business</text>
+    <text x="338" y="269" fill="#71809A" font-family="Arial, Helvetica, sans-serif" font-size="12">Your work, customers and operations together</text>
+    <rect x="338" y="292" width="128" height="91" rx="13" fill="#F3F7FF"/>
+    <circle cx="364" cy="321" r="13" fill="#DCEAFF"/>
+    <path d="M359 322h10m-5-5v10" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+    <rect x="354" y="347" width="75" height="8" rx="4" fill="#8090AA"/>
+    <rect x="354" y="362" width="48" height="7" rx="3.5" fill="#B7C3D5"/>
+    <rect x="480" y="292" width="128" height="91" rx="13" fill="#F4F8F5"/>
+    <circle cx="506" cy="321" r="13" fill="#DDF2E5"/>
+    <circle cx="506" cy="318" r="4" stroke="#368A58" stroke-width="2"/>
+    <path d="M499 327c1-5 13-5 14 0" stroke="#368A58" stroke-width="2" stroke-linecap="round"/>
+    <rect x="496" y="347" width="75" height="8" rx="4" fill="#8090AA"/>
+    <rect x="496" y="362" width="55" height="7" rx="3.5" fill="#B7C3D5"/>
+    <rect x="622" y="292" width="128" height="91" rx="13" fill="#F7F5FF"/>
+    <circle cx="648" cy="321" r="13" fill="#E9E1FF"/>
+    <path d="M641 325h14m-11-8h8v8h-8z" stroke="#7257C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="638" y="347" width="75" height="8" rx="4" fill="#8090AA"/>
+    <rect x="638" y="362" width="51" height="7" rx="3.5" fill="#B7C3D5"/>
+    <rect x="338" y="402" width="412" height="148" rx="15" fill="#FAFBFE" stroke="#E8EEF7"/>
+    <text x="359" y="431" fill="#263653" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">Connected business activity</text>
+    <path d="M361 510c39-43 59-18 91-50 24-24 47 13 77-9 24-17 42-10 67-36 29-29 47 20 89-11" stroke="url(#blue)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M361 519h356" stroke="#E5EBF4" stroke-width="2" stroke-dasharray="4 8"/>
+    <circle cx="718" cy="404" r="5" fill="#fff" stroke="#2563EB" stroke-width="3"/>
+  </g>
+  <g transform="rotate(5 759 493)">
+    <rect x="677" y="407" width="173" height="151" rx="20" fill="url(#navy)"/>
+    <circle cx="709" cy="441" r="15" fill="#294A7F"/>
+    <path d="M702 441h14m-7-7v14" stroke="#A8C9FF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="735" y="435" width="89" height="7" rx="3.5" fill="#D8E5FF"/>
+    <rect x="735" y="449" width="65" height="6" rx="3" fill="#8EA5C7"/>
+    <rect x="700" y="479" width="124" height="48" rx="11" fill="#FFFFFF" fill-opacity=".09"/>
+    <rect x="714" y="492" width="70" height="6" rx="3" fill="#D8E5FF"/>
+    <rect x="714" y="505" width="93" height="6" rx="3" fill="#8EA5C7"/>
+    <circle cx="810" cy="496" r="7" fill="#75D597"/>
+  </g>
+</svg>
