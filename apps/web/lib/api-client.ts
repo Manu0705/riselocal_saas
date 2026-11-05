@@ -112,6 +112,19 @@ export const api = {
     return parseJsonResponse<TResponse>(res);
   },
 
+  async put<TResponse = unknown, TBody = unknown>(
+    path: string,
+    data: TBody
+  ): Promise<TResponse> {
+    const res = await fetch(buildUrl(withTenantQuery(path)), {
+      method: 'PUT',
+      headers: buildAuthHeaders(true),
+      body: JSON.stringify(data),
+    });
+
+    return parseJsonResponse<TResponse>(res);
+  },
+
   async patch<TResponse = unknown, TBody = unknown>(
     path: string,
     data?: TBody,

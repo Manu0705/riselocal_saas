@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="660" viewBox="0 0 960 660" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="74" y1="45" x2="872" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFF"/>
+      <stop offset="1" stop-color="#EAF1FF"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="222" y1="193" x2="743" y2="261" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#367FF0"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="660" rx="38" fill="url(#bg)"/>
+  <circle cx="786" cy="111" r="95" fill="#DCE8FF"/>
+  <rect x="123" y="95" width="714" height="466" rx="24" fill="#fff" stroke="#E1E9F4" stroke-width="3"/>
+  <path d="M147 95h666a24 24 0 0 1 24 24v54H123v-54a24 24 0 0 1 24-24Z" fill="#F9FBFF"/>
+  <circle cx="154" cy="132" r="5" fill="#F19494"/>
+  <circle cx="173" cy="132" r="5" fill="#F3C66E"/>
+  <circle cx="192" cy="132" r="5" fill="#7DC99B"/>
+  <rect x="220" y="123" width="154" height="17" rx="8.5" fill="#E5EBF4"/>
+  <text x="169" y="211" fill="#172A49" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700">Enquiry workspace</text>
+  <text x="169" y="238" fill="#7888A0" font-family="Arial, Helvetica, sans-serif" font-size="13">Keep incoming conversations organised</text>
+  <rect x="654" y="193" width="147" height="43" rx="12" fill="url(#bar)"/>
+  <path d="M676 214h15m-7.5-7.5v15" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="701" y="210" width="77" height="8" rx="4" fill="#fff"/>
+  <rect x="160" y="269" width="641" height="52" rx="12" fill="#F5F8FC"/>
+  <text x="183" y="301" fill="#70809A" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">CUSTOMER</text>
+  <text x="382" y="301" fill="#70809A" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">ENQUIRY</text>
+  <text x="612" y="301" fill="#70809A" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">STATUS</text>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <circle cx="193" cy="358" r="17" fill="#DDEAFF"/><text x="188" y="363" fill="#2860B9" font-size="12" font-weight="700">A</text>
+    <text x="222" y="355" fill="#2C3E5A" font-size="14" font-weight="700">Alex Morgan</text><text x="222" y="373" fill="#8997AA" font-size="11">Today, 10:24</text>
+    <text x="382" y="361" fill="#586B87" font-size="13">Service information</text>
+    <rect x="604" y="344" width="104" height="27" rx="13.5" fill="#E8F1FF"/><text x="624" y="362" fill="#2860B9" font-size="11" font-weight="700">NEW</text>
+    <path d="M160 394h641" stroke="#EDF1F6"/>
+    <circle cx="193" cy="426" r="17" fill="#E8E2FF"/><text x="188" y="431" fill="#7257C8" font-size="12" font-weight="700">J</text>
+    <text x="222" y="423" fill="#2C3E5A" font-size="14" font-weight="700">Jamie Patel</text><text x="222" y="441" fill="#8997AA" font-size="11">Yesterday, 16:40</text>
+    <text x="382" y="429" fill="#586B87" font-size="13">Availability question</text>
+    <rect x="604" y="412" width="104" height="27" rx="13.5" fill="#FDF2D9"/><text x="618" y="430" fill="#A57119" font-size="11" font-weight="700">FOLLOW UP</text>
+    <path d="M160 462h641" stroke="#EDF1F6"/>
+    <circle cx="193" cy="494" r="17" fill="#DDF2E5"/><text x="188" y="499" fill="#368A58" font-size="12" font-weight="700">S</text>
+    <text x="222" y="491" fill="#2C3E5A" font-size="14" font-weight="700">Sam Lee</text><text x="222" y="509" fill="#8997AA" font-size="11">Yesterday, 14:12</text>
+    <text x="382" y="497" fill="#586B87" font-size="13">Request a callback</text>
+    <rect x="604" y="480" width="104" height="27" rx="13.5" fill="#E3F4E9"/><text x="625" y="498" fill="#368A58" font-size="11" font-weight="700">CONTACTED</text>
+  </g>
+</svg>

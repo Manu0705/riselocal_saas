@@ -207,7 +207,7 @@ export default function TopHeader({ title, tenantSlug, logoUrl, logoShape }: Rea
             }}
           >
             <Image
-              src={logoUrl || '/logo/riselocal-logo.svg'}
+              src={logoUrl || '/logo/riselocal-logo.png'}
               alt="logo"
               fill
               sizes="44px"

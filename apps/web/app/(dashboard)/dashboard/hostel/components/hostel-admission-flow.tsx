@@ -91,6 +91,7 @@ export default function HostelAdmissionFlow({
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [selectedBedId, setSelectedBedId] = useState('');
+  const admissionSubmitLock = useRef(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -102,7 +103,6 @@ export default function HostelAdmissionFlow({
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyRelation, setEmergencyRelation] = useState('');
 
-  const [studentWhatsApp, setStudentWhatsApp] = useState('');
   const [adminWhatsApp, setAdminWhatsApp] = useState('');
 
   const [loading, setLoading] = useState(true);
@@ -113,6 +113,7 @@ export default function HostelAdmissionFlow({
   const [createdStudent, setCreatedStudent] = useState<CreatedStudent | null>(null);
   const [temporaryPasskey, setTemporaryPasskey] = useState('');
   const [passkeyCopied, setPasskeyCopied] = useState(false);
+  const [reissuingPasskey, setReissuingPasskey] = useState(false);
   const [admittingExistingStudent, setAdmittingExistingStudent] = useState(false);
   const [bedReserved, setBedReserved] = useState(false);
 
@@ -247,6 +248,16 @@ export default function HostelAdmissionFlow({
       setError('Student name is required.');
       return;
     }
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+
+    if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
+      setError(
+        'Enter a valid student phone number with 10 to 15 digits.',
+      );
+      return;
+    }
+
     if (!admissionDate) {
       setError('Admission date is required.');
       return;
@@ -260,22 +271,27 @@ export default function HostelAdmissionFlow({
       return;
     }
 
-    if (!selectedEnquiryId) {
-      const storageKey = getAdmissionRequestStorageKey(selectedHostelId, phone);
-      let requestId = '';
-      try {
-        requestId = sessionStorage.getItem(storageKey) ?? '';
-      } catch {
-        requestId = '';
-      }
-      requestId ||= globalThis.crypto.randomUUID();
-      try {
-        sessionStorage.setItem(storageKey, requestId);
-      } catch {
-        // Keep the request id in component state when storage is unavailable.
-      }
-      setAdmissionRequestId(requestId);
+    const requestStorageKey = selectedEnquiryId
+      ? `hostel-enquiry-conversion-request:${selectedHostelId}:${selectedEnquiryId}`
+      : getAdmissionRequestStorageKey(selectedHostelId, normalizedPhone);
+
+    let requestId = '';
+
+    try {
+      requestId = sessionStorage.getItem(requestStorageKey) ?? '';
+    } catch {
+      // Use a component-generated ID if browser storage is unavailable.
     }
+
+    requestId ||= globalThis.crypto.randomUUID();
+
+    try {
+      sessionStorage.setItem(requestStorageKey, requestId);
+    } catch {
+      // Keep the request ID in component state.
+    }
+
+    setAdmissionRequestId(requestId);
 
     // Collect the two WhatsApp recipients before creating the student.
     setModalStep('recipients');
@@ -288,12 +304,21 @@ export default function HostelAdmissionFlow({
   }
 
   async function createAdmission() {
+    // Prevent rapid double-clicks.
+    if (admissionSubmitLock.current) return;
+
+    // Validate before acquiring the lock.
     if (!selectedHostelId) {
       setError('Select a hostel property before creating an admission.');
       return;
     }
 
-    const studentNumber = normalizeWhatsAppNumber(studentWhatsApp);
+    if (!admissionRequestId) {
+      setError('Admission request ID is missing. Please reopen the admission form and try again.');
+      return;
+    }
+
+    const studentNumber = normalizeWhatsAppNumber(phone);
     const adminNumber = normalizeWhatsAppNumber(adminWhatsApp);
 
     if (!studentNumber) {
@@ -304,6 +329,9 @@ export default function HostelAdmissionFlow({
       setError('Enter the admin WhatsApp number with country code, for example +91 9876543210.');
       return;
     }
+
+    // Acquire the lock only after validation succeeds.
+    admissionSubmitLock.current = true;
 
     try {
       setSaving(true);
@@ -318,7 +346,7 @@ export default function HostelAdmissionFlow({
         emergencyPhone: emergencyPhone.trim() || undefined,
         emergencyRelation: emergencyRelation.trim() || undefined,
         admissionDate,
-        ...(selectedEnquiryId ? {} : { admissionRequestId }),
+        admissionRequestId,
         roomId: selectedRoomId || undefined,
         bedId: selectedBedId || undefined,
       };
@@ -332,6 +360,7 @@ export default function HostelAdmissionFlow({
       const created = studentResponse.data?.student;
       const passkey = studentResponse.data?.temporaryPasskey;
 
+      // this issues still there but need to fix backend before this
       if (studentResponse.data?.alreadyConverted) {
         throw new Error(`This enquiry was already converted to admission ${created?.admissionNumber ?? ''}.`);
       }
@@ -342,34 +371,80 @@ export default function HostelAdmissionFlow({
         );
       }
 
-      // Keep the passkey only in component memory for the WhatsApp hand-off.
+      // The API has already confirmed that the admission was saved.
       setCreatedStudent(created);
       setTemporaryPasskey(passkey ?? '');
       setPasskeyCopied(false);
       setAdmittingExistingStudent(Boolean(studentResponse.data?.existingStudent));
       setBedReserved(studentResponse.data?.bedReserved ?? Boolean(selectedBedId));
       setModalStep('ready');
-      window.dispatchEvent(new Event('hostel:admission-created'));
-      if (!selectedEnquiryId) {
-        try {
-          sessionStorage.removeItem(getAdmissionRequestStorageKey(selectedHostelId, phone));
-        } catch {
-          // The database idempotency key remains authoritative.
-        }
-        setAdmissionRequestId('');
+
+      // Post-save notifications must not turn a successful save into an API error.
+      try {
+        window.dispatchEvent(new Event('hostel:admission-created'));
+        onAdmissionCreated?.(created.id);
+      } catch (callbackError) {
+        console.error(
+          'Admission was saved, but a post-save UI callback failed.',
+          callbackError,
+        );
       }
-      onAdmissionCreated?.(created.id);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to create admission.');
     } finally {
       setSaving(false);
+      admissionSubmitLock.current = false;
+    }
+  }
+
+  async function reissuePasskey() {
+    if (!createdStudent?.id) {
+      setError('Student details are missing. Close this popup and reopen the existing admission.');
+      return;
+    }
+    if (!selectedHostelId) {
+      setError('Select the hostel property before regenerating the passkey.');
+      return;
+    }
+    if (reissuingPasskey) return;
+
+    try {
+      setReissuingPasskey(true);
+      setError(null);
+      setPasskeyCopied(false);
+
+      const response = await api.post<ApiResponse<{
+        student?: CreatedStudent;
+        temporaryPasskey?: string;
+        passkeyReissued?: boolean;
+      }>>(
+        `/hostel/students/${encodeURIComponent(createdStudent.id)}/reissue-passkey?hostelId=${encodeURIComponent(selectedHostelId)}`,
+        {},
+      );
+
+      const newPasskey = response.data?.temporaryPasskey;
+      if (!response.success || !newPasskey) {
+        throw new Error(response.message || 'The API did not return the regenerated passkey.');
+      }
+
+      // The plaintext passkey is kept only in component state for this one-time hand-off.
+      setTemporaryPasskey(newPasskey);
+      setAdmittingExistingStudent(true);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Failed to regenerate the student passkey.',
+      );
+    } finally {
+      setReissuingPasskey(false);
     }
   }
 
   function openWhatsApp(recipient: 'student' | 'admin') {
     if (!createdStudent) return;
 
-    const rawNumber = recipient === 'student' ? studentWhatsApp : adminWhatsApp;
+    const rawNumber = recipient === 'student' ? phone : adminWhatsApp;
     const number = normalizeWhatsAppNumber(rawNumber);
     if (!number) {
       setError(`The ${recipient} WhatsApp number is invalid.`);
@@ -551,7 +626,13 @@ export default function HostelAdmissionFlow({
               </select>
             </label>
             <Field label="Student Name" value={name} onChange={setName} required />
-            <Field label="Phone" value={phone} onChange={setPhone} type="tel" />
+            <Field
+              label="Student WhatsApp Number (include country code)"
+              value={phone}
+              onChange={setPhone}
+              type="tel"
+              required
+            />
             <Field label="Email" value={email} onChange={setEmail} type="email" />
             <Field
               label="Date of Birth"
@@ -714,13 +795,6 @@ export default function HostelAdmissionFlow({
 
                 <div style={{ display: 'grid', gap: 14, marginTop: 18 }}>
                   <Field
-                    label="Student WhatsApp Number (include country code)"
-                    value={studentWhatsApp}
-                    onChange={setStudentWhatsApp}
-                    type="tel"
-                    required
-                  />
-                  <Field
                     label="Admin WhatsApp Number (include country code)"
                     value={adminWhatsApp}
                     onChange={setAdminWhatsApp}
@@ -730,8 +804,9 @@ export default function HostelAdmissionFlow({
                 </div>
 
                 <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6b7280' }}>
-                  Example: +91 9876543210. The student account is created only after you confirm
-                  below.
+                  The student WhatsApp message will be sent to the phone number in Student
+                  Information. Include the country code there (for example, +91 9876543210).
+                  The student account is created only after you confirm below.
                 </p>
 
                 <div style={modalActionsStyle}>
@@ -768,7 +843,7 @@ export default function HostelAdmissionFlow({
                     label="Admission Date"
                     value={formatDate(createdStudent?.admissionDate ?? admissionDate)}
                   />
-                  <SummaryRow label="Student WhatsApp" value={studentWhatsApp} />
+                  <SummaryRow label="Student WhatsApp" value={phone} />
                   <SummaryRow label="Admin WhatsApp" value={adminWhatsApp} />
                 </div>
 
@@ -798,10 +873,20 @@ export default function HostelAdmissionFlow({
                     </button>
                   </div>
                 ) : admittingExistingStudent ? (
-                  <p style={{ margin: '12px 0 0', fontSize: 13, color: '#92400e' }}>
-                    This admission already existed, so its one-time passkey cannot be retrieved or
-                    shared again. The admission details below can still be shared via WhatsApp.
-                  </p>
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ margin: '0 0 12px', fontSize: 13, color: '#92400e' }}>
+                      The previous passkey cannot be retrieved. Regenerate a new passkey to replace
+                      the existing login credential, then share the new passkey with the student.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void reissuePasskey()}
+                      disabled={reissuingPasskey || saving}
+                      style={primaryButtonStyle}
+                    >
+                      {reissuingPasskey ? 'Regenerating passkey...' : 'Regenerate Passkey'}
+                    </button>
+                  </div>
                 ) : null}
 
                 {createdStudent ? (

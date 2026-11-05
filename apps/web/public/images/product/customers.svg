@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="660" viewBox="0 0 960 660" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="83" y1="35" x2="867" y2="628" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#EEF1FF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="191" y1="161" x2="778" y2="527" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1C3156"/>
+      <stop offset="1" stop-color="#101D3A"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="660" rx="38" fill="url(#bg)"/>
+  <circle cx="797" cy="111" r="91" fill="#E0E7FF"/>
+  <rect x="111" y="87" width="738" height="486" rx="25" fill="#fff" stroke="#DEE7F3" stroke-width="3"/>
+  <path d="M136 87h688a25 25 0 0 1 25 25v50H111v-50a25 25 0 0 1 25-25Z" fill="#F9FBFF"/>
+  <circle cx="144" cy="123" r="5" fill="#F19494"/><circle cx="163" cy="123" r="5" fill="#F3C66E"/><circle cx="182" cy="123" r="5" fill="#7DC99B"/>
+  <rect x="214" y="114" width="157" height="17" rx="8.5" fill="#E5EBF4"/>
+  <text x="155" y="208" fill="#172A49" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700">Customer relationships</text>
+  <text x="155" y="235" fill="#7888A0" font-family="Arial, Helvetica, sans-serif" font-size="13">Keep important information together</text>
+  <rect x="155" y="264" width="367" height="270" rx="18" fill="#F6F8FC"/>
+  <circle cx="338" cy="355" r="50" fill="#DCEAFF"/>
+  <circle cx="338" cy="344" r="17" fill="#6796E0"/>
+  <path d="M303 390c7-27 63-27 70 0" fill="#6796E0"/>
+  <text x="283" y="435" fill="#2A3D5A" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700">Customer profile</text>
+  <rect x="216" y="461" width="244" height="8" rx="4" fill="#D8E1ED"/>
+  <rect x="252" y="480" width="173" height="7" rx="3.5" fill="#E4EAF2"/>
+  <rect x="547" y="264" width="257" height="270" rx="18" fill="url(#panel)"/>
+  <text x="572" y="302" fill="#D6E4FF" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1">RECENT ACTIVITY</text>
+  <circle cx="582" cy="347" r="10" fill="#83B4FF"/>
+  <rect x="604" y="340" width="151" height="7" rx="3.5" fill="#E0EAFC"/>
+  <rect x="604" y="354" width="113" height="6" rx="3" fill="#91A5C4"/>
+  <path d="M582 366v39" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="582" cy="418" r="10" fill="#82D39D"/>
+  <rect x="604" y="411" width="132" height="7" rx="3.5" fill="#E0EAFC"/>
+  <rect x="604" y="425" width="102" height="6" rx="3" fill="#91A5C4"/>
+  <path d="M582 437v39" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="582" cy="489" r="10" fill="#B5A0FF"/>
+  <rect x="604" y="482" width="145" height="7" rx="3.5" fill="#E0EAFC"/>
+  <rect x="604" y="496" width="92" height="6" rx="3" fill="#91A5C4"/>
+</svg>

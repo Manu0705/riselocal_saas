@@ -1,41 +1,61 @@
 import type { Metadata, Viewport } from 'next';
+import type { CSSProperties, ReactNode } from 'react';
+
 import './globals.css';
+
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'sonner';
 
+const fontFallbacks: CSSProperties & {
+  '--font-inter': string;
+  '--font-manrope': string;
+} = {
+  '--font-inter': '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  '--font-manrope': '"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://riselocal.in'),
+
   title: {
-    default: 'RiseLocal | Capture Every Local Enquiry',
-    template: '%s | RiseLocal',
+    default: 'Riselocal | One Business Growth Platform',
+    template: '%s | Riselocal',
   },
+
   description:
-    'RiseLocal helps local businesses turn every call, WhatsApp click, and booking enquiry into a tracked, assigned, and measurable sales opportunity.',
+    'Build your online presence, manage customer relationships and organise your business operations with Riselocal, one connected business growth platform.',
+
   keywords: [
-    'RiseLocal',
-    'local business CRM',
-    'WhatsApp lead capture',
-    'multi-tenant SaaS',
-    'lead tracking for local businesses',
+    'Riselocal',
+    'business growth platform',
+    'local business management',
+    'business website',
+    'customer management',
+    'business operations',
+    'hostel management',
+    'agency management',
   ],
+
   icons: {
-    icon: [{ url: '/logo/riselocal-logo.svg', type: 'image/svg+xml' }],
-    shortcut: '/logo/riselocal-logo.svg',
-    apple: '/logo/riselocal-logo.svg',
+    icon: [{ url: '/logo/riselocal-logo.png', type: 'image/png' }],
+    shortcut: '/logo/riselocal-logo.png',
+    apple: '/logo/riselocal-logo.png',
   },
+
   openGraph: {
-    title: 'RiseLocal | Capture Every Local Enquiry',
+    title: 'Riselocal | One Business Growth Platform',
     description:
-      'Branded business pages, WhatsApp-first lead capture, follow-up workflows, and analytics for local businesses, agencies, and franchises.',
+      'Your business. Your customers. One connected platform. Explore Riselocal solutions for businesses and industry-specific workflows.',
     url: 'https://riselocal.in',
-    siteName: 'RiseLocal',
+    siteName: 'Riselocal',
     type: 'website',
   },
+
   twitter: {
     card: 'summary_large_image',
-    title: 'RiseLocal | Capture Every Local Enquiry',
+    title: 'Riselocal | One Business Growth Platform',
     description:
-      'Turn every WhatsApp click, call, and booking request into a tracked, assigned, and measurable sales opportunity.',
+      'Build your online presence, manage customer relationships and organise your business operations with Riselocal.',
   },
 };
 
@@ -45,10 +65,10 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body style={fontFallbacks}>
         <AuthProvider>
           {children}
           <Toaster position="top-right" richColors closeButton />

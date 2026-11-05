@@ -130,6 +130,9 @@ async function proxyRequest(
 
   let lastError: unknown = null;
 
+  // Only retry requests that are safe to repeat.
+  const canFailOver = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+
   for (let index = 0; index < proxyCandidates.length; index += 1) {
     const base = proxyCandidates[index];
     const isLastCandidate = index === proxyCandidates.length - 1;
@@ -137,9 +140,10 @@ async function proxyRequest(
     try {
       const controller = new AbortController();
 
+      // Allow the upstream API up to 60 seconds.
       timeoutId = globalThis.setTimeout(() => {
         controller.abort();
-      }, 7000);
+      }, 60_000);
 
       const upstreamUrl = buildUpstreamApiUrl(base, upstreamPath);
 
@@ -152,47 +156,63 @@ async function proxyRequest(
         signal: controller.signal,
       });
 
-      globalThis.clearTimeout(timeoutId);
-      timeoutId = null;
-
       const vercelErrorHeader = response.headers
         .get('x-vercel-error')
         ?.toUpperCase();
 
       const shouldFailOver =
-        (!isLastCandidate && response.status >= 500) ||
-        response.status === 508 ||
-        vercelErrorHeader === 'INFINITE_LOOP_DETECTED';
+        canFailOver &&
+        !isLastCandidate &&
+        (response.status >= 500 ||
+          response.status === 508 ||
+          vercelErrorHeader === 'INFINITE_LOOP_DETECTED');
 
       if (shouldFailOver) {
         lastError = new Error(
           `Upstream candidate ${base} returned ${response.status}`,
         );
 
+        await response.body?.cancel().catch(() => {});
         continue;
       }
 
       const responseBody = await response.arrayBuffer();
 
+      // Clear only after the body has been read.
+      globalThis.clearTimeout(timeoutId);
+      timeoutId = null;
+
       return createProxyResponse(response, responseBody);
     } catch (error) {
       lastError = error;
+
+      // Never retry a potentially committed admission or payment.
+      if (!canFailOver || isLastCandidate) {
+        break;
+      }
     } finally {
-      if (timeoutId) {
+      if (timeoutId !== null) {
         globalThis.clearTimeout(timeoutId);
       }
     }
   }
 
+  const wasAborted =
+  lastError instanceof Error &&
+  (lastError.name === 'AbortError' ||
+    lastError.name === 'TimeoutError' ||
+    /abort|timed?\s*out/i.test(lastError.message));
+
   return NextResponse.json(
     {
       success: false,
-      message:
-        lastError instanceof Error
+      message: wasAborted
+        ? 'The upstream API timed out or the request was aborted. Check the API logs and admission record before retrying.'
+        : lastError instanceof Error
           ? lastError.message
           : 'Unable to reach upstream API',
     },
-    { status: 502 },
+    { status: wasAborted ? 504 : 502 },
   );
 }
 

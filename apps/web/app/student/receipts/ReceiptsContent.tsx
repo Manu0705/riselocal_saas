@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ReceiptText, Download, RefreshCw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import StudentPortalHeader from '../StudentPortalHeader';
@@ -14,6 +14,109 @@ type StudentReceipt = {
   downloadUrl?: string | null;
 };
 
+type ReceiptApiItem = {
+  id?: string;
+  receiptNumber?: string;
+  receiptNo?: string;
+  description?: string | null;
+  amount?: number | string;
+  date?: string | null;
+  createdAt?: string | null;
+  issuedAt?: string | null;
+  downloadUrl?: string | null;
+  payment?: {
+    amount?: number | string;
+    createdAt?: string | null;
+    verifiedAt?: string | null;
+    description?: string | null;
+    method?: string | null;
+    utr?: string | null;
+    transactionReferenceId?: string | null;
+    status?: string | null;
+    student?: {
+      name?: string | null;
+      admissionNumber?: string | null;
+    };
+  };
+};
+
+type ReceiptApiResponse = {
+  success?: boolean;
+  data?: unknown;
+  items?: unknown;
+  receipts?: unknown;
+  [key: string]: unknown;
+};
+
+function extractReceipts(value: unknown): ReceiptApiItem[] {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as ReceiptApiItem[];
+    }
+
+    if (!current || typeof current !== 'object') {
+      return [];
+    }
+
+    const obj = current as Record<string, unknown>;
+
+    if (Array.isArray(obj.items)) {
+      return obj.items as ReceiptApiItem[];
+    }
+
+    if (Array.isArray(obj.receipts)) {
+      return obj.receipts as ReceiptApiItem[];
+    }
+
+    if ('data' in obj) {
+      current = obj.data;
+      continue;
+    }
+
+    break;
+  }
+
+  return [];
+}
+
+function mapReceipt(item: ReceiptApiItem): StudentReceipt {
+  const amount = Number(item.payment?.amount ?? item.amount ?? 0);
+
+  const method = item.payment?.method;
+  const utr =
+    item.payment?.utr ?? item.payment?.transactionReferenceId;
+  const admissionNumber = item.payment?.student?.admissionNumber;
+
+  const description =
+    item.description ??
+    item.payment?.description ??
+    [
+      method || 'Hostel payment',
+      utr ? `UTR: ${utr}` : null,
+      admissionNumber ? `Admission: ${admissionNumber}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+  return {
+    id: item.id ?? item.receiptNumber ?? item.receiptNo ?? '',
+    receiptNumber:
+      item.receiptNumber ?? item.receiptNo ?? item.id ?? 'N/A',
+    description: description || 'Hostel payment',
+    amount: Number.isFinite(amount) ? amount : 0,
+    date:
+      item.issuedAt ??
+      item.date ??
+      item.createdAt ??
+      item.payment?.verifiedAt ??
+      item.payment?.createdAt ??
+      null,
+    downloadUrl: item.downloadUrl ?? null,
+  };
+}
+
 export default function ReceiptsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,59 +125,84 @@ export default function ReceiptsContent() {
   const [receipts, setReceipts] = useState<StudentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem('student_token');
+    sessionStorage.removeItem('student_account');
+
+    router.replace(
+      `/student/login?tenant=${encodeURIComponent(tenantSlug)}`
+    );
+  }, [router, tenantSlug]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('student_token');
-
-    if (!token) {
-      router.replace(
-        `/student/login?tenant=${encodeURIComponent(tenantSlug)}`
-      );
-      return;
-    }
-
     let cancelled = false;
 
     async function loadReceipts() {
+      const token = sessionStorage.getItem('student_token');
+
+      if (!token) {
+        if (!cancelled) {
+          logout();
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError('');
 
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+        const apiBaseUrl = (
+          process.env.NEXT_PUBLIC_API_URL || ''
+        ).replace(/\/+$/, '');
 
-        // Keep your existing receipts API endpoint.
         const response = await fetch(
-          `${API_BASE_URL}/api/hostel/student/receipts`,
+          `${apiBaseUrl}/api/hostel/receipts?page=1&limit=25`,
           {
+            method: 'GET',
             headers: {
               Accept: 'application/json',
               Authorization: `Bearer ${token}`,
+              ...(tenantSlug
+                ? { 'x-tenant-slug': tenantSlug }
+                : {}),
             },
+            cache: 'no-store',
           }
         );
 
-        if (!response.ok) {
-          throw new Error('Unable to load receipts.');
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(
+            'Your student session could not be authenticated. Please log in again if your session has expired.'
+          );
         }
 
-        const result = await response.json();
+        if (!response.ok) {
+          const responseText = await response.text();
 
-        // Support array responses and { receipts: [...] } responses.
-        const items = Array.isArray(result)
-          ? result
-          : Array.isArray(result?.receipts)
-            ? result.receipts
-            : [];
+          throw new Error(
+            `Receipts API (${response.status}): ${
+              responseText || response.statusText
+            }`
+          );
+        }
+
+        const result: ReceiptApiResponse = await response.json();
+        const items = extractReceipts(result)
+          .map(mapReceipt)
+          .filter((receipt) => receipt.id);
 
         if (!cancelled) {
           setReceipts(items);
         }
       } catch (err) {
         if (!cancelled) {
+          setReceipts([]);
           setError(
             err instanceof Error
               ? err.message
-              : 'Unable to load receipts.'
+              : 'Unable to load receipts. Please try again.'
           );
         }
       } finally {
@@ -89,16 +217,7 @@ export default function ReceiptsContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, tenantSlug]);
-
-  const logout = () => {
-    sessionStorage.removeItem('student_token');
-    sessionStorage.removeItem('student_account');
-
-    router.replace(
-      `/student/login?tenant=${encodeURIComponent(tenantSlug)}`
-    );
-  };
+  }, [logout, refreshKey, tenantSlug]);
 
   const formatAmount = (amount: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -134,26 +253,47 @@ export default function ReceiptsContent() {
         </h1>
 
         <p className="mt-2 text-sm text-[#536579]">
-          View and download your hostel payment receipts.
+          View your hostel payment receipts.
         </p>
 
         <div className="mt-8 rounded-2xl border border-[#E7E2D8] bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <ReceiptText className="text-[#15563A]" size={22} />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <ReceiptText
+                className="text-[#15563A]"
+                size={22}
+              />
 
-            <h2 className="text-lg font-bold text-[#102033]">
-              Your Receipts
-            </h2>
+              <h2 className="text-lg font-bold text-[#102033]">
+                Your Receipts
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setRefreshKey((key) => key + 1)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#E7E2D8] px-3 py-2 text-xs font-bold text-[#536579] hover:bg-[#FCFCFB] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                size={14}
+                className={loading ? 'animate-spin' : ''}
+              />
+              Refresh
+            </button>
           </div>
 
           {error && (
-            <div className="mt-5 rounded-xl border border-[#F1D1CE] bg-[#FFF5F3] p-4 text-sm text-[#A33A32]">
-              {error}
+            <div
+              role="alert"
+              className="mt-5 rounded-xl border border-[#F1D1CE] bg-[#FFF5F3] p-4 text-sm text-[#A33A32]"
+            >
+              <p>{error}</p>
 
               <button
                 type="button"
-                onClick={() => window.location.reload()}
-                className="ml-2 inline-flex items-center gap-1 font-bold underline"
+                onClick={() => setRefreshKey((key) => key + 1)}
+                className="mt-3 inline-flex items-center gap-1 font-bold underline"
               >
                 <RefreshCw size={13} />
                 Retry
@@ -174,8 +314,8 @@ export default function ReceiptsContent() {
                   key={receipt.id}
                   className="flex flex-col gap-4 rounded-xl border border-[#E7E2D8] p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
-                    <p className="font-bold text-[#102033]">
+                  <div className="min-w-0">
+                    <p className="break-all font-bold text-[#102033]">
                       Receipt #{receipt.receiptNumber}
                     </p>
 
@@ -184,13 +324,21 @@ export default function ReceiptsContent() {
                     </p>
 
                     <p className="mt-1 text-xs text-[#7A8794]">
-                      {receipt.date
-                        ? new Date(receipt.date).toLocaleDateString('en-IN')
+                      {receipt.date &&
+                      !Number.isNaN(Date.parse(receipt.date))
+                        ? new Date(receipt.date).toLocaleDateString(
+                            'en-IN',
+                            {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            }
+                          )
                         : 'Date not available'}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between gap-4 sm:justify-end">
+                  <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-end">
                     <p className="font-bold text-[#15563A]">
                       {formatAmount(receipt.amount)}
                     </p>

@@ -260,6 +260,7 @@ export type HostelRepository = {
     tenantId: string;
     hostelId: string;
     leadId: string;
+    admissionRequestId: string;
     name: string;
     email?: string;
     phone: string;
@@ -270,6 +271,12 @@ export type HostelRepository = {
     admissionDate: Date;
     roomId?: string;
     bedId?: string;
+    actorId?: string;
+  }): Promise<unknown>;
+    reissueStudentPasskey(input: {
+    tenantId: string;
+    studentId: string;
+    hostelId?: string;
     actorId?: string;
   }): Promise<unknown>;
   createStudent(input: {
@@ -646,6 +653,23 @@ getFeeCollectionSummary(input: {
 };
 
 export class HostelPropertyPrismaRepository implements HostelRepository {
+  private async acquireAdvisoryTransactionLock(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    lockKey: string,
+  ) {
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH advisory_lock AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(
+          hashtext(${tenantId}),
+          hashtext(${lockKey})
+        )
+      )
+      SELECT 1::int AS locked
+      FROM advisory_lock
+    `;
+  }
+
   private async applyFeeToStudent(
     tx: Prisma.TransactionClient,
     fee: {
@@ -729,20 +753,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             ],
           };
 
-    // await tx.$executeRaw<Array<{ pg_advisory_xact_lock: null }>>`
-    //   SELECT pg_advisory_xact_lock(hashtext(${student.tenantId}), hashtext(${billingLockKey}))
-    // `;
-
-    await tx.$queryRaw<Array<{ locked: number }>>`
-      WITH advisory_lock AS MATERIALIZED (
-        SELECT pg_advisory_xact_lock(
-          hashtext(${student.tenantId}),
-          hashtext(${billingLockKey})
-        )
-      )
-      SELECT 1::int AS locked
-      FROM advisory_lock
-    `;
+    await this.acquireAdvisoryTransactionLock(tx, student.tenantId, billingLockKey);
 
     const alreadyGenerated = await tx.hostelFeeAssignment.findFirst({
       where: { tenantId: student.tenantId, billingKey },
@@ -958,8 +969,8 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             issuedAt,
           ),
           {
-            maxWait: 5000,
-            timeout: 15000,
+            maxWait: 10000,
+            timeout: 60000,
           },
         );
       }
@@ -1153,9 +1164,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       if (!hostel) throw new Error('Hostel not found');
 
       const categoryLockKey = `fee-category:${input.hostelId}:${input.type}`;
-      await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
-        SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${categoryLockKey}))
-      `;
+      await this.acquireAdvisoryTransactionLock(tx, input.tenantId, categoryLockKey);
 
       await tx.hostelFee.updateMany({
         where: {
@@ -1235,9 +1244,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       if (input.isActive !== false && (input.isActive === true || input.type)) {
         const nextType = input.type ?? existing.type;
         const categoryLockKey = `fee-category:${existing.hostelId}:${nextType}`;
-        await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
-          SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${categoryLockKey}))
-        `;
+        await this.acquireAdvisoryTransactionLock(tx, input.tenantId, categoryLockKey);
         await tx.hostelFee.updateMany({
           where: {
             tenantId: input.tenantId,
@@ -2214,7 +2221,15 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           vacancyStatus,
         },
       });
-      await this.syncRoomBedState(tx, input.tenantId, room.id);
+      await this.syncRoomBedState(
+        tx,
+        input.tenantId,
+        room.id,
+        {
+          isActive,
+          status,
+        },
+      );
       return tx.room.findUnique({
         where: { id: room.id },
         include: { beds: { where: { status: { not: 'INACTIVE' } }, orderBy: { bedNumber: 'asc' } } },
@@ -2283,20 +2298,29 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
 
   private async withAllocationRetry<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
-    timeout = 15_000,
+    // set timeout to 60 seconds to allow for retries in case of deadlocks
+    timeout = 60_000,
   ): Promise<T> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         return await prisma.$transaction(operation, {
           isolationLevel: 'Serializable',
+          // set maxWait to 10 seconds to avoid long waits in case of deadlocks
+          maxWait: 10_000,
           timeout,
         });
       } catch (error: unknown) {
         const code =
-          typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
-        if (code !== 'P2034' || attempt === 2) throw error;
+          typeof error === 'object' && error !== null && 'code' in error
+            ? error.code
+            : undefined;
+
+        if (code !== 'P2034' || attempt === 2) {
+          throw error;
+        }
       }
     }
+
     throw new Error('Allocation transaction failed');
   }
 
@@ -2304,21 +2328,49 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tx: Prisma.TransactionClient,
     tenantId: string,
     roomId: string,
+    roomState?: {
+      isActive: boolean;
+      status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'INACTIVE';
+    },
   ) {
-    const beds = await tx.roomBed.findMany({
-      where: { tenantId, roomId, status: { not: 'INACTIVE' } },
-      select: { status: true },
-    });
-    const occupied = beds.filter((bed) => bed.status === 'OCCUPIED').length;
-    const reserved = beds.filter((bed) => bed.status === 'RESERVED').length;
-    const available = beds.filter((bed) => bed.status === 'AVAILABLE').length;
-    const room = await tx.room.findFirst({ where: { id: roomId, tenantId } });
+    const [counts, currentRoom] = await Promise.all([
+      tx.roomBed.groupBy({
+        by: ['status'],
+        where: {
+          tenantId,
+          roomId,
+          status: { not: 'INACTIVE' },
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+      roomState
+        ? Promise.resolve(roomState)
+        : tx.room.findFirst({
+            where: { id: roomId, tenantId },
+            select: { isActive: true, status: true },
+          }),
+    ]);
 
-    if (!room) throw new Error('Room not found');
+    if (!currentRoom) {
+      throw new Error('Room not found');
+    }
 
-    const unavailable = !room.isActive || room.status === 'MAINTENANCE' || room.status === 'INACTIVE';
+    const countFor = (status: string) =>
+      counts.find((item) => item.status === status)?._count._all ?? 0;
+
+    const occupied = countFor('OCCUPIED');
+    const reserved = countFor('RESERVED');
+    const available = countFor('AVAILABLE');
+
+    const unavailable =
+      !currentRoom.isActive ||
+      currentRoom.status === 'MAINTENANCE' ||
+      currentRoom.status === 'INACTIVE';
+
     await tx.room.update({
-      where: { id: room.id },
+      where: { id: roomId },
       data: {
         occupancy: occupied,
         vacancyStatus: unavailable
@@ -2851,6 +2903,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     tenantId: string;
     hostelId: string;
     leadId: string;
+    admissionRequestId: string;
     name: string;
     email?: string;
     phone: string;
@@ -2881,27 +2934,33 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         where: { tenantId: input.tenantId, enquiryLeadId: lead.id },
       });
       if (linkedStudent) {
-        await this.applyActiveFeesToStudent(
-          tx,
-          linkedStudent.id,
-          input.tenantId,
-          input.hostelId,
-          new Date(),
-        );
-        const updatedStudent = await tx.student.findUnique({
-          where: { id: linkedStudent.id },
+        // A retry is valid only when it uses the original admission request ID.
+        if (linkedStudent.admissionRequestId !== input.admissionRequestId) {
+          throw new Error(
+            'This enquiry has already been converted to an admission.',
+          );
+        }
+
+        const priorBed = await tx.roomBed.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            studentId: linkedStudent.id,
+            status: 'RESERVED',
+          },
+          select: { id: true },
         });
-        if (!updatedStudent) throw new Error('Converted student record was not found');
-        return { student: updatedStudent, alreadyConverted: true };
+
+        return {
+          student: linkedStudent,
+          existingStudent: true,
+          alreadyConverted: false,
+          bedReserved: Boolean(priorBed),
+          idempotentRetry: true,
+        };
       }
 
       const normalizedPhone = input.phone.replace(/\D/g, '');
-      await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
-        SELECT pg_advisory_xact_lock(
-          hashtext(${input.tenantId}),
-          hashtext(${normalizedPhone})
-        )
-      `;
+      await this.acquireAdvisoryTransactionLock(tx, input.tenantId, normalizedPhone);
 
       const duplicateStudents = await tx.$queryRaw<Array<{
         id: string;
@@ -2917,11 +2976,29 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         LIMIT 1
       `;
       const duplicate = duplicateStudents[0];
+
       if (duplicate && duplicate.hostelId !== input.hostelId) {
-        throw new Error('This student already has an admission under another hostel');
+        throw new Error(
+          'This student already has an admission under another hostel'
+        );
       }
+
       if (duplicate?.enquiryLeadId && duplicate.enquiryLeadId !== lead.id) {
         throw new Error('This student is already linked to another enquiry');
+      }
+
+      if (duplicate) {
+        const existingStudent = await tx.student.findFirst({
+          where: {
+            id: duplicate.id,
+            tenantId: input.tenantId,
+            hostelId: input.hostelId,
+          },
+        });
+
+        if (!existingStudent) {
+          throw new Error('Existing student record was not found');
+        }
       }
 
       let student;
@@ -2934,7 +3011,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         });
         existingStudent = true;
       } else {
-        temporaryPasskey = randomBytes(6).toString('base64url').slice(0, 10);
+        temporaryPasskey = randomBytes(8).toString('base64url').slice(0, 10);
         const passwordHash = hashPassword(temporaryPasskey);
         const admissionYear = input.admissionDate.getUTCFullYear();
         const [counter] = await tx.$queryRaw<Array<{ lastValue: number }>>`
@@ -2950,6 +3027,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
         student = await tx.student.create({
           data: {
             admissionNumber,
+            admissionRequestId: input.admissionRequestId,
             name: input.name,
             email: input.email,
             phone: input.phone,
@@ -3107,7 +3185,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     paymentStatus: 'PAID' | 'PARTIAL' | 'DUE' | 'OVERDUE';
     status: 'ACTIVE' | 'INACTIVE' | 'GRADUATED' | 'ARCHIVED';
   }) {
-    const temporaryPasskey = randomBytes(6)
+    const temporaryPasskey = randomBytes(8)
       .toString('base64url')
       .slice(0, 10);
 
@@ -3152,10 +3230,10 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
 
         const normalizedPhone = input.phone?.replace(/\D/g, '');
         if (normalizedPhone) {
-          await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
-            SELECT pg_advisory_xact_lock(hashtext(${input.tenantId}), hashtext(${normalizedPhone}))
-          `;
-          const matchingStudent = await tx.$queryRaw<Array<{ id: string; admissionNumber: string }>>`
+          await this.acquireAdvisoryTransactionLock(tx, input.tenantId, normalizedPhone);
+          const matchingStudent = await tx.$queryRaw<
+            Array<{ id: string; admissionNumber: string }>
+          >`
             SELECT "id", "admissionNumber"
             FROM "Student"
             WHERE "tenantId" = ${input.tenantId}
@@ -3163,8 +3241,34 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             ORDER BY "createdAt" ASC
             LIMIT 1
           `;
-          if (matchingStudent[0]) {
-            throw new Error(`A student with this phone is already admitted (${matchingStudent[0].admissionNumber})`);
+
+          if (matchingStudent.length > 0) {
+            const existingStudent = await tx.student.findFirst({
+              where: {
+                id: matchingStudent[0].id,
+                tenantId: input.tenantId,
+              },
+            });
+
+            if (!existingStudent) {
+              throw new Error("Existing student record could not be found.");
+            }
+
+            // Do not silently reuse a student from another hostel.
+            if (existingStudent.hostelId !== input.hostelId) {
+              throw new Error(
+                "This phone number is already registered under another hostel."
+              );
+            }
+
+            // Reuse the original student. Do not create a new admission number,
+            // overwrite the student's name, create an account, or allocate another bed.
+            return {
+              student: existingStudent,
+              temporaryPasskey: null,
+              existingStudent: true,
+              bedReserved: false,
+            };
           }
         }
 
@@ -3286,7 +3390,7 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
           existingStudent: false,
           bedReserved: Boolean(bed),
         };
-      }, 15_000);
+      }, 60_000); // 60 seconds timeout for advisory lock
     } catch (error: unknown) {
       const priorRequest = await prisma.student.findFirst({
         where: { tenantId: input.tenantId, admissionRequestId: input.admissionRequestId },
@@ -3308,6 +3412,74 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
       if (priorRequest) throw new Error('Admission request key has already been used');
       throw error;
     }
+  }
+
+  async reissueStudentPasskey(input: {
+    tenantId: string;
+    studentId: string;
+    hostelId?: string;
+    actorId?: string;
+  }) {
+    const temporaryPasskey = randomBytes(8)
+      .toString('base64url')
+      .slice(0, 10);
+
+    const passwordHash = hashPassword(temporaryPasskey);
+
+    return prisma.$transaction(async (tx) => {
+      const student = await tx.student.findFirst({
+        where: {
+          id: input.studentId,
+          tenantId: input.tenantId,
+          ...(input.hostelId ? { hostelId: input.hostelId } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
+          admissionNumber: true,
+          hostelId: true,
+          status: true,
+        },
+      });
+
+      if (!student) {
+        throw new Error('Student not found in this tenant or hostel');
+      }
+
+      if (student.status !== 'ACTIVE') {
+        throw new Error('Cannot reissue a passkey for an inactive student');
+      }
+
+      const account = await tx.studentAccount.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          studentId: student.id,
+          isActive: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!account) {
+        throw new Error('Active student login account not found');
+      }
+
+      await tx.studentAccount.update({
+        where: {
+          id: account.id,
+        },
+        data: {
+          passwordHash,
+        },
+      });
+
+      return {
+        student,
+        temporaryPasskey,
+        passkeyReissued: true,
+      };
+    });
   }
 
   async updateStudent(input: {
@@ -3589,20 +3761,143 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
     actorId: string;
     idempotencyKey: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findFirst({
-        where: { id: input.id, tenantId: input.tenantId },
-        include: { student: true, receipt: true },
-      });
+    return prisma.$transaction(
+      async (tx) => {
+        const payment = await tx.payment.findFirst({
+          where: { id: input.id, tenantId: input.tenantId },
+          include: { student: true, receipt: true },
+        });
 
-      if (!payment) throw new Error('Payment not found');
+        if (!payment) throw new Error('Payment not found');
 
-      if (
-        payment.verifyIdempotencyKey === input.idempotencyKey &&
-        payment.receipt
-      ) {
-        return tx.payment.findFirst({
-          where: { id: payment.id, tenantId: input.tenantId },
+        if (
+          payment.verifyIdempotencyKey === input.idempotencyKey &&
+          payment.receipt
+        ) {
+          return tx.payment.findFirst({
+            where: { id: payment.id, tenantId: input.tenantId },
+            include: {
+              receipt: true,
+              invoiceAllocations: {
+                include: {
+                  invoice: true,
+                },
+              },
+            },
+          });
+        }
+
+        if (!['SUBMITTED', 'VERIFYING'].includes(payment.status)) {
+          throw new Error('Payment must be submitted before verification');
+        }
+
+        if (payment.amount.gt(payment.student.outstandingAmount)) {
+          throw new Error('Payment exceeds the current outstanding amount');
+        }
+
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: 'VERIFYING' },
+        });
+
+        const invoices = await tx.hostelInvoice.findMany({
+          where: {
+            tenantId: input.tenantId,
+            studentId: payment.studentId,
+            status: {
+              in: ['ISSUED', 'PARTIALLY_PAID'],
+            },
+            balanceAmount: { gt: 0 },
+          },
+          orderBy: [
+            { issueDate: 'asc' },
+            { createdAt: 'asc' },
+          ],
+        });
+
+        let remainingPayment = payment.amount;
+
+        if (invoices.length > 0) {
+          const totalInvoiceBalance = invoices.reduce(
+            (sum, invoice) => sum.add(invoice.balanceAmount),
+            new Prisma.Decimal(0),
+          );
+
+          if (totalInvoiceBalance.lt(payment.amount)) {
+            throw new Error(
+              "Payment exceeds the total balance of the student's open invoices",
+            );
+          }
+
+          for (const invoice of invoices) {
+            if (remainingPayment.lte(0)) break;
+
+            const allocationAmount = remainingPayment.lt(invoice.balanceAmount)
+              ? remainingPayment
+              : invoice.balanceAmount;
+
+            if (allocationAmount.lte(0)) continue;
+
+            await tx.hostelInvoicePayment.create({
+              data: {
+                tenantId: input.tenantId,
+                invoiceId: invoice.id,
+                paymentId: payment.id,
+                amount: allocationAmount,
+              },
+            });
+
+            const paidAmount = invoice.paidAmount.add(allocationAmount);
+            const balanceAmount = invoice.totalAmount.sub(paidAmount);
+
+            await tx.hostelInvoice.update({
+              where: { id: invoice.id },
+              data: {
+                paidAmount,
+                balanceAmount: balanceAmount.gt(0)
+                  ? balanceAmount
+                  : new Prisma.Decimal(0),
+                status: balanceAmount.lte(0) ? 'PAID' : 'PARTIALLY_PAID',
+              },
+            });
+
+            remainingPayment = remainingPayment.sub(allocationAmount);
+          }
+        }
+
+        const remainingOutstanding = payment.student.outstandingAmount.sub(
+          payment.amount,
+        );
+
+        await tx.student.update({
+          where: { id: payment.studentId },
+          data: {
+            outstandingAmount: { decrement: payment.amount },
+            paymentStatus: remainingOutstanding.gt(0) ? 'PARTIAL' : 'PAID',
+          },
+        });
+
+        const receipt = await tx.paymentReceipt.create({
+          data: {
+            tenantId: input.tenantId,
+            paymentId: payment.id,
+            receiptNumber: `RL-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 8)
+              .toUpperCase()}`,
+            metadata: { verifiedBy: input.actorId },
+          },
+        });
+
+        return tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'PAID',
+            receiptId: receipt.id,
+            verifiedAt: new Date(),
+            verifiedBy: input.actorId,
+            verifyIdempotencyKey: input.idempotencyKey,
+          },
           include: {
             receipt: true,
             invoiceAllocations: {
@@ -3612,129 +3907,12 @@ export class HostelPropertyPrismaRepository implements HostelRepository {
             },
           },
         });
-      }
-
-      if (!['SUBMITTED', 'VERIFYING'].includes(payment.status)) {
-        throw new Error('Payment must be submitted before verification');
-      }
-
-      if (payment.amount.gt(payment.student.outstandingAmount)) {
-        throw new Error('Payment exceeds the current outstanding amount');
-      }
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: 'VERIFYING' },
-      });
-
-      const invoices = await tx.hostelInvoice.findMany({
-        where: {
-          tenantId: input.tenantId,
-          studentId: payment.studentId,
-          status: {
-            in: ['ISSUED', 'PARTIALLY_PAID'],
-          },
-          balanceAmount: { gt: 0 },
-        },
-        orderBy: [
-          { issueDate: 'asc' },
-          { createdAt: 'asc' },
-        ],
-      });
-
-      let remainingPayment = payment.amount;
-
-      if (invoices.length > 0) {
-        const totalInvoiceBalance = invoices.reduce(
-          (sum, invoice) => sum.add(invoice.balanceAmount),
-          new Prisma.Decimal(0),
-        );
-
-        if (totalInvoiceBalance.lt(payment.amount)) {
-          throw new Error(
-            "Payment exceeds the total balance of the student's open invoices",
-          );
-        }
-
-        for (const invoice of invoices) {
-          if (remainingPayment.lte(0)) break;
-
-          const allocationAmount = remainingPayment.lt(invoice.balanceAmount)
-            ? remainingPayment
-            : invoice.balanceAmount;
-
-          if (allocationAmount.lte(0)) continue;
-
-          await tx.hostelInvoicePayment.create({
-            data: {
-              tenantId: input.tenantId,
-              invoiceId: invoice.id,
-              paymentId: payment.id,
-              amount: allocationAmount,
-            },
-          });
-
-          const paidAmount = invoice.paidAmount.add(allocationAmount);
-          const balanceAmount = invoice.totalAmount.sub(paidAmount);
-
-          await tx.hostelInvoice.update({
-            where: { id: invoice.id },
-            data: {
-              paidAmount,
-              balanceAmount: balanceAmount.gt(0)
-                ? balanceAmount
-                : new Prisma.Decimal(0),
-              status: balanceAmount.lte(0) ? 'PAID' : 'PARTIALLY_PAID',
-            },
-          });
-
-          remainingPayment = remainingPayment.sub(allocationAmount);
-        }
-      }
-
-      const remainingOutstanding = payment.student.outstandingAmount.sub(
-        payment.amount,
-      );
-
-      await tx.student.update({
-        where: { id: payment.studentId },
-        data: {
-          outstandingAmount: { decrement: payment.amount },
-          paymentStatus: remainingOutstanding.gt(0) ? 'PARTIAL' : 'PAID',
-        },
-      });
-
-      const receipt = await tx.paymentReceipt.create({
-        data: {
-          tenantId: input.tenantId,
-          paymentId: payment.id,
-          receiptNumber: `RL-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)
-            .toUpperCase()}`,
-          metadata: { verifiedBy: input.actorId },
-        },
-      });
-
-      return tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'PAID',
-          receiptId: receipt.id,
-          verifiedAt: new Date(),
-          verifiedBy: input.actorId,
-          verifyIdempotencyKey: input.idempotencyKey,
-        },
-        include: {
-          receipt: true,
-          invoiceAllocations: {
-            include: {
-              invoice: true,
-            },
-          },
-        },
-      });
-    });
+      },
+      {
+        maxWait: 10000,
+        timeout: 60000,
+      },
+    );
   }
 
   async rejectPayment(input: {
